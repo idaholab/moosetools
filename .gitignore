@@ -1,0 +1,6 @@
+# HIT
+contrib/hit/hit
+contrib/hit/hit.dSYM
+
+# Emacs
+*.~*~
