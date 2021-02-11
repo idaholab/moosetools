@@ -4,3 +4,6 @@ contrib/hit/hit.dSYM
 
 # Emacs
 *.~*~
+
+# GTEST
+contrib/gtest/.libs
