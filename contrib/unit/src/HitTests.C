@@ -8,9 +8,7 @@
 //* https://www.gnu.org/licenses/lgpl-2.1.html
 
 #include "hit.h"
-#include "Parser.h"
-
-#include "gtest_include.h"
+#include "gtest/gtest.h"
 
 #include <iostream>
 #include <vector>
@@ -381,8 +379,6 @@ TEST(HitTests, BraceExpressions)
       hit::BraceExpander exw("TEST");
       hit::RawEvaler raw;
       hit::ReplaceEvaler repl;
-      FuncParseEvaler fparse_ev;
-      exw.registerEvaler("fparse", fparse_ev);
       exw.registerEvaler("raw", raw);
       exw.registerEvaler("replace", repl);
       root->walk(&exw);
