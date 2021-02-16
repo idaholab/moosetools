@@ -1,3 +1,7 @@
+# Python
+__pycache__
+*.pyc
+
 # CONTRIB
 contrib/hit/hit
 contrib/hit/hit.dSYM
