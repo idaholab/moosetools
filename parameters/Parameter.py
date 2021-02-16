@@ -9,7 +9,7 @@
 import textwrap
 import inspect
 import logging
-import mooseutils
+
 LOG = logging.getLogger(__file__)
 
 class Parameter(object):
@@ -209,7 +209,7 @@ class Parameter(object):
         from .InputParameters import InputParameters
         is_sub_option = (self.__vtype is not None) and (InputParameters in self.__vtype) and (self.__value is not None)
 
-        out = [mooseutils.colorText(self.__name, 'LIGHT_YELLOW')]
+        out = [self.__name]
         if prefix is not None:
             out[0] = '{} | {}{}'.format(out[0], prefix, self.__name) if prefix else out[0]
 
@@ -218,7 +218,7 @@ class Parameter(object):
             wrapper.initial_indent = ' '*2
             wrapper.subsequent_indent = ' '*2
             wrapper.width = 100
-            out += [mooseutils.colorText(w, 'GREY') for w in wrapper.wrap(self.__doc)]
+            out += [w for w in wrapper.wrap(self.__doc)]
 
         if is_sub_option:
             out += [self.__value.toString(prefix=self.__name + '_', level=level+1)]
