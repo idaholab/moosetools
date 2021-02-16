@@ -1,0 +1,18 @@
+#!/usr/bin/env python3
+import os
+import sys
+import unittest
+
+def run_python_unittests():
+    """
+    Run all python unittests.
+    https://stackoverflow.com/a/40437679/1088076
+    """
+    loader = unittest.TestLoader()
+    suite = loader.discover(os.getcwd())
+    runner = unittest.TextTestRunner()
+    return runner.run(suite)
+
+if __name__ == '__main__':
+    result = run_python_unittests()
+    sys.exit(0 if result.wasSuccessful() else 1)
