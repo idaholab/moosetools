@@ -3,6 +3,7 @@ import os
 import sys
 import unittest
 
+
 def run_python_unittests():
     """
     Run all python unittests.
@@ -12,6 +13,7 @@ def run_python_unittests():
     suite = loader.discover(os.getcwd())
     runner = unittest.TextTestRunner()
     return runner.run(suite)
+
 
 if __name__ == '__main__':
     result = run_python_unittests()

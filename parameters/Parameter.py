@@ -12,6 +12,7 @@ import logging
 
 LOG = logging.getLogger(__file__)
 
+
 class Parameter(object):
     """
     Storage container for an "param" that can be type checked, restricted, and documented.
@@ -35,24 +36,33 @@ class Parameter(object):
         verify[tuple]: Define a custom verify function and error message. The first item must
                        be a callable function with a single argument, the second item must be a str.
     """
-    def __init__(self, name, default=None, doc=None, vtype=None, allow=None, size=None,
-                 array=False, required=False, private=None, verify=None):
+    def __init__(self,
+                 name,
+                 default=None,
+                 doc=None,
+                 vtype=None,
+                 allow=None,
+                 size=None,
+                 array=False,
+                 required=False,
+                 private=None,
+                 verify=None):
 
         # Force vtype to be a tuple to allow multiple types to be defined
         if isinstance(vtype, type):
-            vtype = (vtype,)
+            vtype = (vtype, )
 
-        self.__name = name         # option name
-        self.__value = None        # current value
-        self.__default = default   # default value
-        self.__vtype = vtype       # option type
-        self.__allow = allow       # list of allowed values
-        self.__doc = doc           # documentation string
-        self.__array = array       # create an array
-        self.__size = size         # array size
-        self.__required = required # see validate()
-        self.__verify = verify     # verification function
-        self.__set_by_user = False # flag indicating if the parameter was set after construction
+        self.__name = name  # option name
+        self.__value = None  # current value
+        self.__default = default  # default value
+        self.__vtype = vtype  # option type
+        self.__allow = allow  # list of allowed values
+        self.__doc = doc  # documentation string
+        self.__array = array  # create an array
+        self.__size = size  # array size
+        self.__required = required  # see validate()
+        self.__verify = verify  # verification function
+        self.__set_by_user = False  # flag indicating if the parameter was set after construction
 
         if not isinstance(self.__name, str):
             msg = "The supplied 'name' argument must be a 'str', but {} was provided."
@@ -100,13 +110,17 @@ class Parameter(object):
             msg = "The supplied 'verify' argument must be a 'tuple' with two items a callable function and 'str' error message, but {} with {} items was provided."
             raise TypeError(msg.format(type(self.__verify), len(self.__verify)))
 
-        if (self.__verify is not None) and (not (inspect.isfunction(self.__verify[0]) or inspect.ismethod(self.__verify[0]))):
+        if (self.__verify is not None) and (not (inspect.isfunction(self.__verify[0])
+                                                 or inspect.ismethod(self.__verify[0]))):
             msg = "The first item in the 'verify' argument tuple must be a callable function with a single argument, but {} was provided"
             raise TypeError(msg.format(type(self.__verify[0])))
 
-        if (self.__verify is not None) and (len(inspect.signature(self.__verify[0]).parameters) != 1):
+        if (self.__verify
+                is not None) and (len(inspect.signature(self.__verify[0]).parameters) != 1):
             msg = "The first item in the 'verify' argument tuple must be a callable function with a single argument, but {} was provided that has {} arguments."
-            raise TypeError(msg.format(type(self.__verify[0]), len(inspect.signature(self.__verify[0]).parameters)))
+            raise TypeError(
+                msg.format(type(self.__verify[0]),
+                           len(inspect.signature(self.__verify[0]).parameters)))
 
         if (self.__verify is not None) and (not isinstance(self.__verify[1], str)):
             msg = "The second item in the 'verify' argument tuple must be a string, but {} was provided"
@@ -117,7 +131,7 @@ class Parameter(object):
 
         if default is not None:
             self.value = default
-            self.__set_by_user = False # override self.value setting of this
+            self.__set_by_user = False  # override self.value setting of this
 
     @property
     def name(self):
@@ -207,7 +221,9 @@ class Parameter(object):
     def toString(self, prefix='', level=0):
         """Create a string of Parameter information."""
         from .InputParameters import InputParameters
-        is_sub_option = (self.__vtype is not None) and (InputParameters in self.__vtype) and (self.__value is not None)
+        is_sub_option = (self.__vtype is not None) and (InputParameters
+                                                        in self.__vtype) and (self.__value
+                                                                              is not None)
 
         out = [self.__name]
         if prefix is not None:
@@ -215,13 +231,13 @@ class Parameter(object):
 
         if self.__doc is not None:
             wrapper = textwrap.TextWrapper()
-            wrapper.initial_indent = ' '*2
-            wrapper.subsequent_indent = ' '*2
+            wrapper.initial_indent = ' ' * 2
+            wrapper.subsequent_indent = ' ' * 2
             wrapper.width = 100
             out += [w for w in wrapper.wrap(self.__doc)]
 
         if is_sub_option:
-            out += [self.__value.toString(prefix=self.__name + '_', level=level+1)]
+            out += [self.__value.toString(prefix=self.__name + '_', level=level + 1)]
 
         else:
             out += ['  Value:   {}'.format(repr(self.value))]
@@ -234,11 +250,11 @@ class Parameter(object):
             if self.__allow is not None:
                 wrapper = textwrap.TextWrapper()
                 wrapper.initial_indent = '  Allow:   '
-                wrapper.subsequent_indent = ' '*len(wrapper.initial_indent)
+                wrapper.subsequent_indent = ' ' * len(wrapper.initial_indent)
                 wrapper.width = 100 - len(wrapper.initial_indent)
                 out += wrapper.wrap(repr(self.__allow))
 
-        return textwrap.indent('\n'.join(out), ' '*2*level)
+        return textwrap.indent('\n'.join(out), ' ' * 2 * level)
 
     def __check(self, val):
         """

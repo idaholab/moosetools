@@ -14,8 +14,8 @@ import unittest
 import logging
 from parameters import Parameter
 
-class TestParameter(unittest.TestCase):
 
+class TestParameter(unittest.TestCase):
     def testMinimal(self):
         opt = Parameter('foo')
         self.assertEqual(opt.name, 'foo')
@@ -45,7 +45,8 @@ class TestParameter(unittest.TestCase):
         with self.assertLogs(level=logging.WARNING) as cm:
             opt.default = 'nope'
         self.assertEqual(len(cm.output), 1)
-        self.assertIn("'bar' must be of type (<class 'int'>,) but <class 'str'> provided.", cm.output[0])
+        self.assertIn("'bar' must be of type (<class 'int'>,) but <class 'str'> provided.",
+                      cm.output[0])
 
     def testAllow(self):
         opt = Parameter('foo', allow=(1, 'two'))
@@ -61,7 +62,9 @@ class TestParameter(unittest.TestCase):
         with self.assertLogs(level=logging.WARNING) as cm:
             opt.value = 4
         self.assertEqual(len(cm.output), 1)
-        self.assertIn("Attempting to set 'foo' to a value of 4 but only the following are allowed: (1, 'two')", cm.output[0])
+        self.assertIn(
+            "Attempting to set 'foo' to a value of 4 but only the following are allowed: (1, 'two')",
+            cm.output[0])
 
     def testType(self):
         opt = Parameter('foo', vtype=int)
@@ -74,11 +77,12 @@ class TestParameter(unittest.TestCase):
         with self.assertLogs(level=logging.WARNING) as cm:
             opt.value = 's'
         self.assertEqual(len(cm.output), 1)
-        self.assertIn("'foo' must be of type (<class 'int'>,) but <class 'str'> provided.", cm.output[0])
+        self.assertIn("'foo' must be of type (<class 'int'>,) but <class 'str'> provided.",
+                      cm.output[0])
 
     def testTypeWithAllow(self):
 
-        opt = Parameter('foo', vtype=int, allow=(1,2))
+        opt = Parameter('foo', vtype=int, allow=(1, 2))
         self.assertIsNone(opt.default)
         self.assertIsNone(opt.value)
 
@@ -92,33 +96,41 @@ class TestParameter(unittest.TestCase):
             opt.value = 4
         self.assertEqual(len(cm.output), 1)
 
-        self.assertIn("Attempting to set 'foo' to a value of 4 but only the following are allowed: (1, 2)", cm.output[0])
+        self.assertIn(
+            "Attempting to set 'foo' to a value of 4 but only the following are allowed: (1, 2)",
+            cm.output[0])
         self.assertEqual(opt.value, 1)
 
     def testAllowWithTypeError(self):
 
         with self.assertRaises(TypeError) as e:
             Parameter('foo', allow='wrong')
-        self.assertIn("The supplied 'allow' argument must be a 'tuple', but <class 'str'> was provided.", str(e.exception))
+        self.assertIn(
+            "The supplied 'allow' argument must be a 'tuple', but <class 'str'> was provided.",
+            str(e.exception))
 
         with self.assertRaises(TypeError) as e:
-            Parameter('foo', vtype=int, allow=(1,'2'))
-        self.assertIn("The supplied 'allow' argument must be a 'tuple' of (<class 'int'>,) items, but a <class 'str'> item was provided.", str(e.exception))
+            Parameter('foo', vtype=int, allow=(1, '2'))
+        self.assertIn(
+            "The supplied 'allow' argument must be a 'tuple' of (<class 'int'>,) items, but a <class 'str'> item was provided.",
+            str(e.exception))
 
     def testArray(self):
-        opt = Parameter('foo', default=(1,2), array=True)
+        opt = Parameter('foo', default=(1, 2), array=True)
         self.assertEqual(opt._Parameter__array, True)
-        self.assertEqual(opt.value, (1,2))
+        self.assertEqual(opt.value, (1, 2))
 
         with self.assertLogs(level=logging.WARNING) as cm:
             opt.value = 4
-        self.assertIn("'foo' was defined as an array, which require <class 'tuple'> for assignment, but a <class 'int'> was provided.", cm.output[0])
+        self.assertIn(
+            "'foo' was defined as an array, which require <class 'tuple'> for assignment, but a <class 'int'> was provided.",
+            cm.output[0])
 
         opt.value = (3, 4)
-        self.assertEqual(opt.value, (3,4))
+        self.assertEqual(opt.value, (3, 4))
 
         opt.value = ('1', )
-        self.assertEqual(opt.value, ('1',))
+        self.assertEqual(opt.value, ('1', ))
 
         opt = Parameter('foo', vtype=int, array=True)
         self.assertEqual(opt._Parameter__array, True)
@@ -127,16 +139,20 @@ class TestParameter(unittest.TestCase):
         with self.assertLogs(level=logging.WARNING) as cm:
             opt.value = 4
         self.assertEqual(len(cm.output), 1)
-        self.assertIn("'foo' was defined as an array, which require <class 'tuple'> for assignment, but a <class 'int'> was provided.", cm.output[0])
+        self.assertIn(
+            "'foo' was defined as an array, which require <class 'tuple'> for assignment, but a <class 'int'> was provided.",
+            cm.output[0])
 
         with self.assertLogs(level=logging.WARNING) as cm:
             opt.value = ('x', )
         self.assertEqual(len(cm.output), 1)
-        self.assertIn("The values within 'foo' must be of type (<class 'int'>,) but <class 'str'> provided.", cm.output[0])
+        self.assertIn(
+            "The values within 'foo' must be of type (<class 'int'>,) but <class 'str'> provided.",
+            cm.output[0])
         self.assertIsNone(opt.value)
 
         opt.value = (1, )
-        self.assertEqual(opt.value, (1,))
+        self.assertEqual(opt.value, (1, ))
 
     def testSize(self):
         opt = Parameter('foo', size=4)
@@ -144,8 +160,10 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(opt._Parameter__size, 4)
 
         with self.assertLogs(level=logging.WARNING) as cm:
-            opt.value = (1,2,3)
-        self.assertIn("'foo' was defined as an array with length 4 but a value with length 3 was provided.", cm.output[0])
+            opt.value = (1, 2, 3)
+        self.assertIn(
+            "'foo' was defined as an array with length 4 but a value with length 3 was provided.",
+            cm.output[0])
 
     def testDoc(self):
         opt = Parameter('foo', doc='This is foo, not bar.')
@@ -156,7 +174,9 @@ class TestParameter(unittest.TestCase):
 
         with self.assertRaises(TypeError) as e:
             Parameter('foo', doc=42)
-        self.assertIn("The supplied 'doc' argument must be a 'str', but <class 'int'> was provided.", str(e.exception))
+        self.assertIn(
+            "The supplied 'doc' argument must be a 'str', but <class 'int'> was provided.",
+            str(e.exception))
 
     def testName(self):
         opt = Parameter('foo')
@@ -167,7 +187,9 @@ class TestParameter(unittest.TestCase):
 
         with self.assertRaises(TypeError) as e:
             Parameter(42)
-        self.assertIn("The supplied 'name' argument must be a 'str', but <class 'int'> was provided.", str(e.exception))
+        self.assertIn(
+            "The supplied 'name' argument must be a 'str', but <class 'int'> was provided.",
+            str(e.exception))
 
     def testRequired(self):
         opt = Parameter('year', required=True)
@@ -177,11 +199,14 @@ class TestParameter(unittest.TestCase):
             retcode = opt.validate()
         self.assertEqual(retcode, 1)
         self.assertEqual(len(cm.output), 1)
-        self.assertIn("The Parameter 'year' is marked as required, but no value is assigned.", cm.output[0])
+        self.assertIn("The Parameter 'year' is marked as required, but no value is assigned.",
+                      cm.output[0])
 
         with self.assertRaises(TypeError) as e:
             Parameter('year', required="wrong")
-        self.assertIn("The supplied 'required' argument must be a 'bool', but <class 'str'> was provided.", str(e.exception))
+        self.assertIn(
+            "The supplied 'required' argument must be a 'bool', but <class 'str'> was provided.",
+            str(e.exception))
 
         opt.value = 1980
         self.assertEqual(opt.validate(), 0)
@@ -243,27 +268,40 @@ class TestParameter(unittest.TestCase):
         with self.assertLogs(level=logging.WARNING) as cm:
             opt.value = 1949
         self.assertEqual(len(cm.output), 1)
-        self.assertIn("Verify function failed with the given value of 1949\nThe year must be greater than 1980.", cm.output[0])
+        self.assertIn(
+            "Verify function failed with the given value of 1949\nThe year must be greater than 1980.",
+            cm.output[0])
 
         with self.assertRaises(TypeError) as e:
             Parameter('year', verify="wrong")
-        self.assertIn("The supplied 'verify' argument must be a 'tuple' with callable function and 'str' error message, but <class 'str'> was provided.", str(e.exception))
+        self.assertIn(
+            "The supplied 'verify' argument must be a 'tuple' with callable function and 'str' error message, but <class 'str'> was provided.",
+            str(e.exception))
 
         with self.assertRaises(TypeError) as e:
             Parameter('year', verify=("wrong", 1, 2))
-        self.assertIn("The supplied 'verify' argument must be a 'tuple' with two items a callable function and 'str' error message, but <class 'tuple'> with 3 items was provided.", str(e.exception))
+        self.assertIn(
+            "The supplied 'verify' argument must be a 'tuple' with two items a callable function and 'str' error message, but <class 'tuple'> with 3 items was provided.",
+            str(e.exception))
 
         with self.assertRaises(TypeError) as e:
             Parameter('year', verify=("wrong", "message"))
-        self.assertIn("The first item in the 'verify' argument tuple must be a callable function with a single argument, but <class 'str'> was provided", str(e.exception))
+        self.assertIn(
+            "The first item in the 'verify' argument tuple must be a callable function with a single argument, but <class 'str'> was provided",
+            str(e.exception))
 
         with self.assertRaises(TypeError) as e:
-            Parameter('year', verify=(lambda x,y: True, "message"))
-        self.assertIn("The first item in the 'verify' argument tuple must be a callable function with a single argument, but <class 'function'> was provided that has 2 arguments.", str(e.exception))
+            Parameter('year', verify=(lambda x, y: True, "message"))
+        self.assertIn(
+            "The first item in the 'verify' argument tuple must be a callable function with a single argument, but <class 'function'> was provided that has 2 arguments.",
+            str(e.exception))
 
         with self.assertRaises(TypeError) as e:
             Parameter('year', verify=(lambda v: True, 42))
-        self.assertIn("The second item in the 'verify' argument tuple must be a string, but <class 'int'> was provided", str(e.exception))
+        self.assertIn(
+            "The second item in the 'verify' argument tuple must be a string, but <class 'int'> was provided",
+            str(e.exception))
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)
