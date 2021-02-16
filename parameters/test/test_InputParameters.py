@@ -13,8 +13,8 @@ import re
 import unittest
 from parameters import InputParameters
 
-class TestInputParameters(unittest.TestCase):
 
+class TestInputParameters(unittest.TestCase):
     def testAdd(self):
         params = InputParameters()
         params.add('foo')
@@ -34,7 +34,9 @@ class TestInputParameters(unittest.TestCase):
         with self.assertLogs(level='WARNING') as log:
             params.add('bar_something')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("Cannot add a parameter with the name 'bar_something', a sub parameter exists with the name 'bar'.", log.output[0])
+        self.assertIn(
+            "Cannot add a parameter with the name 'bar_something', a sub parameter exists with the name 'bar'.",
+            log.output[0])
 
     def testContains(self):
         params = InputParameters()
@@ -165,7 +167,7 @@ class TestInputParameters(unittest.TestCase):
         params2 = InputParameters()
         params2.add('bar')
         params.add('sub', params2)
-        params.set('sub', {'bar':2013})
+        params.set('sub', {'bar': 2013})
         self.assertEqual(params2.get('bar'), 2013)
         self.assertEqual(params.get('sub').get('bar'), 2013)
 
@@ -259,7 +261,7 @@ class TestInputParameters(unittest.TestCase):
         people.set('andrew', 'year', 1949)
         self.assertEqual(andrew.get('year'), 1949)
 
-        people.set('andrew', {'year':1954})
+        people.set('andrew', {'year': 1954})
         self.assertEqual(andrew.get('year'), 1954)
 
         people.set('andrew_year', 1977)
@@ -299,6 +301,7 @@ class TestInputParameters(unittest.TestCase):
 
         self.assertEqual(text.get('font_size'), 24)
         self.assertEqual(text.get('font_unit_name'), 'pts')
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True, exit=False)

@@ -14,6 +14,7 @@ import copy
 
 from .Parameter import Parameter
 
+
 class InputParameters(object):
     """
     A warehouse for creating and storing options
@@ -22,10 +23,10 @@ class InputParameters(object):
 
     class ErrorMode(enum.Enum):
         """Defines the error mode for all instances"""
-        NONE = 0      # disable errors
-        WARNING = 1   # logging.warning
-        ERROR = 2     # logging.error
-        EXCEPTION = 3 # logging.critical and raises InputParametersException
+        NONE = 0  # disable errors
+        WARNING = 1  # logging.warning
+        ERROR = 2  # logging.error
+        EXCEPTION = 3  # logging.critical and raises InputParametersException
 
     class InputParameterException(Exception):
         """Custom Exception used in for ErrorMode.EXCEPTION"""
@@ -36,8 +37,10 @@ class InputParameters(object):
 
     def __init__(self, mode=None):
         self.__parameters = OrderedDict()
-        self.add('_error_mode', default=mode or InputParameters.ErrorMode.WARNING,
-                 vtype=InputParameters.ErrorMode, private=True)
+        self.add('_error_mode',
+                 default=mode or InputParameters.ErrorMode.WARNING,
+                 vtype=InputParameters.ErrorMode,
+                 private=True)
 
     def add(self, *args, **kwargs):
         """
@@ -52,9 +55,11 @@ class InputParameters(object):
 
         if '_' in args[0]:
             group, subname = args[0].split('_', 1)
-            if (group in self.__parameters) and isinstance(self.__parameters[group].value, InputParameters):
-                self.__errorHelper("Cannot add a parameter with the name '{}', "
-                                   "a sub parameter exists with the name '{}'.", args[0], group)
+            if (group in self.__parameters) and isinstance(self.__parameters[group].value,
+                                                           InputParameters):
+                self.__errorHelper(
+                    "Cannot add a parameter with the name '{}', "
+                    "a sub parameter exists with the name '{}'.", args[0], group)
 
         default = kwargs.get('default', None)
         if isinstance(default, InputParameters):
@@ -190,7 +195,8 @@ class InputParameters(object):
             value: The value for setting set the parameter
         """
         param = self._getParameter(*args[:-1])
-        if (param is not None) and isinstance(param.value, InputParameters) and isinstance(args[-1], dict):
+        if (param is not None) and isinstance(param.value, InputParameters) and isinstance(
+                args[-1], dict):
             param.value.update(**args[-1])
         elif param is not None:
             param.value = args[-1]
@@ -226,7 +232,8 @@ class InputParameters(object):
         # Update from InputParameters object
         for opt in args:
             if not isinstance(opt, InputParameters):
-                self.__errorHelper("The supplied arguments must be InputParameters objects or key, value pairs.")
+                self.__errorHelper(
+                    "The supplied arguments must be InputParameters objects or key, value pairs.")
             else:
                 for key in opt.keys():
                     value = opt.get(key)
