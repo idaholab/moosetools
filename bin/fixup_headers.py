@@ -1,55 +1,51 @@
 #!/usr/bin/env python3
-
-# This script checks and can optionally update MOOSE source files.
-# You should always run this script without the "-u" option
-# first to make sure there is a clean dry run of the files that should
-# be updated
-
-import os, string, re, shutil
-from optparse import OptionParser
-
-global_ignores = ['contrib', '.svn', '.git', 'libmesh', 'unity_src']
-
-unified_header = """\
-//* This file is part of the MOOSE framework
-//* https://www.mooseframework.org
-//*
-//* All rights reserved, see COPYRIGHT for full restrictions
-//* https://github.com/idaholab/moose/blob/master/COPYRIGHT
-//*
-//* Licensed under LGPL 2.1, please see LICENSE for details
-//* https://www.gnu.org/licenses/lgpl-2.1.html"""
-
-python_header = """\
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
 #* https://github.com/idaholab/moose/blob/master/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
-#* https://www.gnu.org/licenses/lgpl-2.1.html"""
+#* https://www.gnu.org/licenses/lgpl-2.1.html
 
-global_options = {}
 
-def fixupHeader():
-    for dirpath, dirnames, filenames in os.walk(os.getcwd() + "/../../"):
+import os
+import sys
+import string
+import re
+import shutil
+import subprocess
+import argparse
 
-        # Don't traverse into ignored directories
-        for ignore in global_ignores:
-            if ignore in dirnames:
-                dirnames.remove(ignore)
+def get_options():
+    parser = argparse.ArgumentParser(description='Check/update headers')
+    parser.add_argument("-u", "--update", action="store_true")
+    parser.add_argument("-f", "--force", action="store_true")
+    parser.add_argument('--cpp-header-file', default=os.path.join(os.path.dirname(__file__), '.cpp-header.txt'))
+    parser.add_argument('--python-header-file', default=os.path.join(os.path.dirname(__file__), '.python-header.txt'))
+    parser.add_argument('--exclude', default=list(), nargs='*', help="List of files or directories to exclude")
+    return parser.parse_args()
 
-        #print dirpath
-        #print dirnames
-        for file in filenames:
-            suffix = os.path.splitext(file)
-            if (suffix[-1] == '.C' or suffix[-1] == '.h') and not global_options.python_only:
-                checkAndUpdateCPlusPlus(os.path.abspath(dirpath + '/' + file))
-            if suffix[-1] == '.py' and not global_options.cxx_only:
-                checkAndUpdatePython(os.path.abspath(dirpath + '/' + file))
+def _git_ls_files(exclude=None):
+    """Helper for mocking in tests"""
+    files = subprocess.check_output(['git', 'ls-files'], encoding='utf-8').split('\n')
+    if exclude is not None:
+        files = [f for f in files if not any([f.startswith(e) for e in exclude])]
+    return files
 
-def checkAndUpdateCPlusPlus(filename):
+def main():
+    retcode = 0
+    opt = get_options()
+    for filename in _git_ls_files(opt.exclude):
+        if filename.endswith('.py'):
+            retcode += check_and_update_python(filename, opt.python_header_file, opt.update, opt.force)
+        elif filename.endswith('.C') or filename.endswith('.h'):
+            retcode += check_and_update_cpp(filename, opt.cpp_header_file, opt.update, opt.force)
+    return retcode > 0
+
+def check_and_update_cpp(filename, header_file, update=False, force=False):
+    retcode = 0
+
     # Don't update soft links
     if os.path.islink(filename):
         return
@@ -58,15 +54,15 @@ def checkAndUpdateCPlusPlus(filename):
     text = f.read()
     f.close()
 
-    header = unified_header
+    with open(header_file, 'r') as fid:
+        header = fid.read()
 
     # Check (exact match only)
-    if (text.find(header) == -1 or global_options.force == True):
+    if (text.find(header) == -1 or force):
+        retcode = 1
         # print the first 10 lines or so of the file
-        if global_options.update == False: # Report only
-            print(filename + ' does not contain an up to date header')
-            if global_options.verbose == True:
-                print('>'*40, '\n', '\n'.join((text.split('\n', 10))[:10]), '\n'*5)
+        if update == False: # Report only
+            print(filename + ' does not contain an up-to-date header')
         else:
             # Make sure any previous C-style header version is removed
             text = re.sub(r'^/\*+/$.*^/\*+/$', '', text, flags=re.S | re.M)
@@ -95,20 +91,24 @@ def checkAndUpdateCPlusPlus(filename):
             f.close()
             os.rename(filename + '~tmp', filename)
 
-def checkAndUpdatePython(filename):
+    return retcode
+
+def check_and_update_python(filename, header_file, update=False, force=False):
+    retcode = 0
+
     f = open(filename)
     text = f.read()
     f.close()
 
-    header = python_header
+    with open(header_file, 'r') as fid:
+        header = fid.read()
 
     # Check (exact match only)
-    if (text.find(header) == -1):
+    if (text.find(header) == -1 or force):
+        retcode = 1
         # print the first 10 lines or so of the file
-        if global_options.update == False: # Report only
-            print(filename + ' does not contain an up to date header')
-            if global_options.verbose == True:
-                print('>'*40, '\n', '\n'.join((text.split('\n', 10))[:10]), '\n'*5)
+        if update == False: # Report only
+            print(filename + ' does not contain an up-to-date header')
         else:
             # Save off the shebang line if it exists
             m = re.match(r'#!.*\n', text)
@@ -146,8 +146,6 @@ def checkAndUpdatePython(filename):
             f.write(shebang)
             f.write(pylint_disable)
             f.write(header + '\n')
-            if pylint_enable:
-                f.write('#pylint: enable=missing-docstring\n')
 
             if len(text) != 0:
                 f.write('\n' + text)
@@ -157,13 +155,7 @@ def checkAndUpdatePython(filename):
             shutil.copystat(filename, filename + '~tmp')
             os.rename(filename + '~tmp', filename)
 
-if __name__ == '__main__':
-    parser = OptionParser()
-    parser.add_option("-u", "--update", action="store_true", dest="update", default=False)
-    parser.add_option("-v", "--verbose", action="store_true", dest="verbose", default=False)
-    parser.add_option("--python-only", action="store_true", dest="python_only", default=False)
-    parser.add_option("--cxx-only", action="store_true", dest="cxx_only", default=False)
-    parser.add_option("-f", "--force", action="store_true", dest="force", default=False)
+    return retcode
 
-    (global_options, args) = parser.parse_args()
-    fixupHeader()
+if __name__ == '__main__':
+    sys.exit(main())
