@@ -11,7 +11,10 @@
 import sys
 import os
 import unittest
-import mock
+import types
+import io
+import platform
+import unittest.mock as mock
 import tempfile
 import subprocess
 
@@ -30,6 +33,14 @@ class TestFixupHeaders(unittest.TestCase):
             fcontent = fid.read()
         self.assertNotIn(content, fcontent)
 
+    def getOptions(self, **kwargs):
+        kwargs.setdefault('update', False)
+        kwargs.setdefault('force', False)
+        kwargs.setdefault('exclude', ['contrib'])
+        kwargs.setdefault('cpp_header_file', 'bin/.cpp-header.txt')
+        kwargs.setdefault('python_header_file', 'bin/.python-header.txt')
+        return types.SimpleNamespace(**kwargs)
+
     def setUp(self):
         _, self._src = tempfile.mkstemp(dir=os.path.dirname(__file__), suffix='.C')
         _, self._hdr = tempfile.mkstemp(dir=os.path.dirname(__file__), suffix='.h')
@@ -47,9 +58,13 @@ class TestFixupHeaders(unittest.TestCase):
         self.assertEqual(r.returncode, 0)
 
     @mock.patch('fixup_headers._git_ls_files')
-    def testNotUpToDate(self, mock_files):
+    @mock.patch('fixup_headers.get_options')
+    def testNotUpToDate(self, mock_options, mock_files):
+        mock_options.return_value = self.getOptions()
         mock_files.return_value = self._files
-        r = fixup_headers.main()
+
+        with mock.patch('sys.stdout', new=io.StringIO()):
+            r = fixup_headers.main()
         self.assertEqual(r, 1)
 
         self.assertNotInFile(self._src, 'MOOSETOOLS')
@@ -57,9 +72,10 @@ class TestFixupHeaders(unittest.TestCase):
         self.assertNotInFile(self._py, 'MOOSETOOLS')
 
     @mock.patch('fixup_headers._git_ls_files')
-    def testUpdate(self, mock_files):
+    @mock.patch('fixup_headers.get_options')
+    def testUpdate(self, mock_options, mock_files):
+        mock_options.return_value = self.getOptions(update=True)
         mock_files.return_value = self._files
-        sys.argv += ['--update']
         r = fixup_headers.main()
 
         self.assertInFile(self._src, 'MOOSETOOLS')
@@ -71,4 +87,4 @@ class TestFixupHeaders(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main(module=__name__, verbosity=2, buffer=True, exit=False)
+    unittest.main(module=__name__)
