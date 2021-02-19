@@ -8,7 +8,6 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-
 import sys
 import os
 import unittest
@@ -16,7 +15,7 @@ import mock
 import tempfile
 import subprocess
 
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'bin'))
 import fixup_headers
 
 class TestFixupHeaders(unittest.TestCase):
@@ -44,7 +43,7 @@ class TestFixupHeaders(unittest.TestCase):
         os.remove(self._py)
 
     def testDefault(self):
-        r = subprocess.run(['../fixup_headers.py'], cwd=self._cwd)
+        r = subprocess.run(['../../bin/fixup_headers.py'], cwd=self._cwd)
         self.assertEqual(r.returncode, 0)
 
     @mock.patch('fixup_headers._git_ls_files')

@@ -8,7 +8,6 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-
 import os
 import sys
 import string
@@ -23,7 +22,7 @@ def get_options():
     parser.add_argument("-f", "--force", action="store_true")
     parser.add_argument('--cpp-header-file', default=os.path.join(os.path.dirname(__file__), '.cpp-header.txt'))
     parser.add_argument('--python-header-file', default=os.path.join(os.path.dirname(__file__), '.python-header.txt'))
-    parser.add_argument('--exclude', default=list(), nargs='*', help="List of files or directories to exclude")
+    parser.add_argument('--exclude', default=['contrib'], nargs='*', help="List of files or directories to exclude")
     return parser.parse_args()
 
 def _git_ls_files(exclude=None):

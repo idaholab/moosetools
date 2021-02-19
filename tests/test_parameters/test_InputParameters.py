@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#pylint: disable=missing-docstring
 #* This file is part of MOOSETOOLS repository
 #* https://www.github.com/idaholab/moosetools
 #*
@@ -9,12 +8,13 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-
+import os
 import sys
 import re
 import unittest
-from parameters import InputParameters
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from parameters import InputParameters
 
 class TestInputParameters(unittest.TestCase):
     def testAdd(self):
