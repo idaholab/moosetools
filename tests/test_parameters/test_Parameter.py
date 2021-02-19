@@ -17,6 +17,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 print(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from parameters import Parameter
 
+
 class TestParameter(unittest.TestCase):
     def testMinimal(self):
         opt = Parameter('foo')

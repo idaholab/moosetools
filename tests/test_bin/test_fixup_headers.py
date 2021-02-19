@@ -18,8 +18,8 @@ import subprocess
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'bin'))
 import fixup_headers
 
-class TestFixupHeaders(unittest.TestCase):
 
+class TestFixupHeaders(unittest.TestCase):
     def assertInFile(self, filename, content):
         with open(filename, 'r') as fid:
             fcontent = fid.read()
@@ -68,6 +68,7 @@ class TestFixupHeaders(unittest.TestCase):
 
         r = fixup_headers.main()
         self.assertEqual(r, 0)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True, exit=False)
