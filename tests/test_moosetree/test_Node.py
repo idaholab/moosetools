@@ -35,7 +35,7 @@ class TestNodeInitTime(unittest.TestCase):
         N = 100
         t0 = mooseutils.run_time(self.createTree, N, TestNodeInitTime.AnytreeNode)
         t1 = mooseutils.run_time(self.createTree, N, moosetree.Node)
-        print('\nmoosetree: {}\nanytree: {}'.format(t1, t0))
+        #print('\nmoosetree: {}\nanytree: {}'.format(t1, t0))
         self.assertTrue(t1 < t0)
 
 class TestNode(unittest.TestCase):

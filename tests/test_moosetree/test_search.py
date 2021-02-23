@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import unittest
 import moosetree
-from test_iterate import build_tree
+from .test_iterate import build_tree
 
 class TestSearch(unittest.TestCase):
 
