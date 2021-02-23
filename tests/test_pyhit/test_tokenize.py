@@ -12,6 +12,7 @@ import os
 import unittest
 import pyhit
 
+
 class TestHitTokenize(unittest.TestCase):
     """
     Test the load function.
@@ -31,7 +32,8 @@ class TestHitTokenize(unittest.TestCase):
 
         with self.assertRaises(TypeError) as cm:
             tok == 'WRONG'
-        self.assertIn("Comparison is only valid with Token and TokenType, <class 'str'> provided", str(cm.exception))
+        self.assertIn("Comparison is only valid with Token and TokenType, <class 'str'> provided",
+                      str(cm.exception))
 
     def testTokenize(self):
         text = '[Kernels]\n  [diff]\n    type = Diffusion # DOOSE!\n  []\n[]'
@@ -51,9 +53,10 @@ class TestHitTokenize(unittest.TestCase):
         self.assertEqual(tokens[11], pyhit.Token(pyhit.TokenType.PATH, b'', 52, 4))
         self.assertEqual(tokens[12], pyhit.Token(pyhit.TokenType.RIGHTBRACKET, b']', 52, 4))
         self.assertEqual(tokens[13], pyhit.Token(pyhit.TokenType.LEFTBRACKET, b'[', 54, 5))
-        self.assertEqual(tokens[14], pyhit.Token(pyhit.TokenType.PATH,b'',55, 5))
+        self.assertEqual(tokens[14], pyhit.Token(pyhit.TokenType.PATH, b'', 55, 5))
         self.assertEqual(tokens[15], pyhit.Token(pyhit.TokenType.RIGHTBRACKET, b']', 55, 5))
         self.assertEqual(tokens[16], pyhit.Token(pyhit.TokenType.EOF, b'', 56, 5))
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

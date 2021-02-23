@@ -6,12 +6,12 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-
 """Wrapper for hit parser."""
 import os
 import subprocess
 import moosetree
 import hit
+
 
 class Node(moosetree.Node):
     """
@@ -30,10 +30,10 @@ class Node(moosetree.Node):
         elif hitnode is None:
             hitnode = hit.NewSection('')
         super().__init__(parent, hitnode.path())
-        self.__hitnode = hitnode         # hit.Node object
-        self.__hitblockcomment = None    # hit.Comment object for this block
-        self.__hitparamcomments = dict() # hit.Comment objects for the parameters within this block
-        self.__hitoffset = offset        # hit index used for inserting new hit nodes
+        self.__hitnode = hitnode  # hit.Node object
+        self.__hitblockcomment = None  # hit.Comment object for this block
+        self.__hitparamcomments = dict()  # hit.Comment objects for the parameters within this block
+        self.__hitoffset = offset  # hit index used for inserting new hit nodes
         self.__reinitComments()
 
     @property
@@ -281,6 +281,7 @@ class Node(moosetree.Node):
                     self.__hitblockcomment = comment
                     break
 
+
 def load(filename, root=None):
     """
     Read and parse a HIT file given in *filename*.
@@ -299,12 +300,14 @@ def load(filename, root=None):
 
     return parse(content, root, filename)
 
+
 def write(filename, root):
     """
     Write the supplied tree in *root* to a text file *filename*.
     """
     with open(filename, 'w') as fid:
         fid.write(root.render() + "\n")
+
 
 def parse(content, root=None, filename=''):
     """
@@ -320,6 +323,7 @@ def parse(content, root=None, filename=''):
     _parse_hit(root, hit_node, filename)
     return root
 
+
 def tokenize(content, filename=''):
     """
     Tokenize a hit tree from a string.
@@ -329,6 +333,7 @@ def tokenize(content, filename=''):
     when manipulating the tree.
     """
     return hit.tokenize(filename, content)
+
 
 def _parse_hit(root, hit_node, filename):
     """Internal helper for parsing HIT tree"""

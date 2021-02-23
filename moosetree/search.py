@@ -6,10 +6,10 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-
 """Tools for iterating and locating nodes."""
 import sys
 from enum import Enum
+
 
 class IterMethod(Enum):
     """
@@ -18,6 +18,7 @@ class IterMethod(Enum):
     """
     PRE_ORDER = 1
     BREADTH_FIRST = 2
+
 
 def findall(node, func=None, method=None, **kwargs):
     """
@@ -33,8 +34,9 @@ def findall(node, func=None, method=None, **kwargs):
     keyword arguments match the attributes of the node.
     """
     if (func is None) and (kwargs):
-        func = lambda n: any(n.attributes.get(key, None)==value for key, value in kwargs.items())
+        func = lambda n: any(n.attributes.get(key, None) == value for key, value in kwargs.items())
     return iterate(node, func, False, method)
+
 
 def find(node, func=None, method=None, **kwargs):
     """
@@ -42,9 +44,10 @@ def find(node, func=None, method=None, **kwargs):
     and the node is returned.
     """
     if (func is None) and (kwargs):
-        func = lambda n: any(n.attributes.get(key, None)==value for key, value in kwargs.items())
+        func = lambda n: any(n.attributes.get(key, None) == value for key, value in kwargs.items())
     nodes = list(iterate(node, func, True, method))
     return nodes[0] if nodes else None
+
 
 def iterate(node, func=None, abort_on_find=False, method=None):
     """
@@ -65,6 +68,7 @@ def iterate(node, func=None, abort_on_find=False, method=None):
     elif method == IterMethod.PRE_ORDER:
         return __preorder_iterate(node, func, abort_on_find)
 
+
 def __breadthfirst_iterate(node, func, abort_on_find):
     """Breadth-first iteration"""
     stack = node.children
@@ -75,6 +79,7 @@ def __breadthfirst_iterate(node, func, abort_on_find):
             if abort_on_find:
                 return
         stack += child.children
+
 
 def __preorder_iterate(node, func, abort_on_find):
     """Pre-Order iteration"""

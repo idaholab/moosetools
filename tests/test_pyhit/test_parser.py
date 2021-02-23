@@ -12,11 +12,11 @@ import os
 import unittest
 import pyhit
 
+
 class TestHitLoad(unittest.TestCase):
     """
     Test the load function.
     """
-
     def setUp(self):
         self._cwd = os.getcwd()
         os.chdir(os.path.dirname(__file__))
@@ -130,19 +130,19 @@ class TestHitLoad(unittest.TestCase):
     def testComment(self):
         root = pyhit.load('test.hit')
         self.assertEqual(root(1).comment(), "section comment")
-        self.assertEqual(root(0,0).comment(), "sub-section comment")
-        self.assertEqual(root(1,0,0).comment('type'), "param comment")
+        self.assertEqual(root(0, 0).comment(), "sub-section comment")
+        self.assertEqual(root(1, 0, 0).comment('type'), "param comment")
 
     def testSetComment(self):
         root = pyhit.load('test.hit')
         root(1).setComment('update section comment')
         self.assertEqual(root(1).comment(), "update section comment")
 
-        root(0,0).setComment('update sub-section comment')
-        self.assertEqual(root(0,0).comment(), "update sub-section comment")
+        root(0, 0).setComment('update sub-section comment')
+        self.assertEqual(root(0, 0).comment(), "update sub-section comment")
 
-        root(1,0,0).setComment('type', 'update param comment')
-        self.assertEqual(root(1,0,0).comment('type'), "update param comment")
+        root(1, 0, 0).setComment('type', 'update param comment')
+        self.assertEqual(root(1, 0, 0).comment('type'), "update param comment")
 
     def testAddComment(self):
         root = pyhit.load('test.hit')
@@ -150,19 +150,19 @@ class TestHitLoad(unittest.TestCase):
         root(0).setComment('Section A')
         self.assertEqual(root(0).comment(), "Section A")
 
-        root(1,0).setComment('Section B-1')
-        self.assertEqual(root(1,0).comment(), "Section B-1")
+        root(1, 0).setComment('Section B-1')
+        self.assertEqual(root(1, 0).comment(), "Section B-1")
 
-        root(0,0).setComment('param', "inline comment")
-        self.assertEqual(root(0,0).comment('param'), "inline comment")
+        root(0, 0).setComment('param', "inline comment")
+        self.assertEqual(root(0, 0).comment('param'), "inline comment")
 
     def testRemoveComment(self):
         root = pyhit.load('test.hit')
         self.assertIn("type = test # param comment", root.render())
         self.assertIn("# section comment", root.render())
 
-        root(1,0,0).setComment("type", None)
-        self.assertIsNone(root(1,0,0).comment())
+        root(1, 0, 0).setComment("type", None)
+        self.assertIsNone(root(1, 0, 0).comment())
         self.assertNotIn("type = test # param comment", root.render())
 
         root(1).setComment(None)
@@ -174,10 +174,11 @@ class TestHitLoad(unittest.TestCase):
         bcs = root.append('BCs')
         bcs.append('left', type='NeumannBC', value=1980, boundary='left')
         self.assertEqual(len(root), 1)
-        out =  root.render()
+        out = root.render()
         self.assertIn('[BCs]', out)
         self.assertIn('type = NeumannBC', out)
         self.assertIn('boundary = left', out)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

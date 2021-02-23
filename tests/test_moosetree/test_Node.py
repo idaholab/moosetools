@@ -18,9 +18,11 @@ try:
 except ModuleNotFoundError:
     HAS_ANYTREE = False
 
+
 class TestNodeInitTime(unittest.TestCase):
 
     if HAS_ANYTREE:
+
         class AnytreeNode(anytree.NodeMixin):
             def __init__(self, parent, name):
                 anytree.NodeMixin.__init__(self)
@@ -47,6 +49,7 @@ class TestNodeInitTime(unittest.TestCase):
         t1 = mooseutils.run_time(self.createTree, N, moosetree.Node)
         print('\nmoosetree: {}\nanytree: {}'.format(t1, t0))
         self.assertTrue(t1 < t0)
+
 
 class TestNode(unittest.TestCase):
     def testInit(self):
@@ -98,7 +101,7 @@ class TestNode(unittest.TestCase):
 
         self.assertIs(n1.parent, n0)
         self.assertIs(n2.parent, n0)
-        self.assertEqual(n0.children, [n1,n2])
+        self.assertEqual(n0.children, [n1, n2])
         self.assertEqual(n1.children, [])
         self.assertEqual(n2.children, [])
 
@@ -217,13 +220,13 @@ class TestNode(unittest.TestCase):
         self.assertIs(n0(0), n1)
         self.assertIs(n0(1), n4)
 
-        self.assertIs(n0(0,0), n2)
-        self.assertIs(n0(0,1), n3)
+        self.assertIs(n0(0, 0), n2)
+        self.assertIs(n0(0, 1), n3)
         self.assertIs(n0(0)(0), n2)
         self.assertIs(n0(0)(1), n3)
 
-        self.assertIs(n0(1,0), n5)
-        self.assertIs(n0(1,1), n6)
+        self.assertIs(n0(1, 0), n5)
+        self.assertIs(n0(1, 1), n6)
         self.assertIs(n0(1)(0), n5)
         self.assertIs(n0(1)(1), n6)
 
@@ -237,6 +240,7 @@ class TestNode(unittest.TestCase):
         n6 = moosetree.Node(n4, '6')
 
         self.assertEqual(n0.count, 6)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
