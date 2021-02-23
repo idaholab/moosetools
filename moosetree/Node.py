@@ -6,13 +6,13 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-
 """
 For simplicity this module should be a stand-alone package, i.e., it should not use any
 non-standard python packages such as mooseutils.
 """
 import copy
 from . import search
+
 
 class Node(object):
     """
@@ -29,7 +29,6 @@ class Node(object):
     output, the speed in creating the tree nodes became critical. The anytree package is robust and
     well designed, but the construction of the nodes was not fast enough.
     """
-
     def __init__(self, parent, name, **kwargs):
         """
         This constructor must be as minimal as possible for speed purposes.
@@ -131,7 +130,7 @@ class Node(object):
         if (self.__parent is not None) and (self.__parent.__children):
             idx = self.__parent.__children.index(self)
             if idx > 0:
-                return self.__parent.__children[idx-1]
+                return self.__parent.__children[idx - 1]
 
     @property
     def next(self):
@@ -139,7 +138,7 @@ class Node(object):
         if (self.__parent is not None) and (self.__parent.__children):
             idx = self.__parent.__children.index(self)
             if idx < len(self.__parent.__children) - 1:
-                return self.__parent.__children[idx+1]
+                return self.__parent.__children[idx + 1]
 
     def __call__(self, *args):
         """Return child nodes based on index."""

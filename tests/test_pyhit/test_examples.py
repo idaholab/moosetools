@@ -12,8 +12,8 @@ import os
 import unittest
 import pyhit
 
-class TestExamples(unittest.TestCase):
 
+class TestExamples(unittest.TestCase):
     def tearDown(self):
         filename = 'input_modified.i'
         if os.path.isfile(filename):

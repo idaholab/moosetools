@@ -11,6 +11,7 @@
 import unittest
 import moosetree
 
+
 def build_tree():
     root = moosetree.Node(None, 'root')
     A = moosetree.Node(root, 'A')
@@ -52,6 +53,7 @@ def build_tree():
     ABCAA = moosetree.Node(ABCA, 'ABCAA')
     ABCAB = moosetree.Node(ABCA, 'ABCAB', year=2013)
     return root
+
 
 class TestIterator(unittest.TestCase):
     def testPreOrder(self):
@@ -121,6 +123,7 @@ class TestIterator(unittest.TestCase):
         self.assertEqual(nodes[26].name, 'ABCB')
         self.assertEqual(nodes[27].name, 'ABCAA')
         self.assertEqual(nodes[28].name, 'ABCAB')
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
