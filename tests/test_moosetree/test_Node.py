@@ -28,14 +28,15 @@ class TestNodeInitTime(unittest.TestCase):
                 for k in range(N):
                     p = cls(div1, 'p')
 
-    @unittest.skipIf(not HAS_ANYTREE, "anytree not install")
+    #@unittest.skipIf(not HAS_ANYTREE, "anytree not install")
+    @unittest.skip("WIP: mooseutils")
     def testTime(self):
         import mooseutils
 
         N = 100
         t0 = mooseutils.run_time(self.createTree, N, TestNodeInitTime.AnytreeNode)
         t1 = mooseutils.run_time(self.createTree, N, moosetree.Node)
-        #print('\nmoosetree: {}\nanytree: {}'.format(t1, t0))
+        print('\nmoosetree: {}\nanytree: {}'.format(t1, t0))
         self.assertTrue(t1 < t0)
 
 class TestNode(unittest.TestCase):

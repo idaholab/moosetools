@@ -13,6 +13,12 @@ import unittest
 import pyhit
 
 class TestExamples(unittest.TestCase):
+
+    def tearDown(self):
+        filename = 'input_modified.i'
+        if os.path.isfile(filename):
+            os.remove(filename)
+
     def test(self):
 
         # MOOSEDOCS:example-begin
@@ -21,7 +27,7 @@ class TestExamples(unittest.TestCase):
         import moosetree
 
         # Read the file
-        root = pyhit.load('input.i')
+        root = pyhit.load(os.path.join(os.path.dirname(__file__), 'input.i'))
 
         # Locate and modify "x_max" parameter for the mesh
         mesh = moosetree.find(root, func=lambda n: n.fullpath == '/Mesh/gen')
@@ -40,6 +46,7 @@ class TestExamples(unittest.TestCase):
         out = mesh.render()
         self.assertIn("x_max = 4", out)
         self.assertIn("Changed from 3 to 4", out)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

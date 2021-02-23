@@ -12,7 +12,6 @@ import os
 import subprocess
 import moosetree
 import hit
-from mooseutils import message
 
 class Node(moosetree.Node):
     """
@@ -296,7 +295,7 @@ def load(filename, root=None):
     elif isinstance(filename, str):
         content = filename
     else:
-        message.mooseError("Unable to load the hit file ", filename)
+        print("Unable to load the hit file ".format(filename))
 
     return parse(content, root, filename)
 

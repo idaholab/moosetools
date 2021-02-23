@@ -17,15 +17,22 @@ class TestHitLoad(unittest.TestCase):
     Test the load function.
     """
 
+    def setUp(self):
+        self._cwd = os.getcwd()
+        os.chdir(os.path.dirname(__file__))
+
+    def tearDown(self):
+        os.chdir(self._cwd)
+
     def testRender(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         out = root.render()
         self.assertIn('[A]', out)
         self.assertIn('param = bar', out)
         self.assertIn('comment', out)
 
     def testBasic(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
 
         self.assertEqual(root.children[0].name, 'A')
         self.assertEqual(root.children[0]['param'], 'foo')
@@ -45,18 +52,18 @@ class TestHitLoad(unittest.TestCase):
             self.assertEqual(child.name, gold[i])
 
     def testIterParam(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         for k, v in root.children[0].params():
             self.assertEqual(k, 'param')
             self.assertEqual(v, 'foo')
 
     def testGetParam(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         p = root.get('nope', 'default')
         self.assertEqual(p, 'default')
 
     def testAddParam(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         self.assertEqual(len(root(1)), 2)
         self.assertIsNone(root(1).get('year'))
         root(1)['year'] = 1980
@@ -64,7 +71,7 @@ class TestHitLoad(unittest.TestCase):
         self.assertEqual(root(1).get('year'), 1980)
 
     def testEditParam(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         self.assertEqual(len(root(1)), 2)
         self.assertIsNone(root(1).get('year'))
         root(1)['year'] = 1980
@@ -75,13 +82,13 @@ class TestHitLoad(unittest.TestCase):
         self.assertEqual(root(1).get('year'), 1949)
 
     def testRemoveParam(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         self.assertEqual(root(0)['param'], 'foo')
         root(0).removeParam('param')
         self.assertIsNone(root(0).get('param'))
 
     def testAppend(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         self.assertEqual(len(root(1)), 2)
         sec = root(1).append('B-3')
         self.assertEqual(len(root(1)), 3)
@@ -91,7 +98,7 @@ class TestHitLoad(unittest.TestCase):
         self.assertEqual(sec.get('year'), 1980)
 
     def testInsert(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         self.assertEqual(len(root(1)), 2)
         sec = root(1).insert(0, 'B-3')
         self.assertEqual(len(root(1)), 3)
@@ -101,33 +108,33 @@ class TestHitLoad(unittest.TestCase):
         self.assertEqual(sec.get('year'), 1980)
 
     def testAppendWithKwargs(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         self.assertEqual(len(root(1)), 2)
         sec = root(1).append('B-3', year=1980)
         self.assertEqual(len(root(1)), 3)
         self.assertEqual(sec.get('year'), 1980)
 
     def testRemoveSection(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         self.assertEqual(len(root), 2)
         root(1).remove()
         self.assertEqual(len(root), 1)
 
     def testAddSectionWithParameters(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         self.assertEqual(len(root(1)), 2)
         sec = root(1).append('B-3', year=1980)
         self.assertEqual(len(root(1)), 3)
         self.assertEqual(sec.get('year'), 1980)
 
     def testComment(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         self.assertEqual(root(1).comment(), "section comment")
         self.assertEqual(root(0,0).comment(), "sub-section comment")
         self.assertEqual(root(1,0,0).comment('type'), "param comment")
 
     def testSetComment(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         root(1).setComment('update section comment')
         self.assertEqual(root(1).comment(), "update section comment")
 
@@ -138,7 +145,7 @@ class TestHitLoad(unittest.TestCase):
         self.assertEqual(root(1,0,0).comment('type'), "update param comment")
 
     def testAddComment(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
 
         root(0).setComment('Section A')
         self.assertEqual(root(0).comment(), "Section A")
@@ -150,7 +157,7 @@ class TestHitLoad(unittest.TestCase):
         self.assertEqual(root(0,0).comment('param'), "inline comment")
 
     def testRemoveComment(self):
-        root = pyhit.load(os.path.join('..', '..', 'test_files', 'test.hit'))
+        root = pyhit.load('test.hit')
         self.assertIn("type = test # param comment", root.render())
         self.assertIn("# section comment", root.render())
 
@@ -171,12 +178,6 @@ class TestHitLoad(unittest.TestCase):
         self.assertIn('[BCs]', out)
         self.assertIn('type = NeumannBC', out)
         self.assertIn('boundary = left', out)
-
-    def testTestRoot(self):
-        root = pyhit.load(os.path.join('..', '..', 'testroot'))
-        self.assertIn('app_name', root)
-        self.assertEqual(root['app_name'], 'moose_python')
-
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)
