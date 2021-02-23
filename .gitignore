@@ -1,0 +1,16 @@
+# Python
+__pycache__
+*.pyc
+.coverage
+
+# CONTRIB
+contrib/hit/hit
+contrib/hit/hit.dSYM
+contrib/hit/hit.so
+contrib/gtest/.libs
+contrib/**/*.o
+contrib/unit/moosetools-unit
+
+# Emacs
+*.~*~
+**/*.*.~*~
