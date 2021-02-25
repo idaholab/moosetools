@@ -18,6 +18,7 @@ import mooseutils
 
 from mooseutils.gitutils import git_submodule_status
 
+
 class Test(unittest.TestCase):
     def testIsGitRepo(self):
         loc = os.path.dirname(__file__)
@@ -34,7 +35,7 @@ class Test(unittest.TestCase):
 
     @unittest.skipIf(not mooseutils.is_git_repo(), "Not a Git repository")
     def testGitCommitMessage(self):
-        c = 'b863a496dbf1449853be6978c8ac1a9c242d389b' # beautiful commit
+        c = 'b863a496dbf1449853be6978c8ac1a9c242d389b'  # beautiful commit
         msg = mooseutils.git_commit_message(c)
         self.assertIn('The name is, just so long', msg)
 
@@ -63,7 +64,7 @@ class Test(unittest.TestCase):
     @mock.patch('mooseutils.gitutils.git_submodule_status')
     @unittest.skipIf(not mooseutils.is_git_repo(), "Not a Git repository")
     def testGitInitSubmodule(self, status_func, call_func):
-        status_func.return_value = {'test':'-'}
+        status_func.return_value = {'test': '-'}
 
         root = mooseutils.git_root_dir()
         mooseutils.git_init_submodule('test', root)
@@ -145,6 +146,7 @@ class Test(unittest.TestCase):
         with self.assertRaises(OSError) as e:
             mooseutils.git_repo(os.path.dirname(__file__), remotes=['wrong'])
         self.assertEqual(str(e.exception), "Unable to locate a remote with the name(s): wrong")
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2, buffer=True)

@@ -14,6 +14,7 @@ import json
 import tempfile
 from mooseutils.jsondiff import JSONDiffer
 
+
 class TestJSONDiff(unittest.TestCase):
     """
     Test that the size function returns something.
@@ -37,6 +38,7 @@ class TestJSONDiff(unittest.TestCase):
         obj = JSONDiffer(self._tmpfile0, self._tmpfile1, color=False)
         self.assertIn('-            2.0', obj.message())
         self.assertIn('+            1.0', obj.message())
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True, exit=False)

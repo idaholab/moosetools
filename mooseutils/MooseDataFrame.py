@@ -12,6 +12,7 @@ import pandas
 
 from . import message
 
+
 class MooseDataFrame(object):
     """
     A wrapper for handling data from a single csv file.
@@ -99,9 +100,13 @@ class MooseDataFrame(object):
         retcode = MooseDataFrame.NOCHANGE
 
         file_exists = self.exists
-        if file_exists and (self._run_start_time is not None) and (os.path.getmtime(self._filename) < self._run_start_time):
+        if file_exists and (self._run_start_time is not None) and (os.path.getmtime(self._filename)
+                                                                   < self._run_start_time):
             self.clear()
-            message.mooseDebug("The csv file {} exists but is old ({}) compared to the run start time ({}).".format(self.filename, os.path.getmtime(self._filename), self._run_start_time), debug=True)
+            message.mooseDebug(
+                "The csv file {} exists but is old ({}) compared to the run start time ({}).".
+                format(self.filename, os.path.getmtime(self._filename), self._run_start_time),
+                debug=True)
             retcode = MooseDataFrame.OLDFILE
 
         elif not file_exists:
@@ -125,6 +130,8 @@ class MooseDataFrame(object):
                     message.mooseDebug("Reading csv file: {}".format(self._filename))
                 except:
                     self.clear()
-                    message.mooseDebug("Unable to read file {} it likely does not contain data.".format(self._filename))
+                    message.mooseDebug(
+                        "Unable to read file {} it likely does not contain data.".format(
+                            self._filename))
 
         return retcode

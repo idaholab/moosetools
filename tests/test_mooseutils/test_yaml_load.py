@@ -13,6 +13,7 @@ import unittest
 import tempfile
 from mooseutils.yaml_load import yaml_load, yaml_write, IncludeYamlFile
 
+
 class TestYamlLoad(unittest.TestCase):
     """
     Test that the size function returns something.
@@ -20,7 +21,7 @@ class TestYamlLoad(unittest.TestCase):
     def testLoad(self):
         data = yaml_load(os.path.join(os.path.dirname(__file__), 'bar.yml'))
         self.assertEqual(data[0], 3.6)
-        self.assertEqual(data[1], [1,2,3])
+        self.assertEqual(data[1], [1, 2, 3])
         self.assertEqual(data[2], 'item')
         self.assertEqual(data[3], 'other')
 
@@ -29,7 +30,7 @@ class TestYamlLoad(unittest.TestCase):
         self.assertEqual(data['a'], 1)
         self.assertEqual(data['b'], [1.43, 543.55])
         self.assertEqual(data['c'][0], 3.6)
-        self.assertEqual(data['c'][1], [1,2,3])
+        self.assertEqual(data['c'][1], [1, 2, 3])
         self.assertEqual(data['c'][2], 'item')
         self.assertEqual(data['c'][3], 'other')
 
@@ -40,14 +41,14 @@ class TestYamlLoad(unittest.TestCase):
 
         with self.assertRaises(IOError) as e:
             yaml_load(os.path.join(os.path.dirname(__file__), 'foo_error.yml'))
-        self.assertIn("Unknown include file",
-                      str(e.exception))
+        self.assertIn("Unknown include file", str(e.exception))
 
     def testIncludeWithKey(self):
         data = yaml_load(os.path.join(os.path.dirname(__file__), 'foo.yml'))
         self.assertEqual(data['d'], 1980)
         self.assertEqual(data['e'], ['Edward', 'Bonnie'])
         self.assertEqual(data['f'], [1906])
+
 
 class TestYamlWrite(unittest.TestCase):
     def setUp(self):
@@ -75,7 +76,7 @@ class TestYamlWrite(unittest.TestCase):
         self.assertEqual(data['a'], 1)
         self.assertEqual(data['b'], [1.43, 543.55])
         self.assertEqual(data['c'][0], 3.6)
-        self.assertEqual(data['c'][1], [1,2,3])
+        self.assertEqual(data['c'][1], [1, 2, 3])
         self.assertEqual(data['c'][2], 'item')
         self.assertEqual(data['c'][3], 'other')
 
@@ -85,6 +86,7 @@ class TestYamlWrite(unittest.TestCase):
         with open(self._tmp, 'r') as fid:
             out_data = fid.read()
         self.assertEqual(in_data, out_data)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True, exit=False)

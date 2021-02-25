@@ -6,11 +6,11 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-
 """Tool for applying environment variable to paths."""
 
 import os
 import re
+
 
 def eval_path(path):
     """

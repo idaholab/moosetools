@@ -11,6 +11,7 @@ import collections
 import sys
 import json
 
+
 def deunicodify_hook(pairs):
     new_pairs = []
     for key, value in pairs:
@@ -21,10 +22,12 @@ def deunicodify_hook(pairs):
         new_pairs.append((key, value))
     return collections.OrderedDict(new_pairs)
 
+
 def json_load(filename):
     with open(filename, 'r') as fid:
         raw = fid.read()
     return json_parse(raw)
+
 
 def json_parse(raw):
     tree = json.loads(raw, object_pairs_hook=collections.OrderedDict)

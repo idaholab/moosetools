@@ -16,6 +16,7 @@ SITE = 'https://civet.inl.gov'
 REPO = 'idaholab/moose'
 SHAS = ['681ba2f4274dc8465bb2a54e1353cfa24765a5c1', 'febe3476040fe6af1df1d67e8cc8c04c4760afb6']
 
+
 class Test(unittest.TestCase):
     def testGetCivetJobs(self):
         jobs = cr._get_remote_civet_jobs(SHAS, SITE, REPO)
@@ -46,6 +47,7 @@ class Test(unittest.TestCase):
         self.assertEqual(tests[1].caveats, ['recover'])
         self.assertEqual(tests[1].url, SITE)
         self.assertEqual(tests[1].reason, '')
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

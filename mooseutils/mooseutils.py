@@ -22,6 +22,7 @@ try:
 except ImportError:
     from io import StringIO
 
+
 def colorText(string, color, **kwargs):
     """
     A function for coloring text.
@@ -58,18 +59,19 @@ def colorText(string, color, **kwargs):
                        LIGHT_GREY='\033[37m')
 
     if colored and html:
-        string = string.replace('<r>', color_codes['BOLD']+color_codes['RED'])
-        string = string.replace('<c>', color_codes['BOLD']+color_codes['CYAN'])
-        string = string.replace('<g>', color_codes['BOLD']+color_codes['GREEN'])
-        string = string.replace('<y>', color_codes['BOLD']+color_codes['YELLOW'])
+        string = string.replace('<r>', color_codes['BOLD'] + color_codes['RED'])
+        string = string.replace('<c>', color_codes['BOLD'] + color_codes['CYAN'])
+        string = string.replace('<g>', color_codes['BOLD'] + color_codes['GREEN'])
+        string = string.replace('<y>', color_codes['BOLD'] + color_codes['YELLOW'])
         string = string.replace('<b>', color_codes['BOLD'])
         string = re.sub(r'</[rcgyb]>', color_codes['RESET'], string)
     elif colored and not html:
-            string = color_codes[color] + string + color_codes['RESET']
+        string = color_codes[color] + string + color_codes['RESET']
     elif html:
-        string = re.sub(r'</?[rcgyb]>', '', string)    # stringip all "html" tags
+        string = re.sub(r'</?[rcgyb]>', '', string)  # stringip all "html" tags
 
     return string
+
 
 def str2bool(string):
     """
@@ -83,6 +85,7 @@ def str2bool(string):
         return True
     else:
         return False
+
 
 def find_moose_executable(loc, **kwargs):
     """
@@ -112,12 +115,13 @@ def find_moose_executable(loc, **kwargs):
         if os.path.isfile(makefile):
             with open(makefile, 'r') as fid:
                 content = fid.read()
-            matches = re.findall(r'APPLICATION_NAME\s*[:=]+\s*(?P<name>.+)$', content, flags=re.MULTILINE)
+            matches = re.findall(r'APPLICATION_NAME\s*[:=]+\s*(?P<name>.+)$',
+                                 content,
+                                 flags=re.MULTILINE)
             name = matches[-1] if matches else None
 
         if name is None:
             name = os.path.basename(loc)
-
 
     show_error = kwargs.pop('show_error', True)
 
@@ -146,6 +150,7 @@ def find_moose_executable(loc, **kwargs):
         print('ERROR: Unable to locate a valid MOOSE executable in directory:', loc)
     return exe
 
+
 def find_moose_executable_recursive(loc=os.getcwd(), **kwargs):
     """
     Locate a moose executable in the current directory or any parent directory.
@@ -159,6 +164,7 @@ def find_moose_executable_recursive(loc=os.getcwd(), **kwargs):
         if executable is not None:
             break
     return executable
+
 
 def run_executable(app_path, *args, mpi=None, suppress_output=False):
     """
@@ -176,6 +182,7 @@ def run_executable(app_path, *args, mpi=None, suppress_output=False):
         kwargs['stdout'] = subprocess.DEVNULL
         kwargs['stderr'] = subprocess.DEVNULL
     return subprocess.call(cmd, **kwargs)
+
 
 def runExe(app_path, args):
     """
@@ -197,6 +204,7 @@ def runExe(app_path, args):
     data = proc.communicate()
     stdout_data = data[0].decode("utf-8")
     return stdout_data
+
 
 def check_configuration(packages, message=True):
     """
@@ -221,12 +229,14 @@ def check_configuration(packages, message=True):
 
     return missing
 
+
 def touch(fname):
     """
     Touch a file so to update modified time.
     """
     with open(fname, 'a'):
         os.utime(fname, None)
+
 
 def gold(filename):
     """
@@ -245,6 +255,7 @@ def gold(filename):
         return gold
     return None
 
+
 def unique_list(output, input):
     """
     Insert items into list, but only if they are unique.
@@ -252,6 +263,7 @@ def unique_list(output, input):
     for item in input:
         if item not in output:
             output.append(item)
+
 
 def make_chunks(local, num=multiprocessing.cpu_count()):
     """
@@ -264,6 +276,7 @@ def make_chunks(local, num=multiprocessing.cpu_count()):
     k, m = divmod(len(local), num)
     return (local[i * k + min(i, m):(i + 1) * k + min(i + 1, m)] for i in range(num))
 
+
 def camel_to_space(text):
     """
     Converts the supplied camel case text to space separated words.
@@ -275,6 +288,7 @@ def camel_to_space(text):
         index = match.start(0)
     out.append(text[index:])
     return ' '.join(out)
+
 
 def text_diff(text, gold):
     """
@@ -298,6 +312,7 @@ def text_diff(text, gold):
          .format('~'*n, '\n'.join(result).encode('utf-8'))
     return msg
 
+
 def unidiff(out, gold, **kwargs):
     """
     Perform a 'unified' style diff between the two supplied files.
@@ -316,7 +331,13 @@ def unidiff(out, gold, **kwargs):
 
     return text_unidiff(out_content, gold_content, out_fname=out, gold_fname=gold, **kwargs)
 
-def text_unidiff(out_content, gold_content, out_fname=None, gold_fname=None, color=True, num_lines=3):
+
+def text_unidiff(out_content,
+                 gold_content,
+                 out_fname=None,
+                 gold_fname=None,
+                 color=True,
+                 num_lines=3):
     """
     Perform a 'unified' style diff between the two supplied files.
 
@@ -331,7 +352,8 @@ def text_unidiff(out_content, gold_content, out_fname=None, gold_fname=None, col
     lines = difflib.unified_diff(gold_content.splitlines(True),
                                  out_content.splitlines(True),
                                  fromfile=gold_fname,
-                                 tofile=out_fname, n=num_lines)
+                                 tofile=out_fname,
+                                 n=num_lines)
 
     diff = []
     for line in list(lines):
@@ -346,6 +368,7 @@ def text_unidiff(out_content, gold_content, out_fname=None, gold_fname=None, col
 
     return ''.join(diff)
 
+
 def list_files(working_dir=os.getcwd()):
     """
     Return a set of files, recursively, for the supplied directory.
@@ -356,11 +379,13 @@ def list_files(working_dir=os.getcwd()):
             out.add(os.path.join(root, fname))
     return out
 
+
 def run_time(function, *args, **kwargs):
     """Run supplied function with duration timing."""
     start = time.time()
     out = function(*args, **kwargs)
     return time.time() - start
+
 
 def run_profile(function, *args, **kwargs):
     """Run supplied function with python profiler."""
@@ -374,6 +399,7 @@ def run_profile(function, *args, **kwargs):
     print(s.getvalue())
     return out
 
+
 def shellCommand(command, cwd=None):
     """
     Run a command in the shell.
@@ -385,9 +411,11 @@ def shellCommand(command, cwd=None):
         p.wait()
         retcode = p.returncode
         if retcode != 0:
-            raise Exception("Exception raised while running the command: %s in directory %s" % (command, cwd))
+            raise Exception("Exception raised while running the command: %s in directory %s" %
+                            (command, cwd))
 
         return p.communicate()[0].decode()
+
 
 def check_output(cmd, **kwargs):
     """Get output from a process"""
@@ -395,6 +423,7 @@ def check_output(cmd, **kwargs):
     kwargs.setdefault('stdout', subprocess.PIPE)
     kwargs.setdefault('encoding', 'utf-8')
     return subprocess.run(cmd, **kwargs).stdout
+
 
 def generate_filebase(string, replace='_', lowercase=True):
     """
@@ -405,14 +434,17 @@ def generate_filebase(string, replace='_', lowercase=True):
     string = re.sub(r'([\/\\\?%\*:\|\"<>\. ]+)', replace, string)
     return string
 
+
 def recursive_update(d, u):
     """Recursive update nested dict(), see https://stackoverflow.com/a/3233356/1088076"""
     for k, v in u.items():
         d[k] = recursive_update(d.get(k, dict()), v) if isinstance(v, dict) else v
     return d
 
+
 def fuzzyEqual(test_value, true_value, tolerance):
     return abs(test_value - true_value) / abs(true_value) < tolerance
+
 
 def fuzzyAbsoluteEqual(test_value, true_value, tolerance):
     return abs(test_value - true_value) < tolerance

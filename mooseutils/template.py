@@ -9,6 +9,7 @@
 
 import re
 
+
 def apply_template_arguments(content, **template_args):
     """
     Helper for applying template args (e.g., {{app}})
@@ -18,6 +19,7 @@ def apply_template_arguments(content, **template_args):
 
     content = re.sub(r'{{(?P<key>.*?)}}', lambda m: _sub(m, template_args), content)
     return content
+
 
 def _sub(match, template_args):
     key = match.group('key')

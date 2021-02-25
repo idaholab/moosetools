@@ -14,13 +14,17 @@ import logging
 import collections
 from .mooseutils import check_output
 
+
 def is_git_repo(working_dir=os.getcwd()):
     """
     Return true if the repository is a git repo.
     """
-    out = check_output(['git', 'rev-parse', '--is-inside-work-tree'], check=False,
-                       stderr=subprocess.PIPE, cwd=working_dir).strip(' \n')
+    out = check_output(['git', 'rev-parse', '--is-inside-work-tree'],
+                       check=False,
+                       stderr=subprocess.PIPE,
+                       cwd=working_dir).strip(' \n')
     return out.lower() == 'true'
+
 
 def git_commit(working_dir=os.getcwd()):
     """
@@ -29,6 +33,7 @@ def git_commit(working_dir=os.getcwd()):
     out = check_output(['git', 'rev-parse', 'HEAD'], cwd=working_dir)
     return out.strip(' \n')
 
+
 def git_commit_message(sha, working_dir=os.getcwd()):
     """
     Return the the commit message for the supplied SHA
@@ -36,12 +41,14 @@ def git_commit_message(sha, working_dir=os.getcwd()):
     out = check_output(['git', 'show', '-s', '--format=%B', sha], cwd=working_dir)
     return out.strip(' \n')
 
+
 def git_merge_commits(working_dir=os.getcwd()):
     """
     Return the current SHAs for a merge.
     """
     out = check_output(['git', 'log', '-1', '--merges', '--pretty=format:%P'], cwd=working_dir)
     return out.strip(' \n').split(' ')
+
 
 def git_ls_files(working_dir=os.getcwd(), recurse_submodules=False, exclude=None):
     """
@@ -57,17 +64,20 @@ def git_ls_files(working_dir=os.getcwd(), recurse_submodules=False, exclude=None
         out.add(os.path.abspath(os.path.join(working_dir, fname)))
     return out
 
+
 def git_root_dir(working_dir=os.getcwd()):
     """
     Return the top-level git directory by running 'git rev-parse --show-toplevel'.
     """
     try:
         return check_output(['git', 'rev-parse', '--show-toplevel'],
-                            cwd=working_dir, stderr=subprocess.STDOUT).strip('\n')
+                            cwd=working_dir,
+                            stderr=subprocess.STDOUT).strip('\n')
     except subprocess.CalledProcessError:
         print("The supplied directory is not a git repository: {}".format(working_dir))
     except OSError:
         print("The supplied directory does not exist: {}".format(working_dir))
+
 
 def git_submodule_status(working_dir=os.getcwd()):
     """
@@ -80,6 +90,7 @@ def git_submodule_status(working_dir=os.getcwd()):
         out[match.group('name')] = match.group('status')
     return out
 
+
 def git_init_submodule(path, working_dir=os.getcwd()):
     """Check submodule for given in path"""
     status = git_submodule_status(working_dir)
@@ -87,6 +98,7 @@ def git_init_submodule(path, working_dir=os.getcwd()):
         if (submodule == path) and (status == '-'):
             subprocess.call(['git', 'submodule', 'update', '--init', path], cwd=working_dir)
             break
+
 
 def git_version():
     """
@@ -97,6 +109,7 @@ def git_version():
     if match is None:
         raise SystemError("git --version failed to return correctly formatted version number")
     return (int(match.group('major')), int(match.group('minor')), int(match.group('patch')))
+
 
 def git_authors(loc=None):
     """
@@ -114,6 +127,7 @@ def git_authors(loc=None):
         names.append(match.group('name'))
     return names
 
+
 def git_lines(filename, blank=False):
     """
     Return the number of lines per author for the given filename
@@ -123,7 +137,8 @@ def git_lines(filename, blank=False):
     """
     if not os.path.isfile(filename):
         raise OSError("File does not exist: {}".format(filename))
-    regex = re.compile(r'^.*?\((?P<name>.*?)\s+\d{4}-\d{2}-\d{2}.*?\)\s+(?P<content>.*?)$', flags=re.MULTILINE)
+    regex = re.compile(r'^.*?\((?P<name>.*?)\s+\d{4}-\d{2}-\d{2}.*?\)\s+(?P<content>.*?)$',
+                       flags=re.MULTILINE)
     counts = collections.defaultdict(int)
     blame = check_output(['git', 'blame', '--', filename], encoding='utf-8')
     for line in blame.splitlines():
@@ -131,6 +146,7 @@ def git_lines(filename, blank=False):
         if blank or len(match.group('content')) > 0:
             counts[match.group('name')] += 1
     return counts
+
 
 def git_committers(loc=os.getcwd(), *args):
     """
@@ -152,12 +168,14 @@ def git_committers(loc=os.getcwd(), *args):
         counts[items[1]] = int(items[0])
     return counts
 
+
 def git_localpath(filename):
     """
     Return the path from the root of the repository.
     """
     root = git_root_dir(os.path.dirname(filename))
     return os.path.relpath(filename, root)
+
 
 def git_repo(loc=os.getcwd(), remotes=['upstream', 'origin']):
     """
@@ -167,7 +185,8 @@ def git_repo(loc=os.getcwd(), remotes=['upstream', 'origin']):
         raise OSError("The supplied location must be a directory: {}".format(loc))
 
     lookup = dict()
-    for remote in check_output(['git', 'remote', '-v'], encoding='utf-8', cwd=loc).strip(' \n').split('\n'):
+    for remote in check_output(['git', 'remote', '-v'], encoding='utf-8',
+                               cwd=loc).strip(' \n').split('\n'):
         name, addr = remote.split(maxsplit=1)
         lookup[name] = addr
 

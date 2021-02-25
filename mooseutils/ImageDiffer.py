@@ -10,6 +10,7 @@
 
 import os
 
+
 class ImageDiffer(object):
     """
     A class for comparing images using the structural similarity index (SSIM).
@@ -23,7 +24,6 @@ class ImageDiffer(object):
     Kwargs:
       allowed[float]: (Default: 0.95) The allowed lower limit of the SSIM (1 is identical images).
     """
-
     def __init__(self, file1, file2, **kwargs):
 
         # Store the file names
@@ -33,7 +33,7 @@ class ImageDiffer(object):
         self.__allowed = float(kwargs.pop('allowed', 0.95))
 
         # Storage for error messages, each stored as a tuple: (error, message)
-        self.__error = 0 # The computed error
+        self.__error = 0  # The computed error
         self.__errors = []
 
         # Read the image files
@@ -115,10 +115,10 @@ class ImageDiffer(object):
         # Check sizes
         if (self.__data[0].size != self.__data[1].size):
             err = 'The two images are different sizes'
-            msg  =  ['  File 1: ' + self.__files[0]]
-            msg +=  ['    size: ' + str(self.__data[0].size)]
-            msg +=  ['  File 2: ' + self.__files[1]]
-            msg +=  ['    size: ' + str(self.__data[1].size)]
+            msg = ['  File 1: ' + self.__files[0]]
+            msg += ['    size: ' + str(self.__data[0].size)]
+            msg += ['  File 2: ' + self.__files[1]]
+            msg += ['    size: ' + str(self.__data[1].size)]
             self.__addError(err, msg)
             return
 
@@ -126,12 +126,15 @@ class ImageDiffer(object):
         try:
             # skimage version >= 0.17
             import skimage.metrics
-            self.__error = skimage.metrics.structural_similarity(self.__data[0], self.__data[1], multichannel=True)
+            self.__error = skimage.metrics.structural_similarity(self.__data[0],
+                                                                 self.__data[1],
+                                                                 multichannel=True)
         except:
             # legacy support
             import skimage.measure
-            self.__error = skimage.measure.compare_ssim(self.__data[0], self.__data[1], multichannel=True)
-
+            self.__error = skimage.measure.compare_ssim(self.__data[0],
+                                                        self.__data[1],
+                                                        multichannel=True)
 
         # Report the error
         if self.__error < self.__allowed:
@@ -139,7 +142,10 @@ class ImageDiffer(object):
             msg = ['The difference of the images exceeds the "allowed" SSIM.']
             msg += ['                 Allowed (SSIM): ' + str(self.__allowed)]
             msg += ['                Computed (SSIM): ' + str(self.__error)]
-            msg += ['                Rel. difference: ' + str( abs(self.__allowed - self.__error) / self.__error)]
+            msg += [
+                '                Rel. difference: ' +
+                str(abs(self.__allowed - self.__error) / self.__error)
+            ]
 
             self.__addError(err, msg)
             return
@@ -171,7 +177,11 @@ class ImageDiffer(object):
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Perform comparison of images.')
-    parser.add_argument('files', type=str, nargs='+', help="The image(s) to compare. If a single image is provided the 'gold' version is used.")
+    parser.add_argument(
+        'files',
+        type=str,
+        nargs='+',
+        help="The image(s) to compare. If a single image is provided the 'gold' version is used.")
     args = parser.parse_args()
 
     # Test files

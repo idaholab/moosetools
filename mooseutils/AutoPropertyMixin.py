@@ -6,12 +6,12 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-
 """Auto python property creation."""
 import sys
 import collections
 import inspect
 from .MooseException import MooseException
+
 
 class Property(object):
     """
@@ -70,7 +70,8 @@ class Property(object):
             self.onPropertySet(instance, value)
             instance._AutoPropertyMixinBase__properties[self.name] = value
         else:
-            raise MooseException("The {} object is immutable, see mooseuitls.AutoPropertyMixin.", type(instance).__name__)
+            raise MooseException("The {} object is immutable, see mooseuitls.AutoPropertyMixin.",
+                                 type(instance).__name__)
 
     def __get__(self, instance, owner):
         """Get the property value."""
@@ -83,7 +84,8 @@ class Property(object):
 
         NOTE: To maintain the existing checks, the base class method should be called.
         """
-        if (self.__type is not None) and (not isinstance(value, self.__type)) and (value is not None):
+        if (self.__type is not None) and (not isinstance(value, self.__type)) and (value
+                                                                                   is not None):
             msg = "The supplied property '{}' must be of type '{}', but '{}' was provided."
             raise MooseException(msg, self.name, self.type.__name__, type(value).__name__)
 
@@ -103,6 +105,7 @@ class Property(object):
         """
         if self.required and (instance._AutoPropertyMixinBase__properties[self.name] is None):
             raise MooseException("The property '{}' is required.", self.name)
+
 
 def addProperty(*args, **kwargs):
     """Decorator for adding properties."""
@@ -124,6 +127,7 @@ def addProperty(*args, **kwargs):
 
     return create
 
+
 def _init_properties(cls, *props):
     """Helper method for adding descriptors to a class (not instance)."""
 
@@ -136,6 +140,7 @@ def _init_properties(cls, *props):
 
     cls.__DESCRIPTORS__[cls].update(properties)
     cls.__INITIALIZED__.add(cls)
+
 
 class AutoPropertyMixinBase(object):
     """
@@ -150,10 +155,10 @@ class AutoPropertyMixinBase(object):
     def __init__(self, mutable=True, **kwargs):
 
         # A flag for controlling the mutability of the object
-        self.__mutable = True # must be True initially to allow for the properties to initialize
+        self.__mutable = True  # must be True initially to allow for the properties to initialize
 
         # Class members
-        self.__properties = dict() # storage for property values, addProperty items
+        self.__properties = dict()  # storage for property values, addProperty items
 
         # Initialize properties, this happens automatically if addProperty decorator is used,
         # but when it is not the properties from the parent classes need to get added.
@@ -193,6 +198,7 @@ class AutoPropertyMixinBase(object):
                 continue
             if key in self.__properties:
                 setattr(self, key, value)
+
 
 class AutoPropertyMixin(AutoPropertyMixinBase):
     """
@@ -242,7 +248,7 @@ class AutoPropertyMixin(AutoPropertyMixinBase):
         kwargs: (Optional) Any key, value pairs supplied are stored as properties or attributes.
     """
     def __init__(self, *args, **kwargs):
-        self.__attributes = dict() # storage for attributes (i.e., unknown key, values)
+        self.__attributes = dict()  # storage for attributes (i.e., unknown key, values)
         AutoPropertyMixinBase.__init__(self, *args, **kwargs)
 
     @property
@@ -253,7 +259,8 @@ class AutoPropertyMixin(AutoPropertyMixinBase):
         if self._AutoPropertyMixinBase__mutable:
             return self.__attributes
         else:
-            raise MooseException("The {} object is immutable, see mooseuitls.AutoPropertyMixin.", type(self).__name__)
+            raise MooseException("The {} object is immutable, see mooseuitls.AutoPropertyMixin.",
+                                 type(self).__name__)
 
     def update(self, other):
         """
@@ -287,7 +294,8 @@ class AutoPropertyMixin(AutoPropertyMixinBase):
         if self._AutoPropertyMixinBase__mutable:
             self.__attributes[key] = value
         else:
-            raise MooseException("The {} object is immutable, see mooseuitls.AutoPropertyMixin.", type(self).__name__)
+            raise MooseException("The {} object is immutable, see mooseuitls.AutoPropertyMixin.",
+                                 type(self).__name__)
 
     def __contains__(self, key):
         """

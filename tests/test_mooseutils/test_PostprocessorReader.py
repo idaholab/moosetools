@@ -16,18 +16,19 @@ import subprocess
 import time
 import mooseutils
 
+
 class TestrPostprocessorReader(unittest.TestCase):
     """
     Test use of PostprocessorReader for loading/reloading csv files.
 
     The PostprocessorReader is an extension of MooseDataFrame, so only the new functions are tested here.
     """
-
     def setUp(self):
         """
         Define the test filename.
         """
-        self._partial = os.path.join(os.path.dirname(__file__), 'white_elephant_jan_2016_partial.csv')
+        self._partial = os.path.join(os.path.dirname(__file__),
+                                     'white_elephant_jan_2016_partial.csv')
         self._filename = os.path.join(os.path.dirname(__file__), 'white_elephant_jan_2016.csv')
         self._keys = ['air_temp_low_24_hour_set_1', 'snow_depth_set_1']
 
@@ -76,13 +77,13 @@ class TestrPostprocessorReader(unittest.TestCase):
 
         # Load data and inspect
         data = mooseutils.PostprocessorReader(tmp)
-        self.assertEqual(data.data.shape, (287,8))
+        self.assertEqual(data.data.shape, (287, 8))
 
         # Wait and copy more data
         time.sleep(1)
         shutil.copyfile(self._filename, tmp)
         data.update()
-        self.assertEqual(data.data.shape, (742,8))
+        self.assertEqual(data.data.shape, (742, 8))
         os.remove(tmp)
 
     def testVariables(self):
@@ -127,6 +128,7 @@ class TestrPostprocessorReader(unittest.TestCase):
 
         # Remove the script
         os.remove(script)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)

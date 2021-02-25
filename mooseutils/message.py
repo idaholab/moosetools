@@ -16,18 +16,17 @@ try:
     MOOSE_USE_QT5 = True
 except:
     MOOSE_USE_QT5 = False
-
 """
 Global for enabling/disabling debug mode.
 """
 MOOSE_DEBUG_MODE = os.environ.get("MOOSE_PYTHON_DEBUG_MODE") == "1"
-
 """
 Global for enabling/disabling testing mode.
 """
 MOOSE_TESTING_MODE = False
 
 if MOOSE_USE_QT5:
+
     class MessageEmitter(QtCore.QObject):
         message = QtCore.pyqtSignal(str, str)
 
@@ -36,6 +35,7 @@ if MOOSE_USE_QT5:
                 self.message.emit(str(msg), str(color))
 
     messageEmitter = MessageEmitter()
+
 
 def mooseMessage(*args, **kwargs):
     """
@@ -71,7 +71,7 @@ def mooseMessage(*args, **kwargs):
             message.append(repr(arg))
         else:
             message.append(arg)
-    message = '{}{}'.format(' '*2*indent, ' '.join(message))
+    message = '{}{}'.format(' ' * 2 * indent, ' '.join(message))
 
     # Show a dialog box
     if MOOSE_USE_QT5 and dialog and not MOOSE_TESTING_MODE:
@@ -89,7 +89,7 @@ def mooseMessage(*args, **kwargs):
 
     # Emit the message to any listeners
     if MOOSE_USE_QT5:
-      messageEmitter.write(message, color)
+        messageEmitter.write(message, color)
 
     # Print the message to screen
     if color:
@@ -106,17 +106,23 @@ def mooseError(*args, **kwargs):
     """
     A mooseMessage setup to produce an error.
     """
-    return mooseMessage('ERROR\n', *args, error = kwargs.pop('error', True),
-                                          color = kwargs.pop('color', 'RED'),
-                                          traceback = kwargs.pop('traceback', True),
-                                          **kwargs)
+    return mooseMessage('ERROR\n',
+                        *args,
+                        error=kwargs.pop('error', True),
+                        color=kwargs.pop('color', 'RED'),
+                        traceback=kwargs.pop('traceback', True),
+                        **kwargs)
+
 
 def mooseWarning(*args, **kwargs):
     """
     A mooseMessage setup to produce a warning.
     """
-    return mooseMessage('WARNING\n', *args, warning = kwargs.pop('warning', True),
-                                            color = kwargs.pop('color', 'YELLOW'), **kwargs)
+    return mooseMessage('WARNING\n',
+                        *args,
+                        warning=kwargs.pop('warning', True),
+                        color=kwargs.pop('color', 'YELLOW'),
+                        **kwargs)
 
 
 def mooseDebug(*args, **kwargs):

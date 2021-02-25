@@ -14,11 +14,11 @@ import unittest
 import time
 import mooseutils
 
+
 class TestMooseDataFrame(unittest.TestCase):
     """
     Test use of MooseDataFrame for loading/reloading csv files.
     """
-
     def setUp(self):
         """
         Define the test filename.
@@ -58,7 +58,7 @@ class TestMooseDataFrame(unittest.TestCase):
         # Key Testing
         self.assertFalse('key' in data)
 
-        x = data[ ['key1', 'key2'] ]
+        x = data[['key1', 'key2']]
         self.assertTrue(x.empty)
 
     def testEmptyUpdateRemove(self):

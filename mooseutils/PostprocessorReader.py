@@ -10,6 +10,7 @@
 from .MooseDataFrame import MooseDataFrame
 from . import message
 
+
 class PostprocessorReader(MooseDataFrame):
     """
     An extension to the MooseDataFrame to provide functionality mirroring that of the VectorPostprocessorReader.
@@ -17,7 +18,6 @@ class PostprocessorReader(MooseDataFrame):
     Args:
         filename[str]: The csv file to read.
     """
-
     def __init__(self, filename, **kwargs):
         super(PostprocessorReader, self).__init__(filename, **kwargs)
 

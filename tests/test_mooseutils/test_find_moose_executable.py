@@ -14,6 +14,7 @@ import unittest
 import tempfile
 import mooseutils
 
+
 class Test(unittest.TestCase):
     def testFindWithName(self):
         tmp_dir = tempfile.mkdtemp()
@@ -62,6 +63,7 @@ class Test(unittest.TestCase):
         os.environ['METHOD'] = 'opt'
         exe = mooseutils.find_moose_executable(tmp_dir)
         self.assertEqual(exe, tmp_exe)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2, buffer=True)

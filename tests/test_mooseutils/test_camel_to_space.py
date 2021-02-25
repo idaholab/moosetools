@@ -11,6 +11,7 @@
 import unittest
 from mooseutils import camel_to_space
 
+
 class TestCamelCaseToSpace(unittest.TestCase):
     """
     Test that the size function returns something.

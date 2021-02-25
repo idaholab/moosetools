@@ -15,6 +15,7 @@ import re
 
 from .eval_path import eval_path
 
+
 class IncludeYamlFile(object):
     """
     Object for handling including and reproducing output without include.
@@ -45,6 +46,7 @@ class IncludeYamlFile(object):
         """
         return dumper.represent_scalar('!include', ' '.join(data.items))
 
+
 class Loader(yaml.Loader):
     """
     A custom loader that handles nested includes. The nested includes should use absolute paths from
@@ -68,14 +70,15 @@ class Loader(yaml.Loader):
         return obj.content if self._include else obj
 
     def compose_node(self, parent, index):
-         """
+        """
          Add the line number to the node.
          https://stackoverflow.com/questions/13319067/parsing-yaml-return-with-line-number
          """
-         line = self.line
-         node = yaml.Loader.compose_node(self, parent, index)
-         node.line = line + 1
-         return node
+        line = self.line
+        node = yaml.Loader.compose_node(self, parent, index)
+        node.line = line + 1
+        return node
+
 
 class Dumper(yaml.Dumper):
     """https://github.com/yaml/pyyaml/issues/234"""
@@ -86,20 +89,26 @@ class Dumper(yaml.Dumper):
     def increase_indent(self, flow=False, *args, **kwargs):
         return super().increase_indent(flow=flow, indentless=False)
 
+
 """
 Use OrderedDict for storing data.
 https://stackoverflow.com/a/21048064/1088076
 """
+
+
 def dict_representer(dumper, data):
     return dumper.represent_dict(data.items())
 
+
 def dict_constructor(loader, node):
     return collections.OrderedDict(loader.construct_pairs(node))
+
 
 _mapping_tag = yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG
 
 yaml.add_representer(collections.OrderedDict, dict_representer)
 yaml.add_constructor(_mapping_tag, dict_constructor)
+
 
 def yaml_load(filename, loader=Loader, root=None, include=True):
     """
@@ -111,6 +120,7 @@ def yaml_load(filename, loader=Loader, root=None, include=True):
     with open(filename, 'r') as fid:
         yml = yaml.load(fid, lambda s: loader(s, root=root, include=include))
     return yml
+
 
 def yaml_write(filename, content, indent=4):
     """

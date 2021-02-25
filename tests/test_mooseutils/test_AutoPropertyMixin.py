@@ -14,10 +14,12 @@ import mooseutils
 import pickle
 import multiprocessing
 
+
 @mooseutils.addProperty('prop')
 class MyNode(mooseutils.AutoPropertyMixin):
     """Global for pickle test."""
     pass
+
 
 @mooseutils.addProperty('prop', required=True)
 class MyNode2(mooseutils.AutoPropertyMixin):
@@ -27,7 +29,6 @@ class MyNode2(mooseutils.AutoPropertyMixin):
 
 class Test(unittest.TestCase):
     """Test mooseutils.AutoPropertyMixin class."""
-
     def testProperty(self):
         @mooseutils.addProperty('prop')
         class MyNode(mooseutils.AutoPropertyMixin):
@@ -45,7 +46,6 @@ class Test(unittest.TestCase):
         self.assertEqual(node.prop, 1)
 
     def testPropertyRequired(self):
-
         @mooseutils.addProperty('prop', required=True)
         class MyNode(mooseutils.AutoPropertyMixin):
             pass
@@ -61,6 +61,7 @@ class Test(unittest.TestCase):
         @mooseutils.addProperty('prop', default=12345)
         class MyNode(mooseutils.AutoPropertyMixin):
             pass
+
         node = MyNode()
         self.assertEqual(node.prop, 12345)
         node.prop = 'combo'
@@ -85,7 +86,6 @@ class Test(unittest.TestCase):
         self.assertEqual(node.prop, 12345)
 
     def testPropertyInheritance(self):
-
         @mooseutils.addProperty('prop0')
         class N0(mooseutils.AutoPropertyMixin):
             pass
@@ -106,7 +106,6 @@ class Test(unittest.TestCase):
         self.assertEqual(n1.prop1, 3)
 
     def testAttributes(self):
-
         @mooseutils.addProperty('bar')
         class N(mooseutils.AutoPropertyMixin):
             pass
@@ -123,6 +122,7 @@ class Test(unittest.TestCase):
     def testCustomProperty(self):
         class MyProperty(mooseutils.Property):
             pass
+
         @mooseutils.addProperty('bar', cls=MyProperty)
         class MyObject(mooseutils.AutoPropertyMixin):
             pass
@@ -178,7 +178,6 @@ class Test(unittest.TestCase):
         self.assertIsInstance(node.attributes, dict)
 
     def testParallel(self):
-
         @mooseutils.addProperty('uid')
         class MyNode(mooseutils.AutoPropertyMixin):
             pass
@@ -214,7 +213,6 @@ class Test(unittest.TestCase):
         page_attributes[node.uid] = node.attributes
 
     def testParallelBarrier(self):
-
         @mooseutils.addProperty('uid', 42)
         class MyNode(mooseutils.AutoPropertyMixin):
             pass
@@ -223,15 +221,16 @@ class Test(unittest.TestCase):
         n1 = MyNode(uid=1)
         self._pages = [n0, n1]
 
-
         barrier = multiprocessing.Barrier(2)
         manager = multiprocessing.Manager()
         page_attributes = manager.dict()
 
-        p0 = multiprocessing.Process(target=self._addAttributeBarrier, args=(n0, barrier, page_attributes))
+        p0 = multiprocessing.Process(target=self._addAttributeBarrier,
+                                     args=(n0, barrier, page_attributes))
         p0.start()
 
-        p1 = multiprocessing.Process(target=self._addAttributeBarrier, args=(n1, barrier, page_attributes))
+        p1 = multiprocessing.Process(target=self._addAttributeBarrier,
+                                     args=(n1, barrier, page_attributes))
         p1.start()
 
         p0.join()
@@ -239,7 +238,6 @@ class Test(unittest.TestCase):
 
         self.assertEqual(page_attributes[0]['year'], 1949)
         self.assertEqual(page_attributes[1]['year'], 1980)
-
 
     def _addAttributeBarrier(self, node, barrier, page_attributes):
 

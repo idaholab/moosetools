@@ -14,14 +14,15 @@ import json
 import collections
 import mooseutils
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Tool for comparing two JSON files')
     parser.add_argument('files', nargs=2, type=argparse.FileType('r'))
     return parser.parse_args()
 
+
 class JSONDiffer(object):
     """Basic class for performing diff between JSON files/data"""
-
     def __init__(self, input0, input1, **kwargs):
         kwargs.setdefault('sort_keys', True)
         kwargs.setdefault('indent', 4)
@@ -55,7 +56,8 @@ class JSONDiffer(object):
         return input0
 
     def _skip(self, data):
-        return collections.OrderedDict({k:v for k, v in data.items() if k not in self._skip_keys})
+        return collections.OrderedDict({k: v for k, v in data.items() if k not in self._skip_keys})
+
 
 if __name__ == '__main__':
     args = parse_args()

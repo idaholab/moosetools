@@ -15,6 +15,7 @@ import bisect
 from .MooseDataFrame import MooseDataFrame
 from . import message
 
+
 class VectorPostprocessorReader(object):
     """
     A Reader for MOOSE VectorPostprocessor data.
@@ -116,13 +117,16 @@ class VectorPostprocessorReader(object):
         # The list of files from the supplied pattern
         last_modified = 0.0
         for fname in sorted(glob.glob(self._pattern)):
-            if fname.endswith('LATEST') or fname.endswith('FINAL') or (fname == self._timedata.filename):
+            if fname.endswith('LATEST') or fname.endswith('FINAL') or (fname
+                                                                       == self._timedata.filename):
                 continue
             idx = self._timeHelper(fname)
 
             mdf = self._frames.get(idx, None)
             if mdf is None:
-                mdf = MooseDataFrame(fname, run_start_time=self._run_start_time, update=False,
+                mdf = MooseDataFrame(fname,
+                                     run_start_time=self._run_start_time,
+                                     update=False,
                                      peacock_index=True)
                 self._frames[idx] = mdf
 
@@ -173,7 +177,7 @@ class VectorPostprocessorReader(object):
         Helper for setting the current key for the supplied time.
         """
         if not self._frames:
-           index = None
+            index = None
 
         # Return the latest time
         elif self._time == -1:

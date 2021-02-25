@@ -26,12 +26,13 @@ DEFAULT_JOBS_CACHE = os.path.join(os.getenv('HOME'), '.local', 'share', 'civet',
 DEFAULT_CIVET_SITE = 'https://civet.inl.gov'
 DEFAULT_CIVET_REPO = 'idaholab/moose'
 
-TEST_RE = re.compile(r'^(?:\[(?P<time>.+?)s\])?'       # Optional test time
-                     r' *(?P<status>[A-Z]+?)'          # Test status (e.g., OK)
-                     r' +(?P<test>.*?)'                # Test name
-                     r'(?: +(?P<reason>.*?))?'         # reason FAILED (FAILED (ERRORMSG))
-                     r'(?: *\[(?P<caveats>.*?)\])?$',  # Test caveats (e.g., [min_cpus=1])
-                     flags=re.MULTILINE)
+TEST_RE = re.compile(
+    r'^(?:\[(?P<time>.+?)s\])?'  # Optional test time
+    r' *(?P<status>[A-Z]+?)'  # Test status (e.g., OK)
+    r' +(?P<test>.*?)'  # Test name
+    r'(?: +(?P<reason>.*?))?'  # reason FAILED (FAILED (ERRORMSG))
+    r'(?: *\[(?P<caveats>.*?)\])?$',  # Test caveats (e.g., [min_cpus=1])
+    flags=re.MULTILINE)
 
 JOB_RE = re.compile(r'id=\"job_(?P<job>\d+)\"')
 RECIPE_RE = re.compile(r'results_(?P<number>\d+)_(?P<job>.*)/(?P<recipe>.*)')
@@ -43,6 +44,7 @@ Test = collections.namedtuple('Test', 'recipe status caveats reason time url')
 Job = collections.namedtuple('Job', 'number filename status url')
 
 if sys.version_info[0] == 3:
+
     class JobFileStatus(enum.Enum):
         """Status flag for Job file downloads"""
         CACHE = 0
@@ -50,6 +52,7 @@ if sys.version_info[0] == 3:
         DOWNLOAD = 2
         FAIL = 3
 else:
+
     class JobFileStatus(object):
         """Status flag for Job file downloads"""
         CACHE = 0
@@ -70,6 +73,7 @@ def _get_local_civet_jobs(location, logger=None):
             jobs.add(Job(int(match.group('number')), filename, JobFileStatus.LOCAL, None))
     return sorted(jobs, key=lambda j: j.number)
 
+
 def _get_remote_civet_jobs(hashes, site, repo, cache=DEFAULT_JOBS_CACHE, logger=None):
     """
     Get a list of Job objects for the supplied git SHA1 strings.
@@ -89,6 +93,7 @@ def _get_remote_civet_jobs(hashes, site, repo, cache=DEFAULT_JOBS_CACHE, logger=
             job = jobs.add(_download_job(int(match.group('job')), site, cache, logger))
 
     return sorted(jobs, key=lambda j: j.number)
+
 
 def _download_job(job, site, cache, logger):
     """
@@ -128,6 +133,7 @@ def _download_job(job, site, cache, logger):
 
     return Job(job, filename, status, site)
 
+
 def _update_database_from_job(job, database, possible):
     """
     Update the test result database given a Job object.
@@ -152,6 +158,7 @@ def _update_database_from_job(job, database, possible):
             if end is not None:
                 _process_results(database, job, recipe, content[begin.end():end.start()], possible)
 
+
 def _process_results(database, job, recipe, content, possible):
     """
     Extract results from run_tests and update the database.
@@ -172,11 +179,13 @@ def _process_results(database, job, recipe, content, possible):
             url = job.url if job.url is not None else job.filename
             database[tname][job.number].append(Test(recipe, status, caveats, reason, time, url))
 
+
 def get_civet_results(local=list(),
                       hashes=list(),
                       sites=[(DEFAULT_CIVET_SITE, DEFAULT_CIVET_REPO)],
                       possible=None,
-                      cache=DEFAULT_JOBS_CACHE, logger=None):
+                      cache=DEFAULT_JOBS_CACHE,
+                      logger=None):
 
     database = collections.defaultdict(lambda: collections.defaultdict(list))
     for loc in local:
@@ -190,8 +199,9 @@ def get_civet_results(local=list(),
             _update_database_from_job(job, database, possible)
     return database
 
+
 if __name__ == '__main__':
     #database = get_civet_results(hashes=['681ba2f4274dc8465bb2a54e1353cfa24765a5c1',
     #                                    'febe3476040fe6af1df1d67e8cc8c04c4760afb6'])
-    database = get_civet_results(sites=[],
-                                 local=['/Users/slauae/projects/moose/python/MooseDocs/test/content/civet'])
+    database = get_civet_results(
+        sites=[], local=['/Users/slauae/projects/moose/python/MooseDocs/test/content/civet'])

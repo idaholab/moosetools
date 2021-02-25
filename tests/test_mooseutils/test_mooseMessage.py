@@ -14,11 +14,11 @@ from io import StringIO
 from unittest import mock
 from mooseutils import message
 
+
 class TestMooseMessage(unittest.TestCase):
     """
     Tests the usage of the various messages functions in message package.
     """
-
     def testMooseMessageDefault(self):
         """
         Test the default message with a string and a number supplied.
@@ -35,7 +35,7 @@ class TestMooseMessage(unittest.TestCase):
         """
         with mock.patch('sys.stdout', new=StringIO()) as stdout:
             with mock.patch('sys.stderr', new=StringIO()) as stderr:
-                message.mooseMessage("A message", "with a traceback!", traceback = True)
+                message.mooseMessage("A message", "with a traceback!", traceback=True)
         output = stdout.getvalue()
         err = stderr.getvalue()
         self.assertIn("A message with a traceback!", output)
@@ -46,7 +46,7 @@ class TestMooseMessage(unittest.TestCase):
         Test that the color flag is working.
         """
         with mock.patch('sys.stdout', new=StringIO()) as stdout:
-            message.mooseMessage("This should be RED.", color = 'RED')
+            message.mooseMessage("This should be RED.", color='RED')
         output = stdout.getvalue()
         self.assertIn('\033[31m', output)
 
@@ -115,7 +115,6 @@ class TestMooseMessage(unittest.TestCase):
             message.mooseDebug("You should NOT see this!")
         output = stdout.getvalue()
         self.assertNotIn("You should NOT see this!", output)
-
 
 
 if __name__ == '__main__':
