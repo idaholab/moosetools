@@ -50,15 +50,13 @@ class Test(unittest.TestCase):
     @unittest.skipIf(not mooseutils.is_git_repo(), "Not a Git repository")
     def testGitRootDir(self):
         root = mooseutils.git_root_dir()
-        self.assertEqual(root, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+        self.assertEqual(root, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
     @unittest.skipIf(not mooseutils.is_git_repo(), "Not a Git repository")
     def testGitSubmoduleStatus(self):
         root = mooseutils.git_root_dir()
         status = mooseutils.git_submodule_status(root)
-        self.assertIn('large_media', status)
-        self.assertIn('libmesh', status)
-        self.assertIn('petsc', status)
+        self.assertEqual(status, dict())
 
     @mock.patch('subprocess.call')
     @mock.patch('mooseutils.gitutils.git_submodule_status')
@@ -96,7 +94,7 @@ class Test(unittest.TestCase):
     @unittest.skip("Fails on CIVET and I can't reproduce it")
     def testCommitters(self):
         names = mooseutils.git_committers(mooseutils.__file__)
-        self.assertIn('Andrew E. Slaughter', names)
+        self.assertIn('Andrew E Slaughter', names)
         with self.assertRaises(OSError) as e:
             mooseutils.git_authors('wrong')
 
@@ -111,19 +109,20 @@ class Test(unittest.TestCase):
         n_no_blank = n_with_blank - len([l for l in lines if not l.strip()])
 
         counts = mooseutils.git_lines(__file__)
-        self.assertIn('Andrew E. Slaughter', counts)
-        self.assertTrue(counts['Andrew E. Slaughter'] > 0)
+        print(counts)
+        self.assertIn('Andrew E Slaughter', counts)
+        self.assertTrue(counts['Andrew E Slaughter'] > 0)
         self.assertEqual(n_no_blank, sum(list(counts.values())))
 
         counts = mooseutils.git_lines(__file__, blank=True)
-        self.assertIn('Andrew E. Slaughter', counts)
-        self.assertTrue(counts['Andrew E. Slaughter'] > 0)
+        self.assertIn('Andrew E Slaughter', counts)
+        self.assertTrue(counts['Andrew E Slaughter'] > 0)
         self.assertEqual(n_with_blank, sum(list(counts.values())))
 
     def testGitLocalPath(self):
         filename = os.path.abspath(__file__)
         local = mooseutils.git_localpath(filename)
-        self.assertEqual(local, 'python/mooseutils/tests/test_gitutils.py')
+        self.assertEqual(local, 'tests/test_mooseutils/test_gitutils.py')
 
     @mock.patch('subprocess.run')
     def testGitRepo(self, mock_out):

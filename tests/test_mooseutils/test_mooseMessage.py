@@ -10,6 +10,8 @@
 
 import sys
 import unittest
+from io import StringIO
+from unittest import mock
 from mooseutils import message
 
 class TestMooseMessage(unittest.TestCase):
@@ -21,8 +23,9 @@ class TestMooseMessage(unittest.TestCase):
         """
         Test the default message with a string and a number supplied.
         """
-        message.mooseMessage("The default message with a number", 1.0)
-        output = sys.stdout.getvalue()
+        with mock.patch('sys.stdout', new=StringIO()) as stdout:
+            message.mooseMessage("The default message with a number", 1.0)
+        output = stdout.getvalue()
         self.assertIn("The default message with a number 1.0", output)
 
     @unittest.skip('Breaks with current package')
@@ -30,9 +33,11 @@ class TestMooseMessage(unittest.TestCase):
         """
         Test that the traceback argument is operational.
         """
-        message.mooseMessage("A message", "with a traceback!", traceback = True)
-        output = sys.stdout.getvalue()
-        err = sys.stderr.getvalue()
+        with mock.patch('sys.stdout', new=StringIO()) as stdout:
+            with mock.patch('sys.stderr', new=StringIO()) as stderr:
+                message.mooseMessage("A message", "with a traceback!", traceback = True)
+        output = stdout.getvalue()
+        err = stderr.getvalue()
         self.assertIn("A message with a traceback!", output)
         self.assertIn("message.mooseMessage", err)
 
@@ -40,8 +45,9 @@ class TestMooseMessage(unittest.TestCase):
         """
         Test that the color flag is working.
         """
-        message.mooseMessage("This should be RED.", color = 'RED')
-        output = sys.stdout.getvalue()
+        with mock.patch('sys.stdout', new=StringIO()) as stdout:
+            message.mooseMessage("This should be RED.", color = 'RED')
+        output = stdout.getvalue()
         self.assertIn('\033[31m', output)
 
     def testMooseMessageDebugOn(self):
@@ -49,8 +55,9 @@ class TestMooseMessage(unittest.TestCase):
         Test that the debug flag enables debug messages.
         """
         message.MOOSE_DEBUG_MODE = True
-        message.mooseMessage("You should see this!", debug=True)
-        output = sys.stdout.getvalue()
+        with mock.patch('sys.stdout', new=StringIO()) as stdout:
+            message.mooseMessage("You should see this!", debug=True)
+        output = stdout.getvalue()
         self.assertIn("You should see this!", output)
 
     def testMooseMessageDebugOff(self):
@@ -58,8 +65,9 @@ class TestMooseMessage(unittest.TestCase):
         Test that the debug flag enables debug messages.
         """
         message.MOOSE_DEBUG_MODE = False
-        message.mooseDebug("You should see this!", debug=True)
-        output = sys.stdout.getvalue()
+        with mock.patch('sys.stdout', new=StringIO()) as stdout:
+            message.mooseDebug("You should see this!", debug=True)
+        output = stdout.getvalue()
         self.assertIn("You should see this!", output)
 
     @unittest.skip('Breaks with current package')
@@ -67,9 +75,11 @@ class TestMooseMessage(unittest.TestCase):
         """
         Tests mooseError function.
         """
-        message.mooseError("Don't do it!")
-        output = sys.stdout.getvalue()
-        err = sys.stderr.getvalue()
+        with mock.patch('sys.stdout', new=StringIO()) as stdout:
+            with mock.patch('sys.stderr', new=StringIO()) as stderr:
+                message.mooseError("Don't do it!")
+        output = stdout.getvalue()
+        err = stderr.getvalue()
         self.assertIn('ERROR', output)
         self.assertIn("Don't do it!", output)
         self.assertIn("in mooseError", err)
@@ -79,8 +89,9 @@ class TestMooseMessage(unittest.TestCase):
         """
         Tests mooseWarning function.
         """
-        message.mooseWarning("Just a little warning")
-        output = sys.stdout.getvalue()
+        with mock.patch('sys.stdout', new=StringIO()) as stdout:
+            message.mooseWarning("Just a little warning")
+        output = stdout.getvalue()
         self.assertIn('WARNING', output)
         self.assertIn("Just a little warning", output)
         self.assertIn('\033[33m', output)
@@ -90,8 +101,9 @@ class TestMooseMessage(unittest.TestCase):
         Test use of mooseDebug function, with debugging enabled.
         """
         message.MOOSE_DEBUG_MODE = True
-        message.mooseDebug("You should see this!")
-        output = sys.stdout.getvalue()
+        with mock.patch('sys.stdout', new=StringIO()) as stdout:
+            message.mooseDebug("You should see this!")
+        output = stdout.getvalue()
         self.assertIn("You should see this!", output)
 
     def testDebugMessageOff(self):
@@ -99,8 +111,9 @@ class TestMooseMessage(unittest.TestCase):
         Test use of mooseDebug function, with debugging disabled.
         """
         message.MOOSE_DEBUG_MODE = False
-        message.mooseDebug("You should NOT see this!")
-        output = sys.stdout.getvalue()
+        with mock.patch('sys.stdout', new=StringIO()) as stdout:
+            message.mooseDebug("You should NOT see this!")
+        output = stdout.getvalue()
         self.assertNotIn("You should NOT see this!", output)
 
 

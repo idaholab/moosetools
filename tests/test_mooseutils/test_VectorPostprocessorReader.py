@@ -20,29 +20,21 @@ class TestVectorPostprocessorReader(unittest.TestCase):
     Test use of MooseDataFrame for loading/reloading csv files.
     """
 
-    def setUp(self):
-        """
-        Define the test filename.
-        """
-        self._pattern = os.path.abspath('../../test_files/vpp_*.csv')
-
     def copyfiles(self, copytime=True):
         """
         Copy the saved file locally.
         """
-        for f in sorted(glob.glob(self._pattern)):
+        for f in sorted(glob.glob(os.path.join(os.path.dirname(__file__), 'vpp_*.csv'))):
             if f.endswith('time.csv') and not copytime:
                 continue
-            shutil.copyfile(f, os.path.basename(f))
+            shutil.copyfile(f, 'tmp_' + os.path.basename(f))
 
     def tearDown(self):
         """
         Remove local copy of files.
         """
-        for f in glob.glob(self._pattern):
-            fname = os.path.basename(f)
-            if os.path.exists(fname):
-                os.remove(fname)
+        for fname in glob.glob('tmp_vpp_*.csv'):
+            os.remove(fname)
 
     def testBasic(self):
         """
@@ -51,9 +43,9 @@ class TestVectorPostprocessorReader(unittest.TestCase):
         self.copyfiles()
 
         # Load the data
-        data = mooseutils.VectorPostprocessorReader('vpp_*.csv')
-        self.assertEqual(data._pattern, os.path.basename(self._pattern))
-        self.assertEqual(data.filename, 'vpp_005.csv')
+        data = mooseutils.VectorPostprocessorReader('tmp_vpp_*.csv')
+        self.assertEqual(data._pattern, os.path.basename('tmp_vpp_*.csv'))
+        self.assertEqual(data.filename, 'tmp_vpp_005.csv')
         self.assertTrue(data._timedata)
         self.assertTrue(data)
 
@@ -71,9 +63,9 @@ class TestVectorPostprocessorReader(unittest.TestCase):
         """
         self.copyfiles(copytime=False)
 
-        data = mooseutils.VectorPostprocessorReader('vpp_*.csv')
-        self.assertEqual(data._pattern, os.path.basename(self._pattern))
-        self.assertEqual(data.filename, 'vpp_005.csv')
+        data = mooseutils.VectorPostprocessorReader('tmp_vpp_*.csv')
+        self.assertEqual(data._pattern, 'tmp_vpp_*.csv')
+        self.assertEqual(data.filename, 'tmp_vpp_005.csv')
         self.assertFalse(data._timedata)
         self.assertTrue(data)
 
@@ -93,8 +85,8 @@ class TestVectorPostprocessorReader(unittest.TestCase):
         """
 
         # Create object w/o data
-        data = mooseutils.VectorPostprocessorReader('vpp_*.csv')
-        self.assertEqual(data._pattern, os.path.basename(self._pattern))
+        data = mooseutils.VectorPostprocessorReader('tmp_vpp_*.csv')
+        self.assertEqual(data._pattern, 'tmp_vpp_*.csv')
         self.assertEqual(data.filename, None)
         self.assertFalse(data._timedata)
         self.assertFalse(data)
@@ -124,22 +116,22 @@ class TestVectorPostprocessorReader(unittest.TestCase):
 
         # Load the files
         self.copyfiles()
-        data = mooseutils.VectorPostprocessorReader('vpp_*.csv')
+        data = mooseutils.VectorPostprocessorReader('tmp_vpp_*.csv')
         self.assertTrue(data)
         self.assertEqual(data.data.data.shape, (7,3))
         self.assertEqual(data.times(), [1,3,7,13])
 
         # Make the last file old
         time.sleep(2) # wait so new files have newer modified times
-        mooseutils.touch('vpp_000.csv')
-        mooseutils.touch('vpp_001.csv')
+        mooseutils.touch('tmp_vpp_000.csv')
+        mooseutils.touch('tmp_vpp_001.csv')
 
         # Update and make certain data structure is smaller
         data.update()
         self.assertTrue(data)
         self.assertEqual(data.times(), [1,3])
         self.assertEqual(data.data.data.shape, (6,3))
-        self.assertEqual(data.filename, 'vpp_001.csv')
+        self.assertEqual(data.filename, 'tmp_vpp_001.csv')
 
         # Test data
         y = data['y']
@@ -147,10 +139,10 @@ class TestVectorPostprocessorReader(unittest.TestCase):
 
         # Touch 3 so that, it should show up then
         time.sleep(1)
-        mooseutils.touch('vpp_002.csv')
+        mooseutils.touch('tmp_vpp_002.csv')
         data.update()
         self.assertTrue(data)
-        self.assertEqual(data.filename, 'vpp_002.csv')
+        self.assertEqual(data.filename, 'tmp_vpp_002.csv')
         self.assertEqual(data.data.data.shape, (6,3))
 
         y = data['y']
@@ -163,19 +155,19 @@ class TestVectorPostprocessorReader(unittest.TestCase):
 
         # Load the files
         self.copyfiles()
-        data = mooseutils.VectorPostprocessorReader('vpp_*.csv')
+        data = mooseutils.VectorPostprocessorReader('tmp_vpp_*.csv')
         self.assertTrue(data)
-        self.assertEqual(data.filename, 'vpp_005.csv')
+        self.assertEqual(data.filename, 'tmp_vpp_005.csv')
         self.assertEqual(data.data.data.shape, (7,3))
         self.assertEqual(data.times(), [1,3,7,13])
 
         # Remove the middle file
-        os.remove('vpp_001.csv')
+        os.remove('tmp_vpp_001.csv')
 
         # Update and check results
         data.update()
         self.assertTrue(data)
-        self.assertEqual(data.filename, 'vpp_005.csv')
+        self.assertEqual(data.filename, 'tmp_vpp_005.csv')
         self.assertEqual(data.data.data.shape, (7,3))
         self.assertEqual(data.times(), [1,7,13])
 
@@ -184,36 +176,36 @@ class TestVectorPostprocessorReader(unittest.TestCase):
         Test that time based data access is working.
         """
         self.copyfiles()
-        data = mooseutils.VectorPostprocessorReader('vpp_*.csv')
+        data = mooseutils.VectorPostprocessorReader('tmp_vpp_*.csv')
         self.assertEqual(data.times(), [1,3,7,13])
         self.assertTrue(data)
 
         # Test that newest data is returned
-        self.assertEqual(data.filename, 'vpp_005.csv')
+        self.assertEqual(data.filename, 'tmp_vpp_005.csv')
         y = data['y']
         self.assertEqual(y[6], 4096)
 
         # Test that older data can be loaded
         data.update(time=3)
-        self.assertEqual(data.filename, 'vpp_001.csv')
+        self.assertEqual(data.filename, 'tmp_vpp_001.csv')
         y = data['y']
         self.assertEqual(y[5], 10)
 
         # Test that bisect returns value even if time is exactly correct
         data.update(time=7.3)
-        self.assertEqual(data.filename, 'vpp_002.csv')
+        self.assertEqual(data.filename, 'tmp_vpp_002.csv')
         y = data['y']
         self.assertEqual(y[5], 25)
 
         # Test that beyond end returns newest
         data.update(time=9999)
-        self.assertEqual(data.filename, 'vpp_005.csv')
+        self.assertEqual(data.filename, 'tmp_vpp_005.csv')
         y = data['y']
         self.assertEqual(y[6], 4096)
 
         # Test time less than beginning returns first
         data.update(time=0.5)
-        self.assertEqual(data.filename, 'vpp_000.csv')
+        self.assertEqual(data.filename, 'tmp_vpp_000.csv')
         y = data['y']
         self.assertEqual(y[5], 5)
 
@@ -222,7 +214,7 @@ class TestVectorPostprocessorReader(unittest.TestCase):
         Check variable names.
         """
         self.copyfiles()
-        data = mooseutils.VectorPostprocessorReader('vpp_*.csv')
+        data = mooseutils.VectorPostprocessorReader('tmp_vpp_*.csv')
         self.assertTrue(data)
         self.assertEqual(data.variables(), ['index (Peacock)', 'x', 'y'])
 
@@ -233,7 +225,7 @@ class TestVectorPostprocessorReader(unittest.TestCase):
 
         # Load the files
         self.copyfiles()
-        data = mooseutils.VectorPostprocessorReader('vpp_*.csv')
+        data = mooseutils.VectorPostprocessorReader('tmp_vpp_*.csv')
         self.assertTrue(data)
 
         # Get script text
@@ -263,7 +255,7 @@ class TestVectorPostprocessorReader(unittest.TestCase):
         Test that MooseDataFrame is cached
         """
         self.copyfiles()
-        data = mooseutils.VectorPostprocessorReader('vpp_*.csv')
+        data = mooseutils.VectorPostprocessorReader('tmp_vpp_*.csv')
         ids0 = [id(f) for f in data._frames.values()]
         data.update()
         ids1 = [id(f) for f in data._frames.values()]
