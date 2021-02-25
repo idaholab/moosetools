@@ -1,0 +1,79 @@
+[Tests]
+  issues = '#11189'
+  design = 'python/index.md'
+  [mooseMessage]
+    type = PythonUnitTest
+    input = test_mooseMessage.py
+    buffer = True
+    requirement = "MOOSE python utilities shall include messaging interface."
+  []
+  [mooseMessageDialog]
+    type = PythonUnitTest
+    input = test_mooseMessageDialog.py
+    display_required = True
+    requirement = "MOOSE python utilities shall include messaging interface capable of creating a dialog window."
+  []
+  [moose_data_frame]
+    type = PythonUnitTest
+    input = test_MooseDataFrame.py
+    requirement = "MOOSE python utilities shall include tools for reading CSV data via pandas.DataFrame."
+  []
+  [postprocessors]
+    type = PythonUnitTest
+    input = test_PostprocessorReader.py
+    buffer = True
+    requirement = "MOOSE python utilities shall include tools for reading postprocessor data."
+  []
+  [vector_postprocessors]
+    type = PythonUnitTest
+    input = test_VectorPostprocessorReader.py
+    separate = True
+    requirement = "MOOSE python utilities shall include tools for reading vector postprocessor data."
+  []
+  [camel]
+    type = PythonUnitTest
+    input = test_camel_to_space.py
+    requirement = "MOOSE python utilities shall include tools for converting camel case text to underscore separated text."
+  []
+  [yaml_load]
+    type = PythonUnitTest
+    input = test_yaml_load.py
+    requirement = "MOOSE python utilities shall include a tool for reading YAML files."
+    required_python_packages = yaml
+  []
+  [AutoPropertyMixin]
+    type = PythonUnitTest
+    input = test_AutoPropertyMixin.py
+    requirement = "MOOSE python utilities shall include an object for defining automatic, type checked properties."
+  []
+  [make_chunks]
+    type = PythonUnitTest
+    input = test_make_chunks.py
+    requirement = "MOOSE python utilities shall include a tool for breaking a list of items into a specified number of chunks."
+  []
+  [find_moose_executable]
+    type = PythonUnitTest
+    input = test_find_moose_executable.py
+    issues = "#15017"
+    requirement = "The system shall include a utility for locating a MOOSE-based application executable."
+  []
+  [gitutils]
+    type = PythonUnitTest
+    input = test_gitutils.py
+    requirement = "The system shall include utilities for executing version control system commands."
+  []
+  [run_executable]
+    type = PythonUnitTest
+    input = test_find_moose_executable.py
+    issues = "#15996"
+    requirement = "The system shall include a utility running an executable."
+  []
+  [jsondiff]
+    type = PythonUnitTest
+    input = test_jsondiff.py
+    required_python_packages = deepdiff
+
+    requirement = "MOOSE python utilities shall include a tool for reading compared JSON files."
+    issues = '#11323'
+  []
+[]
