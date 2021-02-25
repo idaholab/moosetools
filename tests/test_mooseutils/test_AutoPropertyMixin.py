@@ -14,6 +14,12 @@ import mooseutils
 import pickle
 import multiprocessing
 
+# Fix python 3.8/3.9 on MacOS due to this https://github.com/python/cpython/pull/13603
+# There is some more information here:
+#   https://github.com/ansible/ansible/issues/63973#issuecomment-546995228
+if (platform.system() == 'Darwin') and platform.python_version_tuple() >= ('3', '8', '0'):
+    multiprocessing.set_start_method('fork')
+
 
 @mooseutils.addProperty('prop')
 class MyNode(mooseutils.AutoPropertyMixin):
@@ -177,8 +183,6 @@ class Test(unittest.TestCase):
         self.assertEqual(node.prop, 42)
         self.assertIsInstance(node.attributes, dict)
 
-    @unittest.skipIf(platform.system() == 'Darwin' and platform.python_version_tuple() >
-                     ('3', '8', '99'), "https://github.com/python/cpython/pull/13603")
     def testParallel(self):
         @mooseutils.addProperty('uid')
         class MyNode(mooseutils.AutoPropertyMixin):
@@ -214,8 +218,6 @@ class Test(unittest.TestCase):
         node['year'] = year
         page_attributes[node.uid] = node.attributes
 
-    @unittest.skipIf(platform.system() == 'Darwin' and platform.python_version_tuple() >
-                     ('3', '8', '99'), "https://github.com/python/cpython/pull/13603")
     def testParallelBarrier(self):
         @mooseutils.addProperty('uid', 42)
         class MyNode(mooseutils.AutoPropertyMixin):
