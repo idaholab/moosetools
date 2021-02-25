@@ -90,7 +90,7 @@ def check_and_update_cpp(filename, header_file, update=False, force=False):
 
             # Update
             f = open(filename + '~tmp', 'w')
-            f.write(header + '\n\n')
+            f.write(header + '\n')
 
             if suffix[-1] == '.h':
                 if not re.search(r'#pragma once', text):
@@ -155,7 +155,7 @@ def check_and_update_python(filename, header_file, update=False, force=False):
 
             f.write(shebang)
             f.write(pylint_disable)
-            f.write(header + '\n')
+            f.write(header)
 
             if len(text) != 0:
                 f.write('\n' + text)

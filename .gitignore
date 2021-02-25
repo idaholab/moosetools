@@ -5,8 +5,7 @@ __pycache__
 
 # CONTRIB
 contrib/hit/hit
-contrib/hit/hit.dSYM
-contrib/hit/hit.so
+contrib/hit/hit.*
 contrib/gtest/.libs
 contrib/**/*.o
 contrib/unit/moosetools-unit

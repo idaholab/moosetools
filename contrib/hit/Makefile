@@ -9,7 +9,7 @@ endif
 ifeq ($(UNAME), Darwin)
 	DYNAMIC_LOOKUP := -undefined dynamic_lookup
 else
-	DYNAMIC_LOOKUP := ""
+	DYNAMIC_LOOKUP :=
 endif
 
 $(info Building hit for python with $(pyconfig))
