@@ -7,7 +7,7 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-
+import platform
 import os
 import unittest
 import mooseutils
@@ -177,6 +177,8 @@ class Test(unittest.TestCase):
         self.assertEqual(node.prop, 42)
         self.assertIsInstance(node.attributes, dict)
 
+    @unittest.skipIf(platform.system() == 'Darwin' and platform.python_version_tuple() >
+                     ('3', '8', '99'), "https://github.com/python/cpython/pull/13603")
     def testParallel(self):
         @mooseutils.addProperty('uid')
         class MyNode(mooseutils.AutoPropertyMixin):
@@ -212,6 +214,8 @@ class Test(unittest.TestCase):
         node['year'] = year
         page_attributes[node.uid] = node.attributes
 
+    @unittest.skipIf(platform.system() == 'Darwin' and platform.python_version_tuple() >
+                     ('3', '8', '99'), "https://github.com/python/cpython/pull/13603")
     def testParallelBarrier(self):
         @mooseutils.addProperty('uid', 42)
         class MyNode(mooseutils.AutoPropertyMixin):
