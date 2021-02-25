@@ -23,7 +23,7 @@ class TestMooseDataFrame(unittest.TestCase):
         """
         Define the test filename.
         """
-        self._filename = '../../test_files/white_elephant_jan_2016.csv'
+        self._filename = os.path.join(os.path.dirname(__file__), 'white_elephant_jan_2016.csv')
         self._keys = ['air_temp_low_24_hour_set_1', 'snow_depth_set_1']
 
     def testBasic(self):

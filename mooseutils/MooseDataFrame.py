@@ -64,7 +64,7 @@ class MooseDataFrame(object):
             key[str|list]: The key(s) to extract.
         """
         if self._data.empty:
-            return pandas.Series()
+            return pandas.Series(dtype=float)
         return self._data[key]
 
     def __contains__(self, key):
