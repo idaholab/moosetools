@@ -1,1 +1,4 @@
-colored
+PyQt5
+pandas
+mock
+pyyaml
