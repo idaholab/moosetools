@@ -11,7 +11,7 @@
 import os
 import shutil
 import unittest
-import mock
+from unittest import mock
 import tempfile
 import subprocess
 import mooseutils
@@ -35,9 +35,9 @@ class Test(unittest.TestCase):
 
     @unittest.skipIf(not mooseutils.is_git_repo(), "Not a Git repository")
     def testGitCommitMessage(self):
-        c = 'b863a496dbf1449853be6978c8ac1a9c242d389b'  # beautiful commit
+        c = '8c91b654db45af4e9d113342fec7714f3947d5ec'  # beautiful commit
         msg = mooseutils.git_commit_message(c)
-        self.assertIn('The name is, just so long', msg)
+        self.assertIn('Merge pull request #31', msg)
 
     @unittest.skipIf(not mooseutils.is_git_repo(), "Not a Git repository")
     def testGitMergeCommits(self):
@@ -111,7 +111,6 @@ class Test(unittest.TestCase):
         n_no_blank = n_with_blank - len([l for l in lines if not l.strip()])
 
         counts = mooseutils.git_lines(__file__)
-        print(counts)
         self.assertIn('Andrew E Slaughter', counts)
         self.assertTrue(counts['Andrew E Slaughter'] > 0)
         self.assertEqual(n_no_blank, sum(list(counts.values())))

@@ -24,26 +24,12 @@ from .json_load import json_load, json_parse
 from .jsondiff import JSONDiffer
 from .civet_results import get_civet_results
 from .template import apply_template_arguments
-
-try:
-    from .yaml_load import yaml_load, yaml_write, IncludeYamlFile
-except:
-    pass
-
-try:
-    from .MooseDataFrame import MooseDataFrame
-    from .PostprocessorReader import PostprocessorReader
-    from .VectorPostprocessorReader import VectorPostprocessorReader
-except:
-    pass
+from .yaml_load import yaml_load, yaml_write, IncludeYamlFile
+from .MooseDataFrame import MooseDataFrame
+from .PostprocessorReader import PostprocessorReader
+from .VectorPostprocessorReader import VectorPostprocessorReader
 
 try:
     from .ImageDiffer import ImageDiffer
-except:
-    pass
-
-try:
-    import clang.cindex
-    from .MooseSourceParser import MooseSourceParser
 except:
     pass

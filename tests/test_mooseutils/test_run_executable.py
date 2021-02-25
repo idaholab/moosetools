@@ -9,7 +9,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import unittest
-import mock
+from unittest import mock
 import subprocess
 import mooseutils
 

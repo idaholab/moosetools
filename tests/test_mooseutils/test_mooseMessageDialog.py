@@ -11,7 +11,12 @@
 import sys
 import unittest
 import mooseutils
-from PyQt5 import QtWidgets
+
+try:
+    from PyQt5 import QtWidgets, QtCore
+    MOOSE_USE_QT5 = True
+except:
+    MOOSE_USE_QT5 = False
 
 
 class TestMooseMessageDialog(unittest.TestCase):
@@ -19,8 +24,9 @@ class TestMooseMessageDialog(unittest.TestCase):
     Tests the usage of the various messages functions in message package.
     """
 
-    app = QtWidgets.QApplication(sys.argv)
+    app = QtWidgets.QApplication(sys.argv) if MOOSE_USE_QT5 else None
 
+    @unittest.skipIf(not MOOSE_USE_QT5, 'PyQt5 not installed')
     def testMooseMessageDefault(self):
         """
         Test the default dialog message.
@@ -29,6 +35,7 @@ class TestMooseMessageDialog(unittest.TestCase):
         self.assertTrue(box.text() == "A message")
         self.assertTrue(box.icon() == QtWidgets.QMessageBox.NoIcon)
 
+    @unittest.skipIf(not MOOSE_USE_QT5, 'PyQt5 not installed')
     def testMooseMessageWarning(self):
         """
         Test the warning dialog message.
@@ -38,6 +45,7 @@ class TestMooseMessageDialog(unittest.TestCase):
         self.assertIn("WARNING", box.text())
         self.assertTrue(box.icon() == QtWidgets.QMessageBox.Warning)
 
+    @unittest.skipIf(not MOOSE_USE_QT5, 'PyQt5 not installed')
     def testMooseMessageError(self):
         """
         Test the error dialog message.
