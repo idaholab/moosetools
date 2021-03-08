@@ -5,26 +5,29 @@
 # information from each package.
 #----------------------------------------------------------------------------------------------------
 
+# Minimum percent coverage allowed for each package
 MIN_COVERAGE=20
 
+# Global exit status
+declare -i STATUS=-0
+
+# Function for running tests and reporting coverage
 run_python_unit_tests(){
   echo =====================================================================================
   echo RUNNING TESTS: "${1}"
   echo -------------------------------------------------------------------------------------
-  coverage run -m unittest discover --verbose --start-directory ${1};
+  coverage run -m unittest discover --verbose --start-directory ${1}
+  STATUS+=$?
   coverage report --fail-under=${MIN_COVERAGE}
+  STATUS+=$?
   echo -e "\n\n"
-
 }
 
-declare -i RETCODE=0
-for PACKAGE in in */;
-    do
-        TESTS_DIR=${PACKAGE}tests
-        if [ -d ${TESTS_DIR} ]; then
-          run_python_unit_tests ${TESTS_DIR}
-          RETCODE+=$?
-        fi
-    done
+for PACKAGE in */; do
+    TESTS_DIR=${PACKAGE}tests
+    if [ -d ${TESTS_DIR} ]; then
+        run_python_unit_tests ${TESTS_DIR}
+    fi
+done
 
-exit $RETCODE > 0
+exit $(( ${STATUS} > 0 ))
