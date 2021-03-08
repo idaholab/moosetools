@@ -1,1 +1,30 @@
-python -m unittest discover --verbose --start-directory tests
+#!/usr/bin/env bash
+#----------------------------------------------------------------------------------------------------
+# This script loops through each folder in the moosetools repository (package) and runs python
+# unittest discover on the "tests" directory within it, if it exists. It also collects coverage
+# information from each package.
+#----------------------------------------------------------------------------------------------------
+
+MIN_COVERAGE=20
+
+run_python_unit_tests(){
+  echo =====================================================================================
+  echo RUNNING TESTS: "${1}"
+  echo -------------------------------------------------------------------------------------
+  coverage run -m unittest discover --verbose --start-directory ${1};
+  coverage report --fail-under=${MIN_COVERAGE}
+  echo -e "\n\n"
+
+}
+
+declare -i RETCODE=0
+for PACKAGE in in */;
+    do
+        TESTS_DIR=${PACKAGE}tests
+        if [ -d ${TESTS_DIR} ]; then
+          run_python_unit_tests ${TESTS_DIR}
+          RETCODE+=$?
+        fi
+    done
+
+exit $RETCODE > 0
