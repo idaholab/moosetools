@@ -123,7 +123,7 @@ class Test(unittest.TestCase):
     def testGitLocalPath(self):
         filename = os.path.abspath(__file__)
         local = mooseutils.git_localpath(filename)
-        self.assertEqual(local, 'tests/test_mooseutils/test_gitutils.py')
+        self.assertEqual(local, 'mooseutils/tests/test_gitutils.py')
 
     @mock.patch('subprocess.run')
     def testGitRepo(self, mock_out):
