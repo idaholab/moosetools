@@ -6,7 +6,7 @@
 #----------------------------------------------------------------------------------------------------
 
 # Minimum percent coverage allowed for each package
-MIN_COVERAGE=20
+MIN_COVERAGE=70
 
 # Global exit status
 declare -i STATUS=-0
