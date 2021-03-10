@@ -33,3 +33,4 @@ try:
     from .ImageDiffer import ImageDiffer
 except:
     pass
+from .validate import validate_extension, validate_paths_exist

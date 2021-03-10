@@ -1,0 +1,24 @@
+sample01A
+- moose/modules/stochastic_tools/test/tests/multiapps/transient_with_full_solve/gold/main_out.json
+sample01B
+- moose/modules/stochastic_tools/test/tests/multiapps/transient_with_full_solve/gold/main_new_out.json
+
+sample02A
+- moose/modules/stochastic_tools/test/tests/reporters/bootstrap_statistics/percentile/gold/percentile_out.json
+sample02B
+- moose/modules/stochastic_tools/test/tests/reporters/bootstrap_statistics/percentile/gold/percentile_distributed_out.json
+
+sample03A
+- moose/modules/stochastic_tools/test/tests/reporters/basic/gold/statistics_reporter_out.json
+sample03B
+- moose/modules/stochastic_tools/test/tests/reporters/basic/gold/statistics_reporter_ci_out.json
+
+sample04A
+- moose/modules/stochastic_tools/test/tests/reporters/basic/gold/statistics_vpp_out.json
+sample04B
+- moose/modules/stochastic_tools/test/tests/reporters/basic/gold/statistics_vpp_ci_out.json
+
+sample05A - mock of sample01A
+- moose/modules/stochastic_tools/test/tests/multiapps/transient_with_full_solve/gold/main_out.json
+sample05B - mock of sample01A
+- moose/modules/stochastic_tools/test/tests/multiapps/transient_with_full_solve/gold/main_out.json
