@@ -7,6 +7,7 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
+
 def levenshteinDistance(s1, possible, number=None):
     """
     Return the sorted Levenstein distance of s1 against many strings.

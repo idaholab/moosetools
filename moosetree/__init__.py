@@ -6,7 +6,6 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-
 """
 A package for building tree structures. This package is designed as a faster alternative to the
 anytree package, although it is not a direct replacement.

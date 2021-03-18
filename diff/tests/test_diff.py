@@ -17,8 +17,12 @@ import diff
 class TestDiff(unittest.TestCase):
     def setUpSample05(self):
         """Test Case: Provide the absolute path for Sample05 json files, which are mock files to test various tolerances"""
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05', 'sample05A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05', 'sample05B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05',
+                         'sample05A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05',
+                         'sample05B.json'))
         return A, B
 
     def testValidateToleranceInvalidRelativeError(self):
@@ -109,8 +113,12 @@ class TestDiff(unittest.TestCase):
 
     def testCompareJsonsRelativeErrorDifference(self):
         """Test Case: the two json files are different when using relative error"""
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05', 'sample05A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05', 'sample05B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05',
+                         'sample05A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05',
+                         'sample05B.json'))
         relative_error = 1e-8
         json_diff = diff.compare_jsons(A, B, relative_error=relative_error)
         has_differences = False
@@ -120,8 +128,12 @@ class TestDiff(unittest.TestCase):
 
     def testCompareJsonsAbsoluteErrorDifference(self):
         """Test Case: the two json files are different when using absolute error"""
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05', 'sample05A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05', 'sample05B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05',
+                         'sample05A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05',
+                         'sample05B.json'))
         absolute_error = 1e-10
         json_diff = diff.compare_jsons(A, B, absolute_error=absolute_error)
         has_differences = False
@@ -131,7 +143,9 @@ class TestDiff(unittest.TestCase):
 
     def testCompareJsonsRelativeErrorNoDifference(self):
         """Test Case: the two json files are equal when using relative error"""
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05', 'sample05A.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05',
+                         'sample05A.json'))
         relative_error = 1e-8
         json_diff = diff.compare_jsons(A, A, relative_error=relative_error)
         is_equal = False
@@ -141,7 +155,9 @@ class TestDiff(unittest.TestCase):
 
     def testCompareJsonsAbsoluteErrorNoDifference(self):
         """Test Case: the two json files are equal when using absolute error"""
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05', 'sample05A.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05',
+                         'sample05A.json'))
         absolute_error = 1e-10
         json_diff = diff.compare_jsons(A, A, absolute_error=absolute_error)
         is_equal = False
@@ -151,23 +167,31 @@ class TestDiff(unittest.TestCase):
 
     def testCompareJsonsInvalidPath(self):
         """Test Case: An invalid path to the file and raises FileNotFoundError"""
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05', 'sample05B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05',
+                         'sample05B.json'))
         relative_error = 1e-8
         with self.assertRaises(FileNotFoundError):
             json_diff = diff.compare_jsons(A, B, relative_error=relative_error)
 
     def testCompareJsonsInvalidExtension(self):
         """Test Case: An invalid extension is provided. Raises TypeError because expect .json extension, .py provided"""
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'bin', 'jsondiff.py'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'bin', 'jsondiff.py'))
         relative_error = 1e-8
         with self.assertRaises(TypeError):
             json_diff = diff.compare_jsons(A, A, relative_error=relative_error)
 
     def testCompareJsonsInvalidTolerance(self):
         """Test Case: An invalid tolerance since both relative error or absolute error were provided and raises ValueError"""
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05', 'sample05A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05', 'sample05B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05',
+                         'sample05A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), 'samples', 'json', 'sample05',
+                         'sample05B.json'))
         relative_error = 1e-8
         absolute_error = 1e-10
         with self.assertRaises(ValueError):

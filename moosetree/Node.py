@@ -6,7 +6,6 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-
 """
 For simplicity this module should be a stand-alone package, i.e., it should not use any
 non-standard python packages such as mooseutils.

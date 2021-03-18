@@ -18,8 +18,12 @@ class TestJsonDiff(unittest.TestCase):
     def setUpValidRelativeError(self):
         """Test Case: Valid command-line arguments using the relative error flag where the user specifies the relative error"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample05', 'sample05A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample05', 'sample05B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample05', 'sample05A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample05', 'sample05B.json'))
         relative_error = '1e-9'
         sys.argv = [file01, A, B, '--rel_tol', relative_error]
         return A, B, relative_error
@@ -27,8 +31,12 @@ class TestJsonDiff(unittest.TestCase):
     def setUpValidRelativeErrorDefault(self):
         """Test Case: Valid command-line arguments using the relative error flag where the default value is used for the relative error"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample05', 'sample05A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample05', 'sample05B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample05', 'sample05A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample05', 'sample05B.json'))
         relative_error = '1e-8'
         sys.argv = [file01, A, B, '--rel_tol']
         return A, B, relative_error
@@ -36,8 +44,12 @@ class TestJsonDiff(unittest.TestCase):
     def setUpValidAbsoluteError(self):
         """Test Case: Valid command-line arguments using the absolute error flag where the user specifies the absolute error"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample05', 'sample05A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample05', 'sample05B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample05', 'sample05A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample05', 'sample05B.json'))
         absolute_error = '1e-9'
         sys.argv = [file01, A, B, '--abs_tol', absolute_error]
         return A, B, absolute_error
@@ -45,8 +57,12 @@ class TestJsonDiff(unittest.TestCase):
     def setUpValidAbsoluteErrorDefault(self):
         """Test Case: Valid command-line arguments using the absolute error flag where the default value is used for the absolute error"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample05', 'sample05A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample05', 'sample05B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample05', 'sample05A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample05', 'sample05B.json'))
         absolute_error = '1e-10'
         sys.argv = [file01, A, B, '--abs_tol']
         return A, B, absolute_error
@@ -54,7 +70,9 @@ class TestJsonDiff(unittest.TestCase):
     def setUpValidRelativeErrorNoDifference(self):
         """Test Case: Valid command-line arguments using the relative error flag where no differences are expected because the same file is used"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample05', 'sample05A.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample05', 'sample05A.json'))
         relative_error = '1e-8'
         sys.argv = [file01, A, A, '--rel_tol']
         return A, A, relative_error
@@ -62,7 +80,9 @@ class TestJsonDiff(unittest.TestCase):
     def setUpValidAbsoluteErrorNoDifference(self):
         """Test Case: Valid command-line arguments using the absolute error flag where no differences are expected because the same file is used"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample05', 'sample05A.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample05', 'sample05A.json'))
         absolute_error = '1e-10'
         sys.argv = [file01, A, A, '--abs_tol']
         return A, A, absolute_error
@@ -70,7 +90,9 @@ class TestJsonDiff(unittest.TestCase):
     def setUpInvalidPathRelativeError(self):
         """Test Case: Invalid command-line arguments using relative error where the paths for both files are invalid"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample01A.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample01A.json'))
         B = os.path.abspath(os.path.join('json', 'sample01', 'sample01A.json'))
         relative_error = '1e-8'
         sys.argv = [file01, A, B, '--rel_tol']
@@ -79,7 +101,9 @@ class TestJsonDiff(unittest.TestCase):
     def setUpInvalidExtensionRelativeError(self):
         """Test Case: Invalid command-line arguments using relative error where the extension of a file is invalid"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample01A.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample01A.json'))
         B = os.path.abspath(os.path.join('diff', 'diff.py'))
         relative_error = '1e-8'
         sys.argv = [file01, A, B, '--rel_tol']
@@ -88,7 +112,9 @@ class TestJsonDiff(unittest.TestCase):
     def setUpNoFlags(self):
         """Test Case: Invalid command-line arguments where neither the --rel_tol or --abs_tol flag are used"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample01A.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample01A.json'))
         B = os.path.abspath(os.path.join('json', 'sample01', 'sample01A.json'))
         sys.argv = [file01, A, B]
         return A, B
@@ -96,16 +122,24 @@ class TestJsonDiff(unittest.TestCase):
     def setUpTwoFlags(self):
         """Test Case: Invalid command-line arguments where both the --rel_tol and --abs_tol flags are used"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample01', 'sample01A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample01', 'sample01B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample01', 'sample01A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample01', 'sample01B.json'))
         sys.argv = [file01, A, B, '--rel_tol', '--abs_tol']
         return A, B
 
     def setUpSample01(self):
         """Test Case: Valid command-line arguments using the relative error flag and sample01 files"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample01', 'sample01A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample01', 'sample01B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample01', 'sample01A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample01', 'sample01B.json'))
         relative_error = '1e-8'
         sys.argv = [file01, A, B, '--rel_tol']
         return A, B, relative_error
@@ -113,8 +147,12 @@ class TestJsonDiff(unittest.TestCase):
     def setUpSample02(self):
         """Test Case: Valid command-line arguments using the relative error flag and sample02 files"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample02', 'sample02A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample02', 'sample02B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample02', 'sample02A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample02', 'sample02B.json'))
         relative_error = '1e-8'
         sys.argv = [file01, A, B, '--rel_tol']
         return A, B, relative_error
@@ -122,8 +160,12 @@ class TestJsonDiff(unittest.TestCase):
     def setUpSample03(self):
         """Test Case: Valid command-line arguments using the relative error flag and sample03 files"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample03', 'sample03A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample03', 'sample03B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample03', 'sample03A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample03', 'sample03B.json'))
         relative_error = '1e-8'
         sys.argv = [file01, A, B, '--rel_tol']
         return A, B, relative_error
@@ -131,8 +173,12 @@ class TestJsonDiff(unittest.TestCase):
     def setUpSample04(self):
         """Test Case: Valid command-line arguments using the relative error flag and sample04 files"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample04', 'sample04A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample04', 'sample04B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample04', 'sample04A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample04', 'sample04B.json'))
         relative_error = '1e-8'
         sys.argv = [file01, A, B, '--rel_tol']
         return A, B, relative_error
@@ -141,8 +187,12 @@ class TestJsonDiff(unittest.TestCase):
         """Test Case: Valid command-line arguments using the relative error flag and sample05 files
             Note: Mock files to test various tolerances"""
         file01 = os.path.join('bin', 'jsondiff.py')
-        A = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample05', 'sample05A.json'))
-        B = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json', 'sample05', 'sample05B.json'))
+        A = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample05', 'sample05A.json'))
+        B = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), '..', '..', 'diff', 'tests', 'samples', 'json',
+                         'sample05', 'sample05B.json'))
         relative_error = '1e-8'
         sys.argv = [file01, A, B, '--rel_tol']
         return A, B, relative_error
