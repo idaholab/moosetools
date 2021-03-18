@@ -7,12 +7,15 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from sympy import * # use star so all functions are available to supplied strings
+from sympy import *  # use star so all functions are available to supplied strings
 from sympy.vector import divergence, gradient, Vector, CoordSys3D
 from mms.fparser import print_fparser
 from mms.moosefunction import print_moose
 
-def evaluate(pde, soln, variable='u',
+
+def evaluate(pde,
+             soln,
+             variable='u',
              scalars=set(),
              vectors=set(),
              functions=set(),
@@ -64,7 +67,7 @@ def evaluate(pde, soln, variable='u',
     # symbols with short names for use in code below
     x1 = getattr(R, coordinate_names[0])
     x2 = getattr(R, coordinate_names[1])
-    x3  = getattr(R, coordinate_names[2])
+    x3 = getattr(R, coordinate_names[2])
 
     # necessary declaration of names needed when running `eval`
     locals()[coordinate_names[0]] = x1
@@ -111,9 +114,9 @@ def evaluate(pde, soln, variable='u',
         _check_reserved(_f_)
         locals()[_f_] = eval(_v_)
         if isinstance(locals()[_f_], Vector):
-            locals()['{}_{}'.format(_f_,sx1)] = locals()[_f_].components.get(R.i, 0)
-            locals()['{}_{}'.format(_f_,sx2)] = locals()[_f_].components.get(R.j, 0)
-            locals()['{}_{}'.format(_f_,sx3)] = locals()[_f_].components.get(R.k, 0)
+            locals()['{}_{}'.format(_f_, sx1)] = locals()[_f_].components.get(R.i, 0)
+            locals()['{}_{}'.format(_f_, sx2)] = locals()[_f_].components.get(R.j, 0)
+            locals()['{}_{}'.format(_f_, sx3)] = locals()[_f_].components.get(R.k, 0)
 
     # Evaluate the supplied solution
     _exact_ = eval(soln)
@@ -128,17 +131,22 @@ def evaluate(pde, soln, variable='u',
 
     # Convert vector exact solution to a list
     if isinstance(_exact_, Vector):
-        _exact_ = [_exact_.components.get(R.i, 0),
-                   _exact_.components.get(R.j, 0),
-                   _exact_.components.get(R.k, 0)]
+        _exact_ = [
+            _exact_.components.get(R.i, 0),
+            _exact_.components.get(R.j, 0),
+            _exact_.components.get(R.k, 0)
+        ]
 
     # Convert vector result to a list
     if isinstance(_func_, Vector):
-        _func_ = [_func_.components.get(R.i, 0),
-                  _func_.components.get(R.j, 0),
-                  _func_.components.get(R.k, 0)]
+        _func_ = [
+            _func_.components.get(R.i, 0),
+            _func_.components.get(R.j, 0),
+            _func_.components.get(R.k, 0)
+        ]
 
     return _func_, _exact_
+
 
 def _check_reserved(var):
     """Error checking for input variables."""
@@ -154,7 +162,6 @@ def _check_reserved(var):
 
     elif var == 't':
         raise SyntaxError("The variable name 't' is reserved, it represents time.")
-
 
     elif var in ['e_i', 'e_j', 'e_k']:
         basis = dict(e_i='x', e_j='y', e_k='z')

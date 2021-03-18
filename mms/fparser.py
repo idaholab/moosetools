@@ -6,7 +6,6 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-
 """
 FParser printer
 
@@ -20,25 +19,25 @@ from sympy import ccode
 # dictionary mapping sympy function to (argument_conditions, fparser function).
 # Used in FParserPrinter._print_Function(self)
 known_functions = {
-  "Abs": "abs",
-  "sin": "sin",
-  "cos": "cos",
-  "tan": "tan",
-  "asin": "asin",
-  "acos": "acos",
-  "atan": "atan",
-  "atan2": "atan2",
-  "exp": "exp",
-  "log": "log",
-  "erf": "erf",
-  "sinh": "sinh",
-  "cosh": "cosh",
-  "tanh": "tanh",
-  "asinh": "asinh",
-  "acosh": "acosh",
-  "atanh": "atanh",
-  "floor": "floor",
-  "ceiling": "ceil",
+    "Abs": "abs",
+    "sin": "sin",
+    "cos": "cos",
+    "tan": "tan",
+    "asin": "asin",
+    "acos": "acos",
+    "atan": "atan",
+    "atan2": "atan2",
+    "exp": "exp",
+    "log": "log",
+    "erf": "erf",
+    "sinh": "sinh",
+    "cosh": "cosh",
+    "tanh": "tanh",
+    "asinh": "asinh",
+    "acosh": "acosh",
+    "atanh": "atanh",
+    "floor": "floor",
+    "ceiling": "ceil",
 }
 
 
@@ -47,17 +46,17 @@ class FParserPrinter(CodePrinter):
     printmethod = "_fparser"
 
     _default_settings = {
-      'order': None,
-      'human': False,
-      'full_prec': 'auto',
-      'precision': 15,
+        'order': None,
+        'human': False,
+        'full_prec': 'auto',
+        'precision': 15,
     }
 
     # ovewrite some operators (FParser uses single char and/or)
     _operators = {
-      'and': '&',
-      'or': '|',
-      'not': '!',
+        'and': '&',
+        'or': '|',
+        'not': '!',
     }
 
     def __init__(self, **kwargs):
@@ -71,7 +70,7 @@ class FParserPrinter(CodePrinter):
         This method is used to sort loops in an optimized order, see
         CodePrinter._sort_optimized()
         """
-        return p*5
+        return p * 5
 
     def _format_code(self, lines):
         return lines
@@ -80,7 +79,7 @@ class FParserPrinter(CodePrinter):
         return "%s;" % codestring
 
     def _get_loop_opening_ending(self, indices):
-        return '',''
+        return '', ''
 
     def _print_Pow(self, expr):
         PREC = precedence(expr)
@@ -91,8 +90,7 @@ class FParserPrinter(CodePrinter):
         elif expr.base == 2:
             return 'exp2(%s)' % self._print(expr.exp)
         else:
-            return '%s^%s' % (self.parenthesize(expr.base, PREC),
-                     self.parenthesize(expr.exp, PREC))
+            return '%s^%s' % (self.parenthesize(expr.base, PREC), self.parenthesize(expr.exp, PREC))
 
     def _print_BaseScalar(self, expr):
         """
@@ -135,8 +133,7 @@ class FParserPrinter(CodePrinter):
         return '-1e200'
 
     def _print_Piecewise(self, expr):
-        ecpairs = ["if(%s,%s" % (self._print(c), self._print(e))
-              for e, c in expr.args[:-1]]
+        ecpairs = ["if(%s,%s" % (self._print(c), self._print(e)) for e, c in expr.args[:-1]]
 
         if expr.args[-1].cond == True:
             ecpairs.append("%s" % self._print(expr.args[-1].expr))
@@ -144,9 +141,8 @@ class FParserPrinter(CodePrinter):
             # there is no default value, so we generate an invalid expression
             # that will fail at runtime
             ecpairs.append("if(%s,%s,0/0)" %
-                    (self._print(expr.args[-1].cond),
-                    self._print(expr.args[-1].expr)))
-        return ",".join(ecpairs) + ")" * (len(ecpairs)-1)
+                           (self._print(expr.args[-1].cond), self._print(expr.args[-1].expr)))
+        return ",".join(ecpairs) + ")" * (len(ecpairs) - 1)
 
 
 def fparser(expr, assign_to=None, **kwargs):
@@ -173,9 +169,11 @@ def fparser(expr, assign_to=None, **kwargs):
     """
     return FParserPrinter(**kwargs).doprint(expr, assign_to)[-1]
 
+
 def print_fparser(expr, **kwargs):
     """Prints an FParser representation of the given expression."""
     print(str(fparser(expr, **kwargs)))
+
 
 def build_hit(expr, name, **kwargs):
     """
@@ -189,7 +187,8 @@ def build_hit(expr, name, **kwargs):
     import pyhit
 
     if hasattr(expr, 'free_symbols'):
-        symbols = set([str(s) for s in expr.free_symbols]).difference(set(['R.x', 'R.y', 'R.z', 't']))
+        symbols = set([str(s)
+                       for s in expr.free_symbols]).difference(set(['R.x', 'R.y', 'R.z', 't']))
     else:
         symbols = set()
     for symbol in symbols:
@@ -206,6 +205,7 @@ def build_hit(expr, name, **kwargs):
         root['vals'] = "'{}'".format(pvals)
 
     return root
+
 
 def print_hit(*args, **kwargs):
     """Prints a hit block containing a ParsedFunction of the given expression"""

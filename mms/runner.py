@@ -14,6 +14,7 @@ import pandas
 SPATIAL = 0
 TEMPORAL = 1
 
+
 def _runner(input_file, num_refinements, *args, **kwargs):
     """
     Helper class for running MOOSE-based application input file for convergence study.
@@ -46,8 +47,8 @@ def _runner(input_file, num_refinements, *args, **kwargs):
     csv = kwargs.get('csv', None)
     console = kwargs.get('console', True)
     mpi = kwargs.get('mpi', None)
-    rtype = kwargs.get('rtype') # SPATIAL or TEMPORAL
-    dt = kwargs.pop('dt', 1) # only used with rtype=TEMPORAL
+    rtype = kwargs.get('rtype')  # SPATIAL or TEMPORAL
+    dt = kwargs.pop('dt', 1)  # only used with rtype=TEMPORAL
     file_base = kwargs.pop('file_base', None)
 
     # Check that input file exists
@@ -75,7 +76,7 @@ def _runner(input_file, num_refinements, *args, **kwargs):
 
     # Run input file and build up output
     x = []
-    y = [ [] for _ in range(len(y_pp)) ]
+    y = [[] for _ in range(len(y_pp))]
 
     if not isinstance(num_refinements, list):
         num_refinements = list(range(num_refinements))
@@ -106,27 +107,29 @@ def _runner(input_file, num_refinements, *args, **kwargs):
 
         if rtype == SPATIAL:
             x.append(current[x_pp].iloc[-1])
-            for index,pp in enumerate(y_pp):
+            for index, pp in enumerate(y_pp):
                 y[index].append(current[pp].iloc[-1])
         elif rtype == TEMPORAL:
             x.append(dt)
-            for index,pp in enumerate(y_pp):
+            for index, pp in enumerate(y_pp):
                 y[index].append(current[pp].iloc[-1])
 
     if rtype == SPATIAL:
         x_pp == 'dt'
 
-    df_dict = {x_pp:x}
+    df_dict = {x_pp: x}
     df_columns = [x_pp]
     for i in range(len(y_pp)):
-        df_dict.update({y_pp[i]:y[i]})
+        df_dict.update({y_pp[i]: y[i]})
         df_columns.append(y_pp[i])
 
     return pandas.DataFrame(df_dict, columns=df_columns)
 
+
 def run_spatial(*args, **kwargs):
     """Runs input file for a spatial MMS problem (see _runner.py for inputs)."""
     return _runner(*args, rtype=SPATIAL, **kwargs)
+
 
 def run_temporal(*args, **kwargs):
     """Runs input file for a temporal MMS problem (see _runner.py for inputs)."""

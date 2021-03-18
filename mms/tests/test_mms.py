@@ -11,10 +11,10 @@
 import unittest
 import mms
 
-class TestMMS(unittest.TestCase):
 
+class TestMMS(unittest.TestCase):
     def testBasic(self):
-        f,s = mms.evaluate('div(grad(u))', 'x**3')
+        f, s = mms.evaluate('div(grad(u))', 'x**3')
         fs = mms.fparser(f)
         self.assertEqual(fs, '6*x')
 
@@ -22,8 +22,11 @@ class TestMMS(unittest.TestCase):
         self.assertEqual(ss, 'x^3')
 
     def testEvaluate(self):
-        f,_ = mms.evaluate('diff(h, t) + div(u*h) + div(grad(r*h))',
-                         'cos(x*y*t)', variable='h', scalars=['r'], vectors=['u'])
+        f, _ = mms.evaluate('diff(h, t) + div(u*h) + div(grad(r*h))',
+                            'cos(x*y*t)',
+                            variable='h',
+                            scalars=['r'],
+                            vectors=['u'])
 
         s = mms.fparser(f)
         self.assertEqual(s, '-x^2*r*t^2*cos(x*y*t) - x*y*sin(x*y*t) - x*t*u_y*sin(x*y*t) - ' \
@@ -36,8 +39,10 @@ class TestMMS(unittest.TestCase):
                             'p(1)*t*_u(0)*std::sin(p(0)*p(1)*t)')
 
     def testCylindricalEvaluate(self):
-        f,_ = mms.evaluate('div(u)', 'r*phi*z*(e_i+e_j+e_k)', transformation='cylindrical',
-                           coordinate_names=('r','phi','z'))
+        f, _ = mms.evaluate('div(u)',
+                            'r*phi*z*(e_i+e_j+e_k)',
+                            transformation='cylindrical',
+                            coordinate_names=('r', 'phi', 'z'))
         s = mms.fparser(f)
 
         self.assertEqual(s, 'phi*r + 2*phi*z + z')
@@ -96,7 +101,7 @@ class TestMMS(unittest.TestCase):
             self.assertIn("name 'e_k'", str(e))
 
     def testHit(self):
-        f,s = mms.evaluate('a*div(k*grad(u))', 'x**3', scalars=['k', 'a'])
+        f, s = mms.evaluate('a*div(k*grad(u))', 'x**3', scalars=['k', 'a'])
         n = mms.build_hit(f, 'force', a=42).render()
 
         self.assertIn('[force]', n)

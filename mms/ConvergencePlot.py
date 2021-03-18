@@ -13,6 +13,7 @@ import collections
 import pandas
 import numpy as np
 
+
 class ConvergencePlot(object):
     """
     A tool for making convergence plots.
@@ -29,7 +30,7 @@ class ConvergencePlot(object):
 
     def __init__(self, xlabel='x', ylabel='y', fontsize=12, fit=True):
 
-        self._figure = plt.figure(figsize=(10,6), facecolor='w')
+        self._figure = plt.figure(figsize=(10, 6), facecolor='w')
         self._axes = plt.gca()
 
         self._axes.set_yscale('log')
@@ -44,7 +45,7 @@ class ConvergencePlot(object):
             tick.label.set_fontsize(fontsize)
 
         # Apply grid marks
-        plt.grid(True, which='both', color=[0.8]*3)
+        plt.grid(True, which='both', color=[0.8] * 3)
 
         self.label_to_slope = {}
 
@@ -56,9 +57,9 @@ class ConvergencePlot(object):
                 if not isinstance(label, list):
                     raise TypeError("For multiple y-data label must be a list")
 
-
             if isinstance(label, list) and num_y_columns != len(label):
-                raise IOError("The length of the label and the number of y columns must be the same")
+                raise IOError(
+                    "The length of the label and the number of y columns must be the same")
 
             if not isinstance(label, list):
                 label = [label]
@@ -66,20 +67,20 @@ class ConvergencePlot(object):
         x = df[df.columns[0]]
         lines = []
 
-        for i in range(1,len(df.columns)):
+        for i in range(1, len(df.columns)):
             y = df[df.columns[i]]
 
             if label is None:
                 this_label = 'line-{}'.format(len(lines))
             else:
-                this_label = label[i-1]
+                this_label = label[i - 1]
 
             if num_fitted_points is not None:
                 slope = self._fit(x[-num_fitted_points:], y[-num_fitted_points:])
             else:
                 slope = self._fit(x, y)
 
-            self.label_to_slope.update({this_label:slope})
+            self.label_to_slope.update({this_label: slope})
 
             this_label = '{}: {:.{precision}f}'.format(this_label, slope, precision=slope_precision)
 

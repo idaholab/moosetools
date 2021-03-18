@@ -9,6 +9,7 @@
 
 from sympy.printing.cxx import CXX11CodePrinter
 
+
 class MooseFunctionPrinter(CXX11CodePrinter):
     """sympy printer for MOOSE C++ Function objects."""
     def _print_BaseScalar(self, expr):
@@ -33,6 +34,7 @@ class MooseFunctionPrinter(CXX11CodePrinter):
         else:
             return str(expr)
 
+
 def moosefunction(expr, assign_to=None, **kwargs):
     """
     Converts an expr to an MOOSE C++ expression for Function objects.
@@ -41,6 +43,7 @@ def moosefunction(expr, assign_to=None, **kwargs):
       expr[sympy.core.Expr]: a sympy expression to be converted
     """
     return MooseFunctionPrinter(**kwargs).doprint(expr, assign_to)
+
 
 def print_moose(expr, **kwargs):
     """
