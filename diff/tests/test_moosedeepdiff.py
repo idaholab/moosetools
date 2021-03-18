@@ -11,8 +11,6 @@
 import sys
 import os
 import unittest
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 import diff
 from diff.moosedeepdiff import MOOSEDeepDiff
 
