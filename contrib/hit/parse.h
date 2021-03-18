@@ -266,6 +266,9 @@ template <>
 inline unsigned int
 Node::paramInner(Node * n)
 {
+  if (n->intVal() < 0)
+    throw Error("negative value read from an input file on line " +
+                std::to_string(n->line()));
   return n->intVal();
 }
 template <>
@@ -298,8 +301,12 @@ Node::paramInner(Node * n)
 {
   auto tmp = n->vecIntVal();
   std::vector<unsigned int> vec;
-  for (auto val : tmp)
+  for (auto val : tmp) {
+    if (val < 0)
+      throw Error("negative value read from an input file on line " +
+                  std::to_string(n->line()));
     vec.push_back(val);
+  }
   return vec;
 }
 template <>
