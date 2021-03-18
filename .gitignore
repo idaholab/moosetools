@@ -2,6 +2,9 @@
 __pycache__
 *.pyc
 .coverage
+*.DS_Store
+htmlcov/
+.vscode/
 
 # CONTRIB
 contrib/hit/hit
