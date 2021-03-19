@@ -26,8 +26,8 @@ rewrite: rewrite.cc parse.cc lex.cc lex.h parse.h
 
 bindings: hit.so
 
-hit.so: parse.cc lex.cc braceexpr.cc $(HITCPP)
-	$(CXX) -std=c++11 -w -fPIC -lstdc++ -shared -L$(PYTHONPREFIX)/lib $(PYTHONCFLAGS) $(DYNAMIC_LOOKUP) $^ -o $@
+hit.so: parse.cc lex.cc braceexpr.cc
+	$(CXX) -std=c++11 -w -fPIC -lstdc++ -shared -L$(PYTHONPREFIX)/lib $(PYTHONCFLAGS) $(DYNAMIC_LOOKUP) $^ $(HITCPP) -o $@
 
 $(HITCPP): hit.pyx chit.pxd
 	cython -3 -o $@ --cplus $<
