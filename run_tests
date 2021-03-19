@@ -16,7 +16,7 @@ run_python_unit_tests(){
   echo =====================================================================================
   echo RUNNING TESTS: "${1}"
   echo -------------------------------------------------------------------------------------
-  coverage run --include "${1}/../**" -m unittest discover --verbose --start-directory ${1}
+  coverage run --omit "${1}/**" --include "${1}/../**" -m unittest discover --verbose --start-directory ${1}
   STATUS+=$?
   coverage report --fail-under=${MIN_COVERAGE}
   STATUS+=$?

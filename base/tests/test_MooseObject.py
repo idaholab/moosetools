@@ -63,6 +63,10 @@ class TestMooseObject(unittest.TestCase):
             obj.info(42)
         self.assertEqual("The supplied 'message' must be a python `str` type, see `MooseObject.log`.", str(e.exception))
 
+    def testParameters(self):
+        obj = MooseObject()
+        self.assertIs(obj._parameters, obj.parameters())
+
     def testIsParamValid(self):
         obj = MooseObject()
         self.assertFalse(obj.isParamValid('name'))
