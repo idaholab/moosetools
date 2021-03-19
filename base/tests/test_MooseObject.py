@@ -55,6 +55,14 @@ class TestMooseObject(unittest.TestCase):
         self.assertEqual(len(log.output), 1)
         self.assertIn(msg.format('CRITICAL'), log.output[0])
 
+        with self.assertRaises(AssertionError) as e:
+            obj.exception('You called exception wrong')
+        self.assertEqual("No Exception raised, see `MooseObject.exception` for help.", str(e.exception))
+
+        with self.assertRaises(AssertionError) as e:
+            obj.info(42)
+        self.assertEqual("The supplied 'message' must be a python `str` type, see `MooseObject.log`.", str(e.exception))
+
     def testIsParamValid(self):
         obj = MooseObject()
         self.assertFalse(obj.isParamValid('name'))

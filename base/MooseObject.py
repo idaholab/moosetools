@@ -91,14 +91,14 @@ class MooseObject(object):
         """
         Log a message with `logging.EXCEPTION` level, see `log`.
 
-        As noted in "logging" package documentation, this should be only used within exception
-        handling. That is, when an exception occurs and is caught this method should be used to
-        report it.
+        Similar to as noted in "logging" package documentation for the "logging" `exception`
+        function, this should be only used within exception handling. That is, when an exception
+        occurs and is caught this method should be used to report it.
 
         By default this enables the "exc_info" flag passed to `log` and uses `logging.CRITICAL`
         level.
         """
-        assert sys.exc_info() != (None, None, None), "No Exception occurred."
+        assert sys.exc_info() != (None, None, None), "No Exception raised, see `MooseObject.exception` for help."
         kwargs.setdefault('exc_info', True)
         self.log(logging.CRITICAL, *args, **kwargs)
 
@@ -115,7 +115,7 @@ class MooseObject(object):
         option is not needed, it is automatically set to the correct value by the `exception` method
         that is designed for exception handling.
         """
-        assert isinstance(message, str), "The supplied 'message' must be a python `str` type."
+        assert isinstance(message, str), "The supplied 'message' must be a python `str` type, see `MooseObject.log`."
         name = self.getParam('name')
         message = message.format(*args, **kwargs)
         if name is not None: message = '({}): {}'.format(name, message)
