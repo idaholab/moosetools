@@ -246,8 +246,11 @@ class InputParameters(object):
         """
         Validate that all parameters marked as required are defined
         """
+        errcode = 0
         for param in self.__parameters.values():
-            param.validate()
+            errcode += param.validate()
+        if errcode > 0:
+            self.__errorHelper("Validation errors occurred.")
 
     def __str__(self):
         """
@@ -284,8 +287,9 @@ class InputParameters(object):
         opt = self.__parameters.get(args[0])
         if (opt is None) and ('_' in args[0]):
             group, subname = args[0].split('_', 1)
-            args = [group, subname] + list(args[1:]) if len(args) > 1 else [group, subname]
-            return self._getParameter(*args)
+            sub_args = [group, subname] + list(args[1:]) if len(args) > 1 else [group, subname]
+            if self.hasParameter(group):
+                return self._getParameter(*sub_args)
 
         if opt is None:
             self.__errorHelper("The parameter '{}' does not exist.", args[0])

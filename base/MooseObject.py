@@ -36,12 +36,14 @@ class MooseObject(object):
     @staticmethod
     def validParams():
         params = parameters.InputParameters()
+        params.add('type', mutable=False, vtype=str, doc="The name of the python class (this is assigned automatically and cannot be modified.)")
         params.add('name', vtype=str, doc="The name of the object.")
         return params
 
     def __init__(self, **kwargs):
         self.__logger = logging.getLogger(self.__class__.__module__)
         self._parameters = getattr(self.__class__, 'validParams')()
+        kwargs['type'] = self.__class__.__name__
         self._parameters.update(**kwargs)
         self._parameters.validate()
 

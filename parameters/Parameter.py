@@ -36,6 +36,7 @@ class Parameter(object):
                        that starts with and underscore is assumed to be private
         verify[tuple]: Define a custom verify function and error message. The first item must
                        be a callable function with a single argument, the second item must be a str.
+        mutable[bool]: Do not allow the value to change after validation.
     """
     def __init__(self,
                  name,
@@ -47,7 +48,8 @@ class Parameter(object):
                  array=False,
                  required=False,
                  private=None,
-                 verify=None):
+                 verify=None,
+                 mutable=True):
 
         # Force vtype to be a tuple to allow multiple types to be defined
         if isinstance(vtype, type):
@@ -64,6 +66,8 @@ class Parameter(object):
         self.__required = required  # see validate()
         self.__verify = verify  # verification function
         self.__set_by_user = False  # flag indicating if the parameter was set after construction
+        self.__mutable = mutable # flag indicating if the parameter can change after construction
+        self.__validated = False # set by validate method, used with mutable
 
         if not isinstance(self.__name, str):
             msg = "The supplied 'name' argument must be a 'str', but {} was provided."
@@ -127,12 +131,17 @@ class Parameter(object):
             msg = "The second item in the 'verify' argument tuple must be a string, but {} was provided"
             raise TypeError(msg.format(type(self.__verify[1])))
 
+        if not isinstance(self.__mutable, bool):
+            msg = "The supplied 'mutable' argument must be a 'bool', but {} was provided."
+            raise TypeError(msg.format(type(self.__mutable)))
+
         elif self.__size is not None:
             self.__array = True
 
         if default is not None:
             self.value = default
             self.__set_by_user = False  # override self.value setting of this
+
 
     @property
     def name(self):
@@ -197,6 +206,11 @@ class Parameter(object):
         """
         Sets the value and performs a myriad of consistency checks.
         """
+        if self.__validated and (not self.__mutable):
+            msg = "An attempt was made to change '%s', but it is marked as immutable."
+            LOG.warning(msg, self.name)
+            return
+
         if (val is None) and (self.__value is not None):
             self.__value = None
             self.__set_by_user = True
@@ -213,9 +227,10 @@ class Parameter(object):
 
     def validate(self):
         """Validate that the Parameter is in the correct state."""
+        self.__validated = True
         if self.__required and (self.value is None):
             msg = "The Parameter '%s' is marked as required, but no value is assigned."
-            LOG.warning(msg, self.name)
+            LOG.error(msg, self.name, stack_info=True)
             return 1
         return 0
 

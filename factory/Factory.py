@@ -8,59 +8,70 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 import os
 import sys
+import glob
+import pkgutil
+import importlib
 import inspect
-from .FactoryObject import FactoryObject
+from base import MooseObject
 
-class Factory:
-    def __init__(self, plugin_dirs=None, base_type=None):
-        if plugin_dirs is None: plugin_dirs = [os.path.join(os.getcwd(), 'plugins')]
-        if base_type is None: base_type = FactoryObject
-        self._registered_types = _loadPlugins(plugin_dirs, base_type)
+class Factory(MooseObject):
+    """
 
-    def register(self, object_type, name):
+
+    """
+    @staticmethod
+    def validParams():
+        params = MooseObject.validParams()
+        params.add('plugin_dirs', default=(os.path.join(os.getcwd(), 'plugins'),), vtype=str, array=True,
+                   verify=(lambda dirs: all(os.path.isdir(d) for d in dirs),
+                           "Supplied plugin directories must exist."),
+                   doc="List of directories to search for plugins.")
+        params.add('plugin_type', default=MooseObject, doc="The python type of the plugins to load.")
+        return params
+
+    def __init__(self, **kwargs):
+        MooseObject.__init__(self, **kwargs)
+        self._registered_types = dict()
+        self.load()
+
+    def register(self, name, object_type):
+        otype = self._registered_types.get(name, None)
+        if otype is not None:
+            self.warning("The '{}' name is already associated with an object type of {}, it will not be registered again.", name, otype, stack_info=True)
         self._registered_types[name] = object_type
 
-    def validParams(self, object_type):
-        return self._registered_types[object_type].validParams()
+    def create(self, _registered_name, *args, **kwargs):
+        otype = self._registered_types.get(_registered_name, None)
+        if otype is None:
+            raise base.MooseException("The supplied name '{}' is not associated with a registered type.")
+        return self._registered_types[_registered_name](*args, **kwargs)
 
+    def load(self):
+        plugin_dirs = self.getParam('plugin_dirs')
+        plugin_type = self.getParam('plugin_type')
 
-    def create(self, object_type, *args, **kwargs):
-        return self._registered_types[object_type](*args, **kwargs)
-
-
-    def getClassHierarchy(self, classes):
-        if classes != None:
-            for aclass in classes:
-                classes.extend(self.getClassHierarchy(aclass.__subclasses__()))
-        return classes
-
-
-    @staticmethod
-    def _loadPlugins(self, plugin_dir, base_type):
-        for location in plugin_dirs:
-            #if not os.path.exists(location):
-
-            dir = os.path.join(dir, plugin_path)
-            if not os.path.exists(dir):
+        for info in pkgutil.iter_modules(plugin_dirs):
+            loader = info.module_finder.find_module(info.name)
+            try:
+                module = loader.load_module()
+            except Exception:
+                self.exception("Failed to load module '{}' in file '{}'", info.name, info.module_finder.path)
                 continue
 
-            sys.path.append(os.path.abspath(dir))
-            for file in os.listdir(dir):
-                if file[-2:] == 'py':
-                    module_name = file[:-3]
-                    try:
-                        __import__(module_name)
-                        # Search through the module and look for classes that
-                        # have the passed in attribute, which should be a bool and be True
-                        for name, obj in inspect.getmembers(sys.modules[module_name]):
-                            if inspect.isclass(obj) and hasattr(obj, attribute):
-                                at = getattr(obj, attribute)
-                                if isinstance(at, bool) and at:
-                                    self.register(obj, name)
-                    except Exception as e:
-                        print('\nERROR: Your Plugin Tester "' + module_name + '" failed to import. (skipping)\n\n' + str(e))
+            for name, otype in inspect.getmembers(module):
+                if inspect.isclass(otype) and (plugin_type in inspect.getmro(otype)) and (name not in self._registered_types):
+                    self.register(name, otype)
 
+    def __str__(self):
+        out = ''
+        for name, otype in self._registered_types.items():
+            params = otype.validParams()
+            params.set('type', otype.__name__)
+            out += str(params)
 
+        return out
+
+    """
     def printDump(self, root_node_name):
         print("[" + root_node_name + "]")
 
@@ -113,3 +124,4 @@ class Factory:
                 print("        " + params.getDescription(key))
 
         print("**END YAML DATA**")
+    """

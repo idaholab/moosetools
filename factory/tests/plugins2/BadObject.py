@@ -1,0 +1,2 @@
+class BadObject(NotABaseClass):
+    pass

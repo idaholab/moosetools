@@ -3,6 +3,13 @@ import unittest
 import parameters
 from base import MooseObject, MooseException
 
+class CustomObject(MooseObject):
+    @staticmethod
+    def validParams():
+        params = MooseObject.validParams()
+        params.add("year")
+        return params
+
 class TestMooseObject(unittest.TestCase):
     def testInitAndName(self):
         obj = MooseObject()
@@ -102,6 +109,26 @@ class TestMooseObject(unittest.TestCase):
             obj.getParam('wrong')
         self.assertEqual(len(log.output), 1)
         self.assertIn("The parameter 'wrong' does not exist.", log.output[0])
+
+    def testCustom(self):
+        obj = CustomObject(year=1980)
+        self.assertEqual(obj.getParam('year'), 1980)
+
+    def testType(self):
+        obj = MooseObject()
+        self.assertEqual(obj.getParam('type'), 'MooseObject')
+
+        obj = CustomObject()
+        self.assertEqual(obj.getParam('type'), 'CustomObject')
+
+        with self.assertLogs(level='WARNING') as log:
+            obj.parameters().set('type', "SomeOtherName")
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("An attempt was made to change 'type', but it is marked as immutable.", log.output[0])
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

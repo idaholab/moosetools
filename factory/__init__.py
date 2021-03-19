@@ -8,6 +8,6 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 #from .Factory import Factory
 #from .InputParameters import InputParameters
-from .FactoryObject import FactoryObject
+from .Factory import Factory
 #from .Parser import Parser
 #from .Warehouse import Warehouse

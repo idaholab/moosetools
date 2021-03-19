@@ -7,33 +7,30 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
+import os
 import unittest
 import parameters
 import factory
 
 class TestFactory(unittest.TestCase):
     def testDefault(self):
-        obj = factory.FactoryObject()
+        f = factory.Factory()
+        obj = f.create('CustomObject', name='Andrew')
+        self.assertEqual(obj.name(), 'Andrew')
 
-    def testCustom(self):
-        class CustomObject(factory.FactoryObject):
-            @staticmethod
-            def validParams():
-                params = factory.FactoryObject.validParams()
-                params.add('year', doc="The best year")
-                return params
+        obj = f.create('CustomCustomObject', name='Andrew')
+        self.assertEqual(obj.name(), 'Andrew')
 
-        obj = CustomObject()
-        self.assertIsNone(obj.getParam('year'))
-        self.assertFalse(obj.isParamValid('year'))
+    def testBadLoad(self):
+        with self.assertLogs(level='CRITICAL') as log:
+            f = factory.Factory(plugin_dirs=(os.path.join(os.path.dirname(__file__), 'plugins2'),))
+        self.assertEqual(len(log.output), 1)
+        self.assertIn('NameError: name \'NotABaseClass\' is not defined', log.output[0])
 
-        obj = CustomObject(year=1980)
-        self.assertEqual(obj.getParam('year'), 1980)
-        self.assertTrue(obj.isParamValid('year'))
-
-
-
-
+    def testDump(self):
+        f = factory.Factory()
+        print(f)
+        self.assertTrue(False)
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)
