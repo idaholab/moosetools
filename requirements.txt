@@ -1,3 +1,5 @@
+coverage
+deepdiff
 pandas
 pyyaml
-deepdiff
+sympy
