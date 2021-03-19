@@ -6,25 +6,26 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-
-import os, sys
+import os
+import sys
 import inspect
+from .FactoryObject import FactoryObject
 
 class Factory:
-    def __init__(self):
-        self.objects = {}   # The registered Objects array
+    def __init__(self, plugin_dirs=None, base_type=None):
+        if plugin_dirs is None: plugin_dirs = [os.path.join(os.getcwd(), 'plugins')]
+        if base_type is None: base_type = FactoryObject
+        self._registered_types = _loadPlugins(plugin_dirs, base_type)
+
+    def register(self, object_type, name):
+        self._registered_types[name] = object_type
+
+    def validParams(self, object_type):
+        return self._registered_types[object_type].validParams()
 
 
-    def register(self, type, name):
-        self.objects[name] = type
-
-
-    def validParams(self, type):
-        return self.objects[type].validParams()
-
-
-    def create(self, type, *args, **kwargs):
-        return self.objects[type](*args, **kwargs)
+    def create(self, object_type, *args, **kwargs):
+        return self._registered_types[object_type](*args, **kwargs)
 
 
     def getClassHierarchy(self, classes):
@@ -34,8 +35,11 @@ class Factory:
         return classes
 
 
-    def loadPlugins(self, base_dirs, plugin_path, attribute):
-        for dir in base_dirs:
+    @staticmethod
+    def _loadPlugins(self, plugin_dir, base_type):
+        for location in plugin_dirs:
+            #if not os.path.exists(location):
+
             dir = os.path.join(dir, plugin_path)
             if not os.path.exists(dir):
                 continue

@@ -20,28 +20,25 @@ class InputParameters(object):
     """
     A warehouse for creating and storing options
     """
+    import base # Avoid cyclic imports
+
     __PARAM_TYPE__ = Parameter
 
     class ErrorMode(enum.Enum):
         """Defines the error mode for all instances"""
-        NONE = 0  # disable errors
-        WARNING = 1  # logging.warning
-        ERROR = 2  # logging.error
-        EXCEPTION = 3  # logging.critical and raises InputParametersException
-
-    class InputParameterException(Exception):
-        """Custom Exception used in for ErrorMode.EXCEPTION"""
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+        NONE = 0       # disable errors
+        WARNING = 1    # logging.warning
+        ERROR = 2      # logging.error
+        CRITICAL = 3   # logging.critical
+        EXCEPTION = 4  # raises MooseException, the import occurs when raised to avoid cyclic imports
 
     LOG = logging.getLogger('InputParameters')
 
     def __init__(self, mode=None):
         self.__parameters = OrderedDict()
-        self.add('_error_mode',
-                 default=mode or InputParameters.ErrorMode.WARNING,
-                 vtype=InputParameters.ErrorMode,
-                 private=True)
+        self.add('error_mode',
+                 default=mode or InputParameters.ErrorMode.EXCEPTION,
+                 vtype=InputParameters.ErrorMode)
 
     def add(self, *args, **kwargs):
         """
@@ -305,11 +302,13 @@ class InputParameters(object):
         Produce warning, error, or exception based on operation mode.
         """
         msg = text.format(*args, **kwargs)
-        mode = self.get('_error_mode')
+        mode = self.get('error_mode')
         if mode == InputParameters.ErrorMode.WARNING:
             self.LOG.warning(msg)
         elif mode == InputParameters.ErrorMode.ERROR:
             self.LOG.error(msg)
-        elif mode == InputParameters.ErrorMode.EXCEPTION:
+        elif mode == InputParameters.ErrorMode.CRITICAL:
             self.LOG.critical(msg)
-            raise InputParameters.InputParameterException(msg)
+        elif mode == InputParameters.ErrorMode.EXCEPTION:
+            import base
+            raise base.MooseException(msg)

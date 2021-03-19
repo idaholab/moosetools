@@ -16,3 +16,5 @@ contrib/unit/moosetools-unit
 # Emacs
 *.~*~
 **/*.*.~*~
+\#*.*#
+.#*

@@ -6,15 +6,17 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-
-
 class MooseException(Exception):
     """
-    An Exception for MOOSE python applications that automatically applies the .format command.
+    An Exception for moosetools applications that automatically applies the .format command.
+
+    The supplied *message* should be a string. The *\*args* and *\*\*kwargs* arguments are applied
+    to the message using the built-in python `format` function, as `message.format(*args, **kwargs)`.
     """
-    def __init__(self, message, *args):
-        Exception.__init__(self, message.format(*args))
+    def __init__(self, message, *args, **kwargs):
+        self.__message = message.format(*args, **kwargs)
+        Exception.__init__(self, self.__message)
 
     @property
     def message(self):
-        return str(self)
+        return self.__message

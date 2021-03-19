@@ -10,8 +10,6 @@
 import parameters
 
 class FactoryObject(object):
-    INPUTPARAMETERS_ERROR_MODE = parameters.InputParameters.ErrorMode.EXCEPTION
-
     @staticmethod
     def validParams():
         params = parameters.InputParameters(mode=parameters)

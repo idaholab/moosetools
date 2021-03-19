@@ -11,20 +11,9 @@ import unittest
 import parameters
 import factory
 
-class TestFactoryObject(unittest.TestCase):
-    def testBase(self):
+class TestFactory(unittest.TestCase):
+    def testDefault(self):
         obj = factory.FactoryObject()
-        self.assertIsNone(obj.getParam('name'))
-        self.assertFalse(obj.isParamValid('name'))
-        self.assertIsInstance(obj.parameters(), parameters.InputParameters)
-
-        obj = factory.FactoryObject(name='object')
-        self.assertEqual(obj.getParam('name'), 'object')
-        self.assertTrue(obj.isParamValid('name'))
-
-        self.assertIsNone(obj.getParam('wrong'))
-        self.assertFalse(obj.isParamValid('wrong'))
-
 
     def testCustom(self):
         class CustomObject(factory.FactoryObject):
