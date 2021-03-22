@@ -34,10 +34,10 @@ class InputParameters(object):
 
     LOG = logging.getLogger('InputParameters')
 
-    def __init__(self, mode=None):
+    def __init__(self):
         self.__parameters = OrderedDict()
         self.add('error_mode',
-                 default=mode or InputParameters.ErrorMode.EXCEPTION,
+                 default=InputParameters.ErrorMode.EXCEPTION,
                  vtype=InputParameters.ErrorMode)
 
     def add(self, *args, **kwargs):
@@ -143,7 +143,9 @@ class InputParameters(object):
         """
         opt = self._getParameter(*args[:-1])
         if opt is not None:
-            opt.default = args[-1]
+            ret, err = opt.setDefault(args[-1])
+            if ret > 0:
+                self.__errorHelper(err)
 
     def getDefault(self, *args):
         """
@@ -173,7 +175,7 @@ class InputParameters(object):
         """
         opt = self._getParameter(*args)
         if opt is not None:
-            return opt.isSetByUser()
+            return opt.is_set_by_user
 
     def set(self, *args):
         """
@@ -197,7 +199,9 @@ class InputParameters(object):
                 args[-1], dict):
             param.value.update(**args[-1])
         elif param is not None:
-            param.value = args[-1]
+            ret, err = param.setValue(args[-1])
+            if ret > 0:
+                self.__errorHelper(err)
 
     def get(self, *args):
         """
@@ -246,11 +250,15 @@ class InputParameters(object):
         """
         Validate that all parameters marked as required are defined
         """
-        errcode = 0
+        retcode = 0
+        errors = list()
         for param in self.__parameters.values():
-            errcode += param.validate()
-        if errcode > 0:
-            self.__errorHelper("Validation errors occurred.")
+            ret, err = param.validate()
+            retcode += ret
+            if ret: errors.append(err)
+        if retcode > 0:
+            msg += '\n'.join(errors)
+            self.__errorHelper(msg)
 
     def __str__(self):
         """

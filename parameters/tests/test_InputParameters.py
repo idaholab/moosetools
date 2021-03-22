@@ -13,7 +13,7 @@ import sys
 import re
 import unittest
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+from base import MooseException
 from parameters import InputParameters
 
 
@@ -21,25 +21,23 @@ class TestInputParameters(unittest.TestCase):
     def testAdd(self):
         params = InputParameters()
         params.add('foo')
-        self.assertEqual(list(params.keys()), ['foo'])
+        self.assertEqual(list(params.keys()), ['error_mode', 'foo'])
         self.assertFalse(params.isValid('foo'))
         self.assertIn('foo', params)
         self.assertIsNone(params.get('foo'))
         self.assertTrue(params.hasParameter('foo'))
 
-        with self.assertLogs(level='WARNING') as log:
+        with self.assertRaises(MooseException) as e:
             params.add('foo')
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("Cannot add parameter, the parameter 'foo' already exists.", log.output[0])
+        self.assertIn("Cannot add parameter, the parameter 'foo' already exists.", str(e.exception))
 
         sub = InputParameters()
         params.add('bar', InputParameters())
-        with self.assertLogs(level='WARNING') as log:
+        with self.assertRaises(MooseException) as e:
             params.add('bar_something')
-        self.assertEqual(len(log.output), 1)
         self.assertIn(
             "Cannot add a parameter with the name 'bar_something', a sub parameter exists with the name 'bar'.",
-            log.output[0])
+            str(e.exception))
 
     def testContains(self):
         params = InputParameters()
@@ -63,7 +61,7 @@ class TestInputParameters(unittest.TestCase):
         params.add('foo', 1949)
         params.add('bar', 1980)
 
-        gold = [('foo', 1949), ('bar', 1980)]
+        gold = [('error_mode', InputParameters.ErrorMode.EXCEPTION), ('foo', 1949), ('bar', 1980)]
         for i, (k, v) in enumerate(params.items()):
             self.assertEqual(k, gold[i][0])
             self.assertEqual(v, gold[i][1])
@@ -73,7 +71,7 @@ class TestInputParameters(unittest.TestCase):
         params.add('foo', 1949)
         params.add('bar', 1980)
 
-        gold = [1949, 1980]
+        gold = [InputParameters.ErrorMode.EXCEPTION, 1949, 1980]
         for i, v in enumerate(params.values()):
             self.assertEqual(v, gold[i])
 
@@ -82,7 +80,7 @@ class TestInputParameters(unittest.TestCase):
         params.add('foo', 1949)
         params.add('bar', 1980)
 
-        gold = ['foo', 'bar']
+        gold = ['error_mode', 'foo', 'bar']
         for i, v in enumerate(params.keys()):
             self.assertEqual(v, gold[i])
 
@@ -93,10 +91,9 @@ class TestInputParameters(unittest.TestCase):
         params.remove('foo')
         self.assertFalse(params.hasParameter('foo'))
 
-        with self.assertLogs(level='WARNING') as log:
+        with self.assertRaises(MooseException) as e:
             params.remove('bar')
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("The parameter 'bar' does not exist", log.output[0])
+        self.assertIn("The parameter 'bar' does not exist", str(e.exception))
 
     def testIsValid(self):
         params = InputParameters()
@@ -105,10 +102,9 @@ class TestInputParameters(unittest.TestCase):
         params.set('foo', 1980)
         self.assertTrue(params.isValid('foo'))
 
-        with self.assertLogs(level='WARNING') as log:
-            self.assertIsNone(params.isValid('bar'))
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("The parameter 'bar' does not exist", log.output[0])
+        with self.assertRaises(MooseException) as e:
+            params.isValid('bar')
+        self.assertIn("The parameter 'bar' does not exist", str(e.exception))
 
     def testSetDefault(self):
         params = InputParameters()
@@ -122,10 +118,9 @@ class TestInputParameters(unittest.TestCase):
         self.assertEqual(params.get('bar'), 1980)
         self.assertEqual(params.getDefault('bar'), 1949)
 
-        with self.assertLogs(level='WARNING') as log:
+        with self.assertRaises(MooseException) as e:
             params.setDefault('other', 1980)
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("The parameter 'other' does not exist", log.output[0])
+        self.assertIn("The parameter 'other' does not exist", str(e.exception))
 
     def testGetDefault(self):
         params = InputParameters()
@@ -133,10 +128,9 @@ class TestInputParameters(unittest.TestCase):
         params.set('foo', 54)
         self.assertEqual(params.getDefault('foo'), 42)
 
-        with self.assertLogs(level='WARNING') as log:
-            self.assertIsNone(params.getDefault('bar'))
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("The parameter 'bar' does not exist", log.output[0])
+        with self.assertRaises(MooseException) as e:
+            params.getDefault('bar')
+        self.assertIn("The parameter 'bar' does not exist", str(e.exception))
 
     def testIsDefault(self):
         params = InputParameters()
@@ -145,26 +139,23 @@ class TestInputParameters(unittest.TestCase):
         params.set('foo', 1980)
         self.assertFalse(params.isDefault('foo'))
 
-        with self.assertLogs(level='WARNING') as log:
-            self.assertIsNone(params.isDefault('bar'))
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("The parameter 'bar' does not exist", log.output[0])
+        with self.assertRaises(MooseException) as e:
+            params.isDefault('bar')
+        self.assertIn("The parameter 'bar' does not exist", str(e.exception))
 
     def testSet(self):
         params = InputParameters()
         params.add('foo')
         params.set('foo', 42)
-        self.assertEqual(list(params.keys()), ['foo'])
         self.assertTrue(params.isValid('foo'))
         self.assertIn('foo', params)
         self.assertIsNotNone(params.get('foo'))
         self.assertEqual(params.get('foo'), 42)
         self.assertTrue(params.hasParameter('foo'))
 
-        with self.assertLogs(level='WARNING') as log:
+        with self.assertRaises(MooseException) as e:
             params.set('bar', 1980)
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("The parameter 'bar' does not exist", log.output[0])
+        self.assertIn("The parameter 'bar' does not exist", str(e.exception))
 
         # Sub-options
         params2 = InputParameters()
@@ -190,23 +181,23 @@ class TestInputParameters(unittest.TestCase):
         self.assertEqual(params3.get('bar'), 1944)
         self.assertEqual(params.get('sub').get('bar'), 1944)
 
-        with self.assertLogs(level='WARNING') as log:
+        with self.assertRaises(MooseException) as e:
             params.set('foo', 1980, 2011)
+        self.assertIn("Extra argument(s) found: 1980", str(e.exception))
+
+        with self.assertRaises(MooseException) as e:
             params.set('foo')
 
-        self.assertEqual(len(log.output), 2)
-        self.assertIn("Extra argument(s) found: 1980", log.output[0])
-        self.assertIn("One or more names must be supplied.", log.output[1])
+        self.assertIn("One or more names must be supplied.", str(e.exception))
 
     def testGet(self):
         params = InputParameters()
         params.add('foo', default=1980)
         self.assertEqual(params.get('foo'), 1980)
 
-        with self.assertLogs(level='WARNING') as log:
-            self.assertIsNone(params.get('bar'))
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("The parameter 'bar' does not exist", log.output[0])
+        with self.assertRaises(MooseException) as e:
+            params.get('bar')
+        self.assertIn("The parameter 'bar' does not exist", str(e.exception))
 
     def testHasParameter(self):
         params = InputParameters()
@@ -226,33 +217,37 @@ class TestInputParameters(unittest.TestCase):
         params.update(params2)
         self.assertEqual(params.get('foo'), 2013)
 
-        with self.assertLogs(level='WARNING') as log:
+        with self.assertRaises(MooseException) as e:
             params.update(foo=2011, bar=2013)
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("The parameter 'bar' does not exist.", log.output[0])
+        self.assertIn("The parameter 'bar' does not exist.", str(e.exception))
 
     def testErrorMode(self):
-        params = InputParameters(InputParameters.ErrorMode.WARNING)
+        params = InputParameters()
+        params.set('error_mode', InputParameters.ErrorMode.WARNING)
         with self.assertLogs(level='WARNING') as log:
             self.assertIsNone(params.isValid('bar'))
         self.assertEqual(len(log.output), 1)
         self.assertIn("The parameter 'bar' does not exist", log.output[0])
 
-        params = InputParameters(InputParameters.ErrorMode.ERROR)
+        params = InputParameters()
+        params.set('error_mode', InputParameters.ErrorMode.ERROR)
         with self.assertLogs(level='ERROR') as log:
             self.assertIsNone(params.isValid('bar'))
         self.assertEqual(len(log.output), 1)
         self.assertIn("The parameter 'bar' does not exist", log.output[0])
 
-        params = InputParameters(InputParameters.ErrorMode.NONE)
-        self.assertIsNone(params.isValid('bar'))
+        params = InputParameters()
+        params.set('error_mode', InputParameters.ErrorMode.CRITICAL)
+        with self.assertLogs(level='CRITICAL') as log:
+            self.assertIsNone(params.isValid('bar'))
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("The parameter 'bar' does not exist", log.output[0])
 
-        params = InputParameters(InputParameters.ErrorMode.EXCEPTION)
-        with self.assertRaises(InputParameters.InputParameterException):
-            with self.assertLogs(level='CRITICAL') as log:
-                self.assertIsNone(params.isValid('bar'))
-            self.assertEqual(len(log.output), 1)
-            self.assertIn("The parameter 'bar' does not exist", log.output[0])
+        params = InputParameters()
+        params.set('error_mode', InputParameters.ErrorMode.EXCEPTION)
+        with self.assertRaises(MooseException) as e:
+            self.assertIsNone(params.isValid('bar'))
+        self.assertIn("The parameter 'bar' does not exist", str(e.exception))
 
     def testSetWithSubOption(self):
         andrew = InputParameters()
@@ -278,15 +273,13 @@ class TestInputParameters(unittest.TestCase):
         people.set('andrew_skills', 'nunchuck', True)
         self.assertEqual(yo_dawg.get('nunchuck'), True)
 
-        with self.assertLogs(level='WARNING') as log:
+        with self.assertRaises(MooseException) as e:
             people.set('andrew_day', 'python', False)
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("The parameter 'day' does not exist", log.output[0])
+        self.assertIn("The parameter 'day' does not exist", str(e.exception))
 
-        with self.assertLogs(level='WARNING') as log:
+        with self.assertRaises(MooseException) as e:
             people.set('andrew_skills', 'python', False)
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("The parameter 'python' does not exist.", log.output[0])
+        self.assertIn("The parameter 'python' does not exist.", str(e.exception))
 
     def testGetWithSubOption(self):
         unit = InputParameters()

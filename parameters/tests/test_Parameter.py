@@ -365,6 +365,33 @@ class TestParameter(unittest.TestCase):
             "The second item in the 'verify' argument tuple must be a string, but <class 'int'> was provided",
             str(e.exception))
 
+    def isSetByUser(self):
+        opt = Parameter('year')
+        self.assertEqual(opt.is_set_by_user, False)
+
+        ret, err = opt.setValue(1980)
+        self.assertEqual(ret, 0)
+        self.assertEqual(err, None)
+        self.assertEqual(opt.is_set_by_user, True)
+
+        opt = Parameter('year')
+        self.assertEqual(opt.is_set_by_user, False)
+
+        ret, err = opt.setDefault(1980)
+        self.assertEqual(ret, 0)
+        self.assertEqual(err, None)
+        self.assertEqual(opt.is_set_by_user, True)
+
+
+        opt = Parameter('year', default=1949)
+        self.assertEqual(opt.is_set_by_user, False)
+        ret, err = opt.setValue(1980)
+        self.assertEqual(ret, 0)
+        self.assertEqual(err, None)
+        self.assertEqual(opt.is_set_by_user, True)
+
+
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)
