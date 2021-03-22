@@ -15,7 +15,7 @@ import unittest
 import logging
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-from parameters import Parameter
+from parameters import InputParameters, Parameter
 
 class TestParameter(unittest.TestCase):
     def testMinimal(self):
@@ -50,6 +50,12 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(ret, 1)
         self.assertIn("'bar' must be of type (<class 'int'>,) but <class 'str'> provided.", err)
 
+        with self.assertRaises(TypeError) as e:
+            Parameter('bar', default='wrong', vtype=int)
+        self.assertIn(
+            "'bar' must be of type (<class 'int'>,) but <class 'str'> provided.",
+            str(e.exception))
+
     def testNone(self):
         opt = Parameter('year')
         self.assertEqual(opt.value, None)
@@ -65,6 +71,7 @@ class TestParameter(unittest.TestCase):
 
     def testAllow(self):
         opt = Parameter('foo', allow=(1, 'two'))
+        self.assertEqual(opt.allow, (1, 'two'))
         self.assertIsNone(opt.default)
         self.assertIsNone(opt.value)
 
@@ -86,6 +93,7 @@ class TestParameter(unittest.TestCase):
 
     def testType(self):
         opt = Parameter('foo', vtype=int)
+        self.assertEqual(opt.vtype, (int,))
         self.assertIsNone(opt.default)
         self.assertIsNone(opt.value)
 
@@ -97,6 +105,12 @@ class TestParameter(unittest.TestCase):
         ret, err = opt.setValue('s')
         self.assertEqual(ret, 1)
         self.assertIn("'foo' must be of type (<class 'int'>,) but <class 'str'> provided.", err)
+
+        with self.assertRaises(TypeError) as e:
+            Parameter('foo', vtype='wrong')
+        self.assertIn(
+            "The supplied 'vtype' argument must be a 'type', but <class 'str'> was provided.",
+            str(e.exception))
 
     def testTypeWithAllow(self):
 
@@ -180,6 +194,7 @@ class TestParameter(unittest.TestCase):
 
     def testSize(self):
         opt = Parameter('foo', size=4)
+        self.assertEqual(opt.size, 4)
         self.assertEqual(opt._Parameter__array, True)
         self.assertEqual(opt._Parameter__size, 4)
 
@@ -188,6 +203,12 @@ class TestParameter(unittest.TestCase):
         self.assertIn(
             "'foo' was defined as an array with length 4 but a value with length 3 was provided.",
             err)
+
+        with self.assertRaises(TypeError) as e:
+            Parameter('foo', size='wrong')
+        self.assertIn(
+            "The supplied 'size' argument must be a 'int', but <class 'str'> was provided.",
+            str(e.exception))
 
     def testDoc(self):
         opt = Parameter('foo', doc='This is foo, not bar.')
@@ -297,6 +318,12 @@ class TestParameter(unittest.TestCase):
         opt = Parameter('_year')
         self.assertEqual(opt.private, True)
 
+        with self.assertRaises(TypeError) as e:
+            Parameter('foo', private='wrong')
+        self.assertIn(
+            "The supplied 'private' argument must be a 'bool', but <class 'str'> was provided.",
+            str(e.exception))
+
     def testToString(self):
         opt = Parameter('year')
         s = str(opt)
@@ -319,6 +346,14 @@ class TestParameter(unittest.TestCase):
         opt = Parameter('year', default=1980, doc="The best year.")
         s = str(opt)
         self.assertIn("best", s)
+
+        opt = Parameter('date')
+        sub = InputParameters()
+        sub.add('year')
+        opt.setValue(sub)
+        s = str(opt)
+        self.assertIn("date\n", s)
+        self.assertIn("date_year\n", s)
 
     def testVerify(self):
         opt = Parameter('year', verify=(lambda v: v > 1980, "The year must be greater than 1980."))
@@ -365,7 +400,7 @@ class TestParameter(unittest.TestCase):
             "The second item in the 'verify' argument tuple must be a string, but <class 'int'> was provided",
             str(e.exception))
 
-    def isSetByUser(self):
+    def testIsSetByUser(self):
         opt = Parameter('year')
         self.assertEqual(opt.is_set_by_user, False)
 

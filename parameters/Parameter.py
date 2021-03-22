@@ -111,7 +111,7 @@ class Parameter(object):
 
         if not isinstance(self.__private, bool):
             msg = "The supplied 'private' argument must be a 'bool', but {} was provided."
-            raise TypeError(msg.format(type(self.__required)))
+            raise TypeError(msg.format(type(self.__private)))
 
         if (self.__verify is not None) and (not isinstance(self.__verify, tuple)):
             msg = "The supplied 'verify' argument must be a 'tuple' with callable function and 'str' error message, but {} was provided."
@@ -258,9 +258,7 @@ class Parameter(object):
     def toString(self, prefix='', level=0):
         """Create a string of Parameter information."""
         from .InputParameters import InputParameters
-        is_sub_option = (self.__vtype is not None) and (InputParameters
-                                                        in self.__vtype) and (self.__value
-                                                                              is not None)
+        is_sub_option = isinstance(self.__value, InputParameters)
 
         out = [self.__name]
         if prefix is not None:
