@@ -51,13 +51,14 @@ class InputParameters(object):
             self.__errorHelper("Cannot add parameter, the parameter '{}' already exists.", args[0])
             return
 
-        if '_' in args[0]:
+        elif '_' in args[0]:
             group, subname = args[0].split('_', 1)
             if (group in self.__parameters) and isinstance(self.__parameters[group].value,
                                                            InputParameters):
                 self.__errorHelper(
                     "Cannot add a parameter with the name '{}', "
                     "a sub parameter exists with the name '{}'.", args[0], group)
+                return
 
         default = kwargs.get('default', None)
         if isinstance(default, InputParameters):
@@ -104,16 +105,6 @@ class InputParameters(object):
         """
         return [key for key, value in self.__parameters.items() if not value.private]
 
-    def parameters(self):
-        """
-        Direct iteration over the Parameter objects
-        """
-        for param in self.__parameters.values():
-            if isinstance(param, InputParameters):
-                yield param.parameters()
-            else:
-                yield param
-
     def remove(self, name):
         """
         Remove an option from the warehouse.
@@ -139,7 +130,7 @@ class InputParameters(object):
 
     def setDefault(self, *args):
         """
-        Set the default value, this will onluy set the value if it is None
+        Set the default value.
         """
         opt = self._getParameter(*args[:-1])
         if opt is not None:
@@ -257,7 +248,7 @@ class InputParameters(object):
             retcode += ret
             if ret: errors.append(err)
         if retcode > 0:
-            msg += '\n'.join(errors)
+            msg = '\n'.join(errors)
             self.__errorHelper(msg)
 
     def __str__(self):

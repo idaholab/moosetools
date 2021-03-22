@@ -27,17 +27,20 @@ class TestInputParameters(unittest.TestCase):
         self.assertIsNone(params.get('foo'))
         self.assertTrue(params.hasParameter('foo'))
 
-        with self.assertRaises(MooseException) as e:
+        params.set('error_mode', InputParameters.ErrorMode.ERROR) # use error to capture return
+        with self.assertLogs(level='ERROR') as log:
             params.add('foo')
-        self.assertIn("Cannot add parameter, the parameter 'foo' already exists.", str(e.exception))
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("Cannot add parameter, the parameter 'foo' already exists.", log.output[0])
 
         sub = InputParameters()
         params.add('bar', InputParameters())
-        with self.assertRaises(MooseException) as e:
+        with self.assertLogs(level='ERROR') as log:
             params.add('bar_something')
+        self.assertEqual(len(log.output), 1)
         self.assertIn(
             "Cannot add a parameter with the name 'bar_something', a sub parameter exists with the name 'bar'.",
-            str(e.exception))
+            log.output[0])
 
     def testContains(self):
         params = InputParameters()
@@ -108,7 +111,7 @@ class TestInputParameters(unittest.TestCase):
 
     def testSetDefault(self):
         params = InputParameters()
-        params.add('foo')
+        params.add('foo', vtype=int)
         self.assertIsNone(params.get('foo'))
         params.setDefault('foo', 1980)
         self.assertEqual(params.get('foo'), 1980)
@@ -121,6 +124,12 @@ class TestInputParameters(unittest.TestCase):
         with self.assertRaises(MooseException) as e:
             params.setDefault('other', 1980)
         self.assertIn("The parameter 'other' does not exist", str(e.exception))
+
+        params.set('error_mode', InputParameters.ErrorMode.ERROR) # use error to capture return
+        with self.assertLogs(level='ERROR') as log:
+            params.setDefault('foo', 'wrong')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("'foo' must be of type", log.output[0])
 
     def testGetDefault(self):
         params = InputParameters()
@@ -143,9 +152,16 @@ class TestInputParameters(unittest.TestCase):
             params.isDefault('bar')
         self.assertIn("The parameter 'bar' does not exist", str(e.exception))
 
+    def testIsSetByUser(self):
+        params = InputParameters()
+        params.add('foo', default=1949)
+        self.assertFalse(params.isSetByUser('foo'))
+        params.set('foo', 1980)
+        self.assertFalse(params.isDefault('foo'))
+
     def testSet(self):
         params = InputParameters()
-        params.add('foo')
+        params.add('foo', vtype=int)
         params.set('foo', 42)
         self.assertTrue(params.isValid('foo'))
         self.assertIn('foo', params)
@@ -185,10 +201,17 @@ class TestInputParameters(unittest.TestCase):
             params.set('foo', 1980, 2011)
         self.assertIn("Extra argument(s) found: 1980", str(e.exception))
 
-        with self.assertRaises(MooseException) as e:
+        params.set('error_mode', InputParameters.ErrorMode.ERROR) # log to capture return
+        with self.assertLogs(level='ERROR') as log:
             params.set('foo')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("One or more names must be supplied.", log.output[0])
 
-        self.assertIn("One or more names must be supplied.", str(e.exception))
+        params.set('error_mode', InputParameters.ErrorMode.ERROR)
+        with self.assertLogs(level='ERROR') as log:
+            params.set('foo', 'wrong')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("'foo' must be of type", log.output[0])
 
     def testGet(self):
         params = InputParameters()
@@ -220,6 +243,10 @@ class TestInputParameters(unittest.TestCase):
         with self.assertRaises(MooseException) as e:
             params.update(foo=2011, bar=2013)
         self.assertIn("The parameter 'bar' does not exist.", str(e.exception))
+
+        with self.assertRaises(MooseException) as e:
+            params.update('wrong')
+        self.assertIn("The supplied arguments must be InputParameters object", str(e.exception))
 
     def testErrorMode(self):
         params = InputParameters()
@@ -298,6 +325,33 @@ class TestInputParameters(unittest.TestCase):
         self.assertEqual(text.get('font_size'), 24)
         self.assertEqual(text.get('font_unit_name'), 'pts')
 
+    def testToString(self):
+        font = InputParameters()
+        font.add('size', default=24)
+        font.add('name')
+
+        text = InputParameters()
+        text.add('font', font)
+
+        self.assertEqual(str(text), text.toString())
+        self.assertIn('font\n', text.toString())
+        self.assertIn('font_size\n', text.toString())
+
+        self.assertIn('size\n', font.toString())
+        self.assertIn('name\n', font.toString())
+
+
+        self.assertIn('size\n', font.toString('size'))
+        self.assertNotIn('name\n', font.toString('size'))
+
+    def testValidate(self):
+        font = InputParameters()
+        font.add('size', default=24)
+        font.add('name', required=True)
+
+        with self.assertRaises(MooseException) as e:
+            font.validate()
+        self.assertIn("The Parameter 'name' is marked as required, but no value is assigned", str(e.exception))
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True, exit=False)
