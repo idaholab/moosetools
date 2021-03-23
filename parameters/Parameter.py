@@ -289,7 +289,7 @@ class Parameter(object):
                 wrapper.width = 100 - len(wrapper.initial_indent)
                 out += wrapper.wrap(repr(self.__allow))
 
-        return textwrap.indent('\n'.join(out), ' ' * 2 * level)
+        return textwrap.indent('\n'.join(out), ' ' * 4 * level)
 
     def __check(self, val):
         """

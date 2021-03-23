@@ -9,23 +9,32 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 class Warehouse:
+
+    # TODO: Make this a MooseObject so it can be type checked
+
     def __init__(self):
-        self.objects = []
-        self.active = []
+        self.__objects = list()
 
-    def addObject(self, moose_object):
-        self.objects.append(moose_object)
-        self.active.append(moose_object)
+    @property
+    def objects(self):
+        return self.__objects
 
-    def getActiveObjects(self):
-        return self.active
+    def append(self, obj):
+        self.__objects.append(obj)
 
-    def getAllObjects(self):
-        return self.objects
+    #def addObject(self, moose_object):
+    #    self.objects.append(moose_object)
+    #    self.active.append(moose_object)
 
-    def markAllObjectsInactive(self):
-        self.active = []
+    #def getActiveObjects(self):
+    #    return self.active
 
-    def clear(self):
-        self.objects = []
-        self.active = []
+    #def getAllObjects(self):
+    #    return self.objects
+
+    #def markAllObjectsInactive(self):
+    #    self.active = []
+
+    #def clear(self):
+    #    self.objects = []
+    #    self.active = []

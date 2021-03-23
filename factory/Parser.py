@@ -7,20 +7,29 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-
-import os, re, time, sys
+import os
+import sys
+import re
+import time
+import base
 import moosetree
 
 try:
     import pyhit
-except:
-    print('failed to import pyhit - try running "make hit" in the $MOOSE_DIR/test directory.', file=sys.stderr)
+except ImportError:
+    print('Failed to import pyhit, try running "make bindings" in contrib/hit directory.')
     sys.exit(1)
 
-"""
-Parser object for reading HIT formatted files
-"""
-class Parser:
+class Parser(base.MooseObject):
+
+    @staticmethod
+    def validParams():
+        params = base.MooseObject.validParams()
+        params.add('filename', vtype=str, required=True,
+                   verify=(lambda f: os.path.isfile(f), "The supplied filename must exist."),
+                   doc="The HIT file to parse for populating the object warehouse.")
+
+        return params
 
     @staticmethod
     def checkDuplicates(root):
@@ -40,39 +49,57 @@ class Parser:
                 else:
                     paths.add(fullparam)
 
-    def __init__(self, factory, warehouse, check_for_type=True):
-        self.factory = factory
-        self.warehouse = warehouse
-        self.params_parsed = set()
-        self._check_for_type = check_for_type
-        self.root = None
-        self.errors = []
-        self.fname = ''
+    def __init__(self, factory, warehouse, **kwargs):
+        base.MooseObject.__init__(self, **kwargs)
+        self.__factory = factory
+        self.__warehouse = warehouse
+        self.__root = None
+        #self.params_parsed = set()
+        #self._check_for_type = check_for_type
+        #self.root = None
+        #self.errors = []
+        #self.fname = ''
 
-    def parse(self, filename, default_values = None):
+    @property
+    def factory(self):
+        return self.__factory
 
-        self.fname = os.path.abspath(filename)
+    @property
+    def warehouse(self):
+        return self.__warehouse
+
+    def parse(self):#, filename, default_values = None):
+        filename = self.getParam("filename")
+        #if self.__root is not None:
 
         try:
-            root = pyhit.load(self.fname)
+            root = pyhit.load(filename)
         except Exception as err:
-            self.error(err)
+            self.exception("Failed to load filename with pyhit: {}", filename)
             return
-        self.root = root(0) # make the [Tests] block the root
+        self.__root = root(0) # make the [Tests] block the root
 
-        self.check()
-        self._parseNode(filename, self.root, default_values)
 
-    def check(self):
-        """Perform error checking on the loaded hit tree"""
-        for err in Parser.checkDuplicates(self.root):
-            self.error(*err)
 
-    def error(self, msg, node=None, param=None):
-        if node is not None:
-            self.errors.append('{}:{}: {}'.format(self.fname, node.line(param), msg))
-        else:
-            self.errors.append('{}: {}'.format(self.fname, msg))
+
+        for node in moosetree.findall(self.__root, func=lambda n: len(n) == 0, method=moosetree.IterMethod.PRE_ORDER):
+            self._parseNode(node)
+
+
+
+        #self.check()
+        #self._parseNode(filename, self.root, default_values)
+
+    #def check(self):
+    #    """Perform error checking on the loaded hit tree"""
+    #    for err in Parser.checkDuplicates(self.root):
+    #        self.error(*err)
+
+    #def error(self, msg, node=None, param=None):
+    #    if node is not None:
+    #        self.errors.append('{}:{}: {}'.format(self.fname, node.line(param), msg))
+    #    else:
+    #        self.errors.append('{}: {}'.format(self.fname, msg))
 
     def extractParams(self, filename, params, getpot_node):
         have_err = False
@@ -123,9 +150,43 @@ class Parser:
 
         params['have_errors'] = have_err
 
-    # private:
-    def _parseNode(self, filename, node, default_values):
+    def _parseNode(self, node):
+        filename = self.getParam('filename')
+        otype = node.get('type', None)
+        if otype is None:
+            msg = "{}:{}\nMissing 'type' in block '{}'"
+            self.error(msg, filename, node.line(-1), node.fullpath)
+            return
 
+        params = self.__factory.params(otype)
+        if params is None:
+            msg = "{}:{}\nFailed to extract parameters from '{}' object in block '{}'"
+            self.error(msg, filename, node.line(-1), otype, node.fullpath, stack_info=True)
+            return
+
+        for key, value in node.params():
+            if key == 'type':
+                continue
+            if key not in params:
+                msg = "{}:{}\nThe parameter '{}' does not exist in '{}' object parameters."
+                self.error(msg, filename, node.line(key, -1), key, otype)
+
+            params.set(key, value)
+
+        obj = self.__factory.create(otype, params)
+        if obj is None:
+            msg = "{}:{}\nFailed to create object of type '{}' in block '{}'"
+            self.error(msg, filename, node.line(-1), otype, node.fullpath, stack_info=True)
+        else:
+            self.__warehouse.append(obj)
+
+            #print(value, type(value))
+
+
+
+
+
+        """
         if 'type' in node:
             moose_type = node['type']
 
@@ -168,6 +229,7 @@ class Parser:
         # Loop over the section names and parse them
         for child in node:
             self._parseNode(filename, child, default_values)
+        """
 
     # This routine returns a Boolean indicating whether a given block
     # looks like a valid subblock. In the Testing system, a valid subblock

@@ -40,11 +40,21 @@ class Factory(MooseObject):
             self.warning("The '{}' name is already associated with an object type of {}, it will not be registered again.", name, otype, stack_info=True)
         self._registered_types[name] = object_type
 
+    def params(self, name):
+        otype = self._getObjectType(name)
+        if otype is not None:
+            return otype.validParams()
+        return None
+
     def create(self, _registered_name, *args, **kwargs):
-        otype = self._registered_types.get(_registered_name, None)
-        if otype is None:
-            raise base.MooseException("The supplied name '{}' is not associated with a registered type.")
-        return self._registered_types[_registered_name](*args, **kwargs)
+        otype = self._getObjectType(_registered_name)
+        if otype is not None:
+            try:
+                return otype(*args, **kwargs)
+            except Exception:
+                self.exception("Failed to create '{}' object.",  _registered_name)
+
+        return None
 
     def load(self):
         plugin_dirs = self.getParam('plugin_dirs')
@@ -62,66 +72,18 @@ class Factory(MooseObject):
                 if inspect.isclass(otype) and (plugin_type in inspect.getmro(otype)) and (name not in self._registered_types):
                     self.register(name, otype)
 
+
+    def _getObjectType(self, name):
+        otype = self._registered_types.get(name, None)
+        if otype is None:
+            self.critical("The supplied name '{}' is not associated with a registered type.", name)
+        return otype
+
     def __str__(self):
         out = ''
         for name, otype in self._registered_types.items():
             params = otype.validParams()
-            params.set('type', otype.__name__)
-            out += str(params)
-
+            out += '{}\n{} Parameters:\n{}\n'.format('='*80, name, '-'*80)
+            out += params.toString()
+            out += '\n\n'
         return out
-
-    """
-    def printDump(self, root_node_name):
-        print("[" + root_node_name + "]")
-
-        for name, object in sorted(self.objects.items()):
-            print("  [./" + name + "]")
-
-            params = self.validParams(name)
-
-            for key in sorted(params.desc):
-                default = ''
-                if params.isValid(key):
-                    the_param = params[key]
-                    if type(the_param) == list:
-                        default = "'" + " ".join(the_param) + "'"
-                    else:
-                        default = str(the_param)
-
-                print("%4s%-30s = %-30s # %s" % ('', key, default, params.getDescription(key)))
-            print("  [../]\n")
-        print("[]")
-
-
-    def printYaml(self, root_node_name):
-        print("**START YAML DATA**")
-        print("- name: /" + root_node_name)
-        print("  description: !!str")
-        print("  type:")
-        print("  parameters:")
-        print("  subblocks:")
-
-        for name, object in self.objects.items():
-            print("  - name: /" + root_node_name + "/ + name")
-            print("    description:")
-            print("    type:")
-            print("    parameters:")
-
-            params = self.validParams(name)
-            for key in params.valid:
-                required = 'No'
-                if params.isRequired(key):
-                    required = 'Yes'
-                default = ''
-                if params.isValid(key):
-                    default = str(params[key])
-
-                print("    - name: " + key)
-                print("      required: " + required)
-                print("      default: !!str " + default)
-                print("      description: |")
-                print("        " + params.getDescription(key))
-
-        print("**END YAML DATA**")
-    """

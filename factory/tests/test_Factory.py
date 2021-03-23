@@ -27,10 +27,10 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(len(log.output), 1)
         self.assertIn('NameError: name \'NotABaseClass\' is not defined', log.output[0])
 
-    def testDump(self):
+    def testPrint(self):
         f = factory.Factory()
-        print(f)
-        self.assertTrue(False)
+        out = str(f)
+        self.assertIn('CustomCustomObject', out)
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)
