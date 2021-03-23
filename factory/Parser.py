@@ -164,6 +164,8 @@ class Parser(base.MooseObject):
             self.error(msg, filename, node.line(-1), otype, node.fullpath, stack_info=True)
             return
 
+        params.setValue('name', node.name)
+
         for key, value in node.params():
             if key == 'type':
                 continue
@@ -174,6 +176,7 @@ class Parser(base.MooseObject):
             params.set(key, value)
 
         obj = self.__factory.create(otype, params)
+        print(obj)
         if obj is None:
             msg = "{}:{}\nFailed to create object of type '{}' in block '{}'"
             self.error(msg, filename, node.line(-1), otype, node.fullpath, stack_info=True)

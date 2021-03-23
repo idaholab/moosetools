@@ -21,20 +21,19 @@ class TestParser(unittest.TestCase):
         p = factory.Parser(f, w, filename='inputs/test.hit')
         p.parse()
 
+        self.assertEqual(len(w.objects), 2)
+        self.assertEqual(w.objects[0].name(), 'obj0')
+        self.assertEqual(w.objects[1].name(), 'obj1')
 
-        self.assertFalse(True)
 
-    def testTypes(self):
+    def testConstruction(self):
         root = pyhit.Node(None)
         tests = pyhit.Node(root, 'Tests')
-        tests.append('obj0', type='Date', year=1949, month='August')
-        tests.append('obj1', type='Date', year=1954, month='October')
+        tests.append('obj0', type='TestObject')
+        tests.append('obj1', type='TestObject')
         sub = tests.append('sub')
-        sub.append('obj2', type='Date', year=1977, month='August')
-        sub.append('obj3', type='Date', year=1980, month='June')
-
-
-
+        sub.append('obj2', type='TestObject')
+        sub.append('obj3', type='TestObject')
 
         f = factory.Factory()
         w = factory.Warehouse()
@@ -43,6 +42,11 @@ class TestParser(unittest.TestCase):
         with mock.patch('pyhit.load') as load:
             load.return_value = root
             p.parse()
+
+        self.assertEqual(w.objects[0].name(), 'obj0')
+        self.assertEqual(w.objects[1].name(), 'obj1')
+        self.assertEqual(w.objects[2].name(), 'obj2')
+        self.assertEqual(w.objects[3].name(), 'obj3')
 
 
 

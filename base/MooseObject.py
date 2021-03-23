@@ -38,7 +38,7 @@ class MooseObject(object):
         params = parameters.InputParameters()
         #params.add('type', mutable=False, vtype=str,
         #           doc="The name of the python class (this is assigned automatically)")
-        params.add('name', vtype=str, doc="The name of the object.")
+        params.add('name', vtype=str, doc="The name of the object. If using the factory.Parser to build objects from an input file, this will be automatically set to the block name in the input file.")
         return params
 
     def __init__(self, params=None, **kwargs):
