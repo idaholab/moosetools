@@ -13,6 +13,7 @@ import os
 import unittest
 from diff import MooseDeepDiff
 
+
 class TestMooseDeepDiff(unittest.TestCase):
     def testInit(self):
         """Test Case: Check if the attributes of the MooseDeepDiff class are correctly set"""

@@ -13,6 +13,7 @@ import json
 import logging
 import mooseutils
 
+
 def validate_tolerance(relative_error, absolute_error, raise_on_error=False, log_on_error=True):
     """Validates the that only one tolerance was provided and the datatype of the tolerance is a float
         relative_error: the maximum relative tolerance to validate

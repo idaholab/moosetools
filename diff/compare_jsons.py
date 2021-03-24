@@ -16,6 +16,7 @@ import mooseutils
 from .validate_tolerance import validate_tolerance
 from .MooseDeepDiff import MooseDeepDiff
 
+
 def compare_jsons(json_file01, json_file02, relative_error=None, absolute_error=None):
     """Determine the differences between two json files
         relative_error: the maximum relative tolerance that will be detected as a changed value

@@ -12,6 +12,7 @@ import json
 import logging
 from deepdiff import DeepDiff
 
+
 class MooseDeepDiff(DeepDiff):
     def __init__(self, *args, relative_error=None, absolute_error=None, **kwargs):
         self.rel_err = relative_error
