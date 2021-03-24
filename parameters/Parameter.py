@@ -11,8 +11,6 @@ import textwrap
 import inspect
 import logging
 
-LOG = logging.getLogger(__file__)
-
 
 class Parameter(object):
     """
@@ -20,7 +18,16 @@ class Parameter(object):
 
     The meta data within this object is designed to be immutable, the only portion of this class
     that can be changed (without demangling) is the assigned value and the default, via the
-    associated setter methods.
+    associated setter methods: setDefault and setValue.
+
+    The constructor will throw exceptions if the input is not correct. The other methods, including
+    the setters, should not raise an exception. The two set methods return a code indicating if the
+    change was successful along with the error that occurred. If successful a 0 return code
+    is provided.
+
+    !alert warning title=Use InputParameters
+    This object is not designed for general use, it was designed to operated via the InputParameters
+    object.
 
     Inputs:
         name[str]: The name of the option.
@@ -36,6 +43,7 @@ class Parameter(object):
                        that starts with and underscore is assumed to be private
         verify[tuple]: Define a custom verify function and error message. The first item must
                        be a callable function with a single argument, the second item must be a str.
+        mutable[bool]: Do not allow the value to change after validation.
     """
     def __init__(self,
                  name,
@@ -47,7 +55,8 @@ class Parameter(object):
                  array=False,
                  required=False,
                  private=None,
-                 verify=None):
+                 verify=None,
+                 mutable=True):
 
         # Force vtype to be a tuple to allow multiple types to be defined
         if isinstance(vtype, type):
@@ -64,6 +73,8 @@ class Parameter(object):
         self.__required = required  # see validate()
         self.__verify = verify  # verification function
         self.__set_by_user = False  # flag indicating if the parameter was set after construction
+        self.__mutable = mutable  # flag indicating if the parameter can change after construction
+        self.__validated = False  # set by validate method, used with mutable
 
         if not isinstance(self.__name, str):
             msg = "The supplied 'name' argument must be a 'str', but {} was provided."
@@ -101,7 +112,7 @@ class Parameter(object):
 
         if not isinstance(self.__private, bool):
             msg = "The supplied 'private' argument must be a 'bool', but {} was provided."
-            raise TypeError(msg.format(type(self.__required)))
+            raise TypeError(msg.format(type(self.__private)))
 
         if (self.__verify is not None) and (not isinstance(self.__verify, tuple)):
             msg = "The supplied 'verify' argument must be a 'tuple' with callable function and 'str' error message, but {} was provided."
@@ -127,12 +138,18 @@ class Parameter(object):
             msg = "The second item in the 'verify' argument tuple must be a string, but {} was provided"
             raise TypeError(msg.format(type(self.__verify[1])))
 
+        if not isinstance(self.__mutable, bool):
+            msg = "The supplied 'mutable' argument must be a 'bool', but {} was provided."
+            raise TypeError(msg.format(type(self.__mutable)))
+
         elif self.__size is not None:
             self.__array = True
 
         if default is not None:
-            self.value = default
-            self.__set_by_user = False  # override self.value setting of this
+            retcode, error = self.setDefault(default)
+            if retcode > 0:
+                raise TypeError(error)
+            self.__set_by_user = False  # override self.setDefault setting of this
 
     @property
     def name(self):
@@ -165,66 +182,89 @@ class Parameter(object):
         return self.__size
 
     @property
+    def array(self):
+        """Returns the array flag of the parameter."""
+        return self.__array
+
+    @property
     def vtype(self):
         """Returns the variable type."""
         return self.__vtype
 
     @property
     def required(self):
-        """Returns if the option required state."""
+        """Returns the option required state."""
         return self.__required
 
     @property
     def private(self):
-        """Returns if the option private state."""
+        """Returns the option private state."""
         return self.__private
 
-    @default.setter
-    def default(self, val):
-        """Set the default value for this option."""
-        if val is None:
-            self.__default = None
+    @property
+    def mutable(self):
+        """Returns the option mutable state."""
+        return self.__mutable
 
-        else:
-            d = self.__check(val)
-            if d is not None:
-                self.__default = d
-                if self.__value is None:
-                    self.__value = self.__default
-
-    @value.setter
-    def value(self, val):
-        """
-        Sets the value and performs a myriad of consistency checks.
-        """
-        if (val is None) and (self.__value is not None):
-            self.__value = None
-            self.__set_by_user = True
-            return
-
-        v = self.__check(val)
-        if v is not None:
-            self.__value = v
-            self.__set_by_user = True
-
-    def isSetByUser(self):
+    @property
+    def is_set_by_user(self):
         """Return True if the value has been set after construction."""
         return self.__set_by_user
 
+    def setDefault(self, val):
+        """
+        Set the default value for this parameter.
+
+        The supplied *val* is the value to be assigned to the default of this parameter. The return
+        values are are detailed in `setValue` method. If the value has not been assigned (i.e.,
+        it is None) this method will also set the value.
+        """
+        retcode, error = self.__check(val)
+        if retcode == 0:
+            self.__default = val
+            if self.__value is None:
+                self.__value = self.__default
+                self.__set_by_user = True
+        return retcode, error
+
+    def setValue(self, val):
+        """
+        Sets the value and performs a myriad of consistency checks.
+
+        The supplied *val* is the value to be assigned to this parameter. If an error occurs
+        during assignment a return code of 1 will be returned with a string of the associated
+        error. If the assignment is successful a return code of 0 will be returned with None. For
+        example, for a Parameter object `param` the use of this should be as follows.
+
+        ```python
+        ret, err = param.setValue(42)
+        ```
+        """
+        retcode, error = self.__check(val)
+        if retcode == 0:
+            self.__value = val
+            self.__set_by_user = True
+        return retcode, error
+
     def validate(self):
-        """Validate that the Parameter is in the correct state."""
+        """
+        Validate that the Parameter is in the correct state.
+
+        After this method is called the the "mutable" option is enforced.
+
+        This method returns a code and error message (if any) in the same fashion as done by the
+        `setValue` method.
+        """
+        self.__validated = True
         if self.__required and (self.value is None):
-            msg = "The Parameter '%s' is marked as required, but no value is assigned."
-            LOG.warning(msg, self.name)
-            return 1
-        return 0
+            msg = "The Parameter '{}' is marked as required, but no value is assigned."
+            return 1, msg.format(self.name)
+        return 0, None
 
     def toString(self, prefix='', level=0):
         """Create a string of Parameter information."""
         from .InputParameters import InputParameters
-        is_sub_option = (self.__vtype is not None) and (InputParameters
-                                                        in self.__vtype) and (self.__value
-                                                                              is not None)
+        is_sub_option = isinstance(self.__value, InputParameters)
 
         out = [self.__name]
         if prefix is not None:
@@ -255,7 +295,7 @@ class Parameter(object):
                 wrapper.width = 100 - len(wrapper.initial_indent)
                 out += wrapper.wrap(repr(self.__allow))
 
-        return textwrap.indent('\n'.join(out), ' ' * 2 * level)
+        return textwrap.indent('\n'.join(out), ' ' * 4 * level)
 
     def __check(self, val):
         """
@@ -263,45 +303,49 @@ class Parameter(object):
 
         This function is used to when setting the default and the value itself.
         """
+        if self.__validated and (not self.__mutable):
+            msg = "An attempt was made to change the value or default of '{}', but it is marked as immutable."
+            return 1, msg.format(self.name)
+
+        if (val is None) and (self.__required):
+            msg = "'{}' was defined as required, which requires a type of {} for assignment, a value of None may not be utilized."
+            return 1, msg.format(self.name, self.__vtype)
+
         if self.__array and not isinstance(val, tuple):
-            msg = "'%s' was defined as an array, which require %s for assignment, but a %s was " \
+            msg = "'{}' was defined as an array, which require {} for assignment, but a {} was " \
                   "provided."
-            LOG.warning(msg, self.name, tuple, type(val))
-            return None
+            return 1, msg.format(self.name, tuple, type(val))
 
         if self.__array:
             for v in val:
-                if (self.__vtype is not None) and not isinstance(v, self.__vtype):
-                    msg = "The values within '%s' must be of type %s but %s provided."
-                    LOG.warning(msg, self.name, self.__vtype, type(v))
-                    return None
+                if (val is not None) and (self.__vtype
+                                          is not None) and not isinstance(v, self.__vtype):
+                    msg = "The values within '{}' must be of type {} but {} provided."
+                    return 1, msg.format(self.name, self.__vtype, type(v))
 
             if self.__size is not None:
-                if len(val) != self.__size:
-                    msg = "'%s' was defined as an array with length %s but a value with length %s " \
+                if (val is not None) and (len(val) != self.__size):
+                    msg = "'{}' was defined as an array with length {} but a value with length {} " \
                           "was provided."
-                    LOG.warning(msg, self.name, self.__size, len(val))
-                    return None
+                    return 1, msg.format(self.name, self.__size, len(val))
 
         else:
-            if (self.__vtype is not None) and not isinstance(val, self.__vtype):
-                msg = "'%s' must be of type %s but %s provided."
-                LOG.warning(msg, self.name, self.__vtype, type(val))
-                return None
+            if (val is not None) and (self.__vtype
+                                      is not None) and not isinstance(val, self.__vtype):
+                msg = "'{}' must be of type {} but {} provided."
+                return 1, msg.format(self.name, self.__vtype, type(val))
 
         # Check that the value is allowed
-        if (self.__allow is not None) and (val != None) and (val not in self.__allow):
-            msg = "Attempting to set '%s' to a value of %s but only the following are allowed: %s"
-            LOG.warning(msg, self.name, val, self.__allow)
-            return None
+        if (val is not None) and (self.__allow is not None) and (val not in self.__allow):
+            msg = "Attempting to set '{}' to a value of {} but only the following are allowed: {}"
+            return 1, msg.format(self.name, val, self.__allow)
 
         # Call custom verify function
-        if (self.__verify is not None) and (not self.__verify[0](val)):
+        if (val is not None) and (self.__verify is not None) and (not self.__verify[0](val)):
             msg = "Verify function failed with the given value of {}\n{}"
-            LOG.warning(msg.format(val, self.__verify[1]))
-            return None
+            return 1, msg.format(val, self.__verify[1])
 
-        return val
+        return 0, None
 
     def __str__(self):
         """Support print statement on Parameter object."""
