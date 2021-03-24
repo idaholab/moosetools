@@ -64,6 +64,7 @@ class TestParser(unittest.TestCase):
 
     def testSimple(self):
         f = factory.Factory()
+        f.load()
         w = factory.Warehouse()
         p = factory.Parser(f, w)
         p.parse('test0.hit')
@@ -75,6 +76,7 @@ class TestParser(unittest.TestCase):
     def testTypes(self):
 
         f = factory.Factory()
+        f.load()
         w = factory.Warehouse()
         p = factory.Parser(f, w)
         p.parse('test1.hit')
@@ -110,6 +112,7 @@ class TestParser(unittest.TestCase):
         sub.append('obj3', type='TestObject')
 
         f = factory.Factory()
+        f.load()
         w = factory.Warehouse()
         p = factory.Parser(f, w)
 
@@ -126,6 +129,7 @@ class TestParser(unittest.TestCase):
     def testErrors(self):
 
         f = factory.Factory()
+        f.load()
         w = factory.Warehouse()
         p = factory.Parser(f, w)
 

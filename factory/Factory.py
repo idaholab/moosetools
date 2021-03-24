@@ -16,7 +16,7 @@ from base import MooseObject
 
 class Factory(MooseObject):
     """
-    The `Factory` object exists as a convenient way to create `factory.MooseObject` objects that
+    The `Factory` object exists as a convenient way to create `base.MooseObject` objects that
     exist within a directory without requiring a full python module/package directory structure.
 
     It was originally designed to be utilized via the `factory.Parser` for creating objects from HIT
@@ -86,8 +86,8 @@ class Factory(MooseObject):
         Loop through the supplied plugin directories and register the objects of the supplied type.
 
         This method should not raise exceptions. It reports all problems with logging errors. Prior
-        to running it resets the error counts (see `factory.MooseObject.reset()`). As such the
-        `status` method (see `factory.MooseObject.status()`) will return a non-zero code if an
+        to running it resets the error counts (see `base.MooseObject.reset()`). As such the
+        `status` method (see `base.MooseObject.status()`) will return a non-zero code if an
         error occurred.
         """
         self.reset()

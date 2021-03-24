@@ -7,34 +7,49 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
+from base import MooseObject
 
-class Warehouse:
+class Warehouse(MooseObject):
+    """
+    The `Warehouse` object is a basic storage container for `base.MooseObject` objects.
 
-    # TODO: Make this a MooseObject so it can be type checked
+    It was originally designed to be utilized via the `factory.Parser` for storing objects from HIT
+    input files.
+    """
 
-    def __init__(self):
+    @staticmethod
+    def validParams():
+        params = MooseObject.validParams()
+        return params
+
+    def __init__(self, *args, **kwargs):
+        MooseObject.__init__(self, *args, **kwargs)
         self.__objects = list()
+
+    def __len__(self):
+        """
+        Return the number of stored objects for `len` builtin.
+        """
+        return len(self.__objects)
+
+    def __iter__(self):
+        """
+        Allow the objects to be iterated directly from `Warehouse` instance.
+        """
+        yield from self.__objects
 
     @property
     def objects(self):
         return self.__objects
 
     def append(self, obj):
+        """
+        Append the supplied *obj* to the list of objects stored.
+        """
         self.__objects.append(obj)
 
-    #def addObject(self, moose_object):
-    #    self.objects.append(moose_object)
-    #    self.active.append(moose_object)
-
-    #def getActiveObjects(self):
-    #    return self.active
-
-    #def getAllObjects(self):
-    #    return self.objects
-
-    #def markAllObjectsInactive(self):
-    #    self.active = []
-
-    #def clear(self):
-    #    self.objects = []
-    #    self.active = []
+    def clear(self):
+        """
+        Clear the list of stored objects.
+        """
+        self.__objects.clear()

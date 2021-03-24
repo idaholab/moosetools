@@ -20,7 +20,7 @@ from .Warehouse import Warehouse
 
 class Parser(base.MooseObject):
     """
-    The `Parser` object is designed for creating instances of `factory.MooseObject` objects with
+    The `Parser` object is designed for creating instances of `base.MooseObject` objects with
     parameters populated from a HIT input file.
     """
 
@@ -58,8 +58,8 @@ class Parser(base.MooseObject):
         Open the supplied *filename* and instantiate the `MooseObject` objects.
 
         This method should not raise exceptions. It reports all problems with logging errors. Prior
-        to running it resets the error counts (see `factory.MooseObject.reset()`). As such the
-        `status` method (see `factory.MooseObject.status()`) will return a non-zero code if an
+        to running it resets the error counts (see `base.MooseObject.reset()`). As such the
+        `status` method (see `base.MooseObject.status()`) will return a non-zero code if an
         error occurred.
         """
         self.reset() # zero all logging counts
@@ -83,7 +83,7 @@ class Parser(base.MooseObject):
 
     def _parseNode(self, filename, node):
         """
-        Instantiate a `factory.MooseObject` for a supplied `pyhit.Node`.
+        Instantiate a `base.MooseObject` for a supplied `pyhit.Node`.
 
         The *filename* is provided for error reporting. The *node* is a `pyhit.Node` that should
         contain a "type" parameter that gives the type of object to be constructed. This type must
