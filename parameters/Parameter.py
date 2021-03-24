@@ -181,6 +181,11 @@ class Parameter(object):
         return self.__size
 
     @property
+    def array(self):
+        """Returns the array flag of the parameter."""
+        return self.__array
+
+    @property
     def vtype(self):
         """Returns the variable type."""
         return self.__vtype

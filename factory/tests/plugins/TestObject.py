@@ -14,3 +14,15 @@ class TestObject(MooseObject):
             params.add('vec_str', vtype=str, array=True)
             params.add('vec_bool', vtype=bool, array=True)
             return params
+
+class TestObjectBadInit(MooseObject):
+      def __init__(self, *args, **kwargs):
+            MooseObject.__init__(self, *args, **kwargs)
+            raise Exception('__init__ failed')
+
+class TestObjectBadParams(MooseObject):
+      @staticmethod
+      def validParams():
+            params = MooseObject.validParams()
+            raise Exception('validParams failed')
+            return params

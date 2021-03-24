@@ -36,15 +36,13 @@ class MooseObject(object):
     @staticmethod
     def validParams():
         params = parameters.InputParameters()
-        #params.add('type', mutable=False, vtype=str,
-        #           doc="The name of the python class (this is assigned automatically)")
         params.add('name', vtype=str, doc="The name of the object. If using the factory.Parser to build objects from an input file, this will be automatically set to the block name in the input file.")
         return params
 
     def __init__(self, params=None, **kwargs):
         self.__logger = logging.getLogger(self.__class__.__module__)
+        self.__log_counts = {key:0 for key in logging._levelToName.keys()}
         self._parameters = params or getattr(self.__class__, 'validParams')()
-        #self._parameters.set('type', self.__class__.__name__)
         self._parameters.update(**kwargs)
         self._parameters.validate() # once this is called, the mutable flag becomes active
 
@@ -59,6 +57,38 @@ class MooseObject(object):
         Return the `InputParameters` instance for this `MooseObject`.
         """
         return self._parameters
+
+    def reset(self, *levels):
+        """
+        Reset the log counts.
+
+        If *levels* is provided only the level provided in *levels* will be reset, otherwise all
+        counts are returned to zero.
+        """
+        if not levels: levels = self.__log_counts.keys()
+        for lvl in levels:
+            if lvl not in self.__log_counts:
+                msg = "Attempting to reset logging count for '{}' level, but the level does not exist."
+                self.error(msg, lvl)
+                continue
+            self.__log_counts[lvl] = 0
+
+    def status(self, *levels):
+        """
+        Return 1 if logging messages exist.
+
+        By default only the logging.ERROR and logging.CRITICAL levels are
+        considered. If *levels* is provided the levels given are used.
+        """
+        if not levels: levels = [logging.ERROR, logging.CRITICAL]
+        count = 0
+        for lvl in levels:
+            if lvl not in self.__log_counts:
+                msg = "Attempting to reset logging count for '{}' level, but the level does not exist."
+                self.error(msg, lvl)
+                continue
+            count += self.__log_counts[lvl]
+        return int(count > 0)
 
     def info(self, *args, **kwargs):
         """
@@ -123,7 +153,7 @@ class MooseObject(object):
         message = message.format(*args, **kwargs)
         if name is not None: message = '({}): {}'.format(name, message)
         self.__logger.log(level, message, exc_info=exc_info, stack_info=stack_info, extra=extra)
-        return message # see `exception` method for the reason behind this
+        self.__log_counts[level] += 1
 
     def isParamValid(self, *args):
         """

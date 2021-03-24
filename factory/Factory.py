@@ -16,8 +16,11 @@ from base import MooseObject
 
 class Factory(MooseObject):
     """
+    The `Factory` object exists as a convenient way to create `factory.MooseObject` objects that
+    exist within a directory without requiring a full python module/package directory structure.
 
-
+    It was originally designed to be utilized via the `factory.Parser` for creating objects from HIT
+    input files.
     """
     @staticmethod
     def validParams():
@@ -30,23 +33,45 @@ class Factory(MooseObject):
         return params
 
     def __init__(self, **kwargs):
+        """
+        Create `factory.Factory` object, the type of objects to load and the location can be
+        provided via the keyword arguments, as defined in the `validParams` function.
+        """
         MooseObject.__init__(self, **kwargs)
         self._registered_types = dict()
-        self.load()
 
     def register(self, name, object_type):
+        """
+        Register the *name* to create an *object_type* object.
+
+        In general, this should not be required to be called. The `load` method uses this method
+        when looping through the supplied plugin directories.
+        """
         otype = self._registered_types.get(name, None)
         if otype is not None:
-            self.warning("The '{}' name is already associated with an object type of {}, it will not be registered again.", name, otype, stack_info=True)
+            self.error("The '{}' name is already associated with an object type of {}, it will not be registered again.", name, otype, stack_info=True)
         self._registered_types[name] = object_type
 
     def params(self, name):
+        """
+        Return the `InputParameters` object associated with the registered *name*.
+
+        This operates by returning the object from the registered objects `validParam` function.
+        """
         otype = self._getObjectType(name)
         if otype is not None:
-            return otype.validParams()
+            try:
+                return otype.validParams()
+            except Exception:
+                self.exception("Failed to evaluate validParams function of '{}' object.", name)
         return None
 
     def create(self, _registered_name, *args, **kwargs):
+        """
+        Return an instance of an object associated with the registered *_registered_name*, the
+        variable is named as such to avoid conflicts with the *\*args* and *\*\*kwargs* that
+        are passed in to the object constructor.
+        """
         otype = self._getObjectType(_registered_name)
         if otype is not None:
             try:
@@ -57,6 +82,16 @@ class Factory(MooseObject):
         return None
 
     def load(self):
+        """
+        Loop through the supplied plugin directories and register the objects of the supplied type.
+
+        This method should not raise exceptions. It reports all problems with logging errors. Prior
+        to running it resets the error counts (see `factory.MooseObject.reset()`). As such the
+        `status` method (see `factory.MooseObject.status()`) will return a non-zero code if an
+        error occurred.
+        """
+        self.reset()
+
         plugin_dirs = self.getParam('plugin_dirs')
         plugin_type = self.getParam('plugin_type')
 
@@ -72,18 +107,34 @@ class Factory(MooseObject):
                 if inspect.isclass(otype) and (plugin_type in inspect.getmro(otype)) and (name not in self._registered_types):
                     self.register(name, otype)
 
+        return self.status()
 
     def _getObjectType(self, name):
+        """
+        Helper method for getting an object type registered with the given *name*.
+
+        An error is logged if the supplied *name* is not associated with registered object type.
+        """
         otype = self._registered_types.get(name, None)
         if otype is None:
-            self.critical("The supplied name '{}' is not associated with a registered type.", name)
+            self.error("The supplied name '{}' is not associated with a registered type.", name)
         return otype
 
-    def __str__(self):
+    def toString(self):
+        """
+        Output the available parameters for each of the registered object types to a string.
+        """
         out = ''
         for name, otype in self._registered_types.items():
-            params = otype.validParams()
-            out += '{}\n{} Parameters:\n{}\n'.format('='*80, name, '-'*80)
-            out += params.toString()
-            out += '\n\n'
+            params = self.params(name)
+            if params is not None:
+                out += '{}\n{} Parameters:\n{}\n'.format('='*80, name, '-'*80)
+                out += params.toString()
+                out += '\n\n'
         return out
+
+    def __str__(self):
+        """
+        Use `print` to output available parameters for each of the registered objects.
+        """
+        return self.toString()

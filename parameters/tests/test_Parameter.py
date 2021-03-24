@@ -210,6 +210,12 @@ class TestParameter(unittest.TestCase):
             "The supplied 'size' argument must be a 'int', but <class 'str'> was provided.",
             str(e.exception))
 
+    def testArray(self):
+        opt = Parameter('foo', array=True)
+        opt.setValue((1,2,3))
+        self.assertEqual(opt.value, (1,2,3))
+        self.assertTrue(opt.array)
+
     def testDoc(self):
         opt = Parameter('foo', doc='This is foo, not bar.')
         self.assertEqual(opt.doc, 'This is foo, not bar.')

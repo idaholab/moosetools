@@ -83,6 +83,9 @@ class InputParameters(object):
             self.__parameters[key] = params._InputParameters__parameters[key]
         return self
 
+    def parameter(self, *args):
+        return self._getParameter(*args)
+
     def items(self):
         """
         Provides dict.items() functionality.
