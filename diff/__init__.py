@@ -7,5 +7,6 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from .diff import compare_jsons, validate_tolerance
-from .moosedeepdiff import MOOSEDeepDiff
+from .compare_jsons import compare_jsons
+from .validate_tolerance import validate_tolerance
+from .MooseDeepDiff import MooseDeepDiff
