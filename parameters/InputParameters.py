@@ -37,8 +37,8 @@ class InputParameters(object):
         self.add(
             '_moose_object',
             private=True,
-            doc=
-            "The `MooseObject` that the InputParameter object belongs, if provided the error logging will log via the `MooseObject`."
+            doc= "The `MooseObject` that the InputParameter object belongs, if provided the error " \
+                 "logging will log via the `MooseObject`."
         )
         self.add('error_mode',
                  default=InputParameters.ErrorMode.EXCEPTION,

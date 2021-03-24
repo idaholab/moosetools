@@ -11,6 +11,9 @@ MIN_COVERAGE=50
 # Global exit status
 declare -i STATUS=-0
 
+# Set the PYTHONPATH to the top-level
+export PYTHONPATH=$PWD
+
 # Function for running tests and reporting coverage
 run_python_unit_tests(){
   echo =====================================================================================

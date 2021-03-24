@@ -10,7 +10,6 @@
 import sys
 import logging
 import parameters
-from .MooseException import MooseException
 
 
 class MooseObject(object):
