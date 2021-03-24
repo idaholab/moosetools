@@ -9,15 +9,23 @@
 
 import sys
 import os
+import logging
 import subprocess
 
 hit_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'contrib', 'hit'))
+sys.path.append(hit_dir)
 try:
-    sys.path.append(hit_dir)
     import hit
-except:
+except ImportError:
+    log = logging.getLogger(__name__)
+    log.exception(
+        "Failed to import python bindings for HIT library, attempting to build with `make bindings`"
+    )
     subprocess.run(['make', 'bindings'], cwd=hit_dir)
-    import hit
 
-from hit import TokenType, Token
-from .pyhit import Node, load, write, parse, tokenize
+try:
+    from hit import TokenType, Token
+    from .pyhit import Node, load, write, parse, tokenize
+except ImportError:
+    log = logging.getLogger(__name__)
+    log.exception("Failed to import python bindings for HIT library.")

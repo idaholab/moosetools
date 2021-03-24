@@ -6,26 +6,41 @@
 #----------------------------------------------------------------------------------------------------
 
 # Minimum percent coverage allowed for each package
-MIN_COVERAGE=60
+MIN_COVERAGE=50
 
 # Global exit status
 declare -i STATUS=-0
+
+# Set the PYTHONPATH to the top-level
+export PYTHONPATH=$PWD
 
 # Function for running tests and reporting coverage
 run_python_unit_tests(){
   echo =====================================================================================
   echo RUNNING TESTS: "${1}"
   echo -------------------------------------------------------------------------------------
-  coverage run --include "${1}/../**" -m unittest discover --verbose --start-directory ${1}
+  coverage run --omit "${1}/**" --include "${1}/../**" -m unittest discover --verbose --start-directory ${1}
   STATUS+=$?
   coverage report --fail-under=${MIN_COVERAGE}
   STATUS+=$?
   echo -e "\n\n"
 }
 
+# Function for running local run_tests script
+run_local_python_unit_tests(){
+  echo =====================================================================================
+  echo RUNNING LOCAL SCRIPT: "${1}"/run_tests
+  echo -------------------------------------------------------------------------------------
+  (cd ${1} && ./run_tests)
+  STATUS+=$?
+  echo -e "\n\n"
+}
+
 for PACKAGE in */; do
     TESTS_DIR=${PACKAGE}tests
-    if [ -d ${TESTS_DIR} ]; then
+    if [ -f ${TESTS_DIR}/../run_tests ]; then
+        run_local_python_unit_tests ${TESTS_DIR}/..
+    elif [ -d ${TESTS_DIR} ]; then
         run_python_unit_tests ${TESTS_DIR}
     fi
 done

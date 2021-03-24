@@ -1,0 +1,8 @@
+[Tests]
+  [object0]
+    type = CustomObject
+  []
+  [object1]
+    type = CustomCustomObject
+  []
+[]

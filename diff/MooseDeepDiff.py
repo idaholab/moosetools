@@ -13,7 +13,7 @@ import logging
 from deepdiff import DeepDiff
 
 
-class MOOSEDeepDiff(DeepDiff):
+class MooseDeepDiff(DeepDiff):
     def __init__(self, *args, relative_error=None, absolute_error=None, **kwargs):
         self.rel_err = relative_error
         self.abs_err = absolute_error

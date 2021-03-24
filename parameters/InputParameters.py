@@ -20,6 +20,8 @@ class InputParameters(object):
     """
     A warehouse for creating and storing options
     """
+    import base  # Avoid cyclic imports
+
     __PARAM_TYPE__ = Parameter
 
     class ErrorMode(enum.Enum):
@@ -27,21 +29,20 @@ class InputParameters(object):
         NONE = 0  # disable errors
         WARNING = 1  # logging.warning
         ERROR = 2  # logging.error
-        EXCEPTION = 3  # logging.critical and raises InputParametersException
+        CRITICAL = 3  # logging.critical
+        EXCEPTION = 4  # raises MooseException, the import occurs when raised to avoid cyclic imports
 
-    class InputParameterException(Exception):
-        """Custom Exception used in for ErrorMode.EXCEPTION"""
-        def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
-
-    LOG = logging.getLogger('InputParameters')
-
-    def __init__(self, mode=None):
+    def __init__(self):
         self.__parameters = OrderedDict()
-        self.add('_error_mode',
-                 default=mode or InputParameters.ErrorMode.WARNING,
-                 vtype=InputParameters.ErrorMode,
-                 private=True)
+        self.add(
+            '_moose_object',
+            private=True,
+            doc= "The `MooseObject` that the InputParameter object belongs, if provided the error " \
+                 "logging will log via the `MooseObject`."
+        )
+        self.add('error_mode',
+                 default=InputParameters.ErrorMode.EXCEPTION,
+                 vtype=InputParameters.ErrorMode)
 
     def add(self, *args, **kwargs):
         """
@@ -54,13 +55,14 @@ class InputParameters(object):
             self.__errorHelper("Cannot add parameter, the parameter '{}' already exists.", args[0])
             return
 
-        if '_' in args[0]:
+        elif '_' in args[0]:
             group, subname = args[0].split('_', 1)
             if (group in self.__parameters) and isinstance(self.__parameters[group].value,
                                                            InputParameters):
                 self.__errorHelper(
                     "Cannot add a parameter with the name '{}', "
                     "a sub parameter exists with the name '{}'.", args[0], group)
+                return
 
         default = kwargs.get('default', None)
         if isinstance(default, InputParameters):
@@ -85,6 +87,14 @@ class InputParameters(object):
             self.__parameters[key] = params._InputParameters__parameters[key]
         return self
 
+    def parameter(self, *args):
+        """
+        Return the desired `Parameter` object.
+
+        The inputs are as defined in `set` method.
+        """
+        return self._getParameter(*args)
+
     def items(self):
         """
         Provides dict.items() functionality.
@@ -106,16 +116,6 @@ class InputParameters(object):
         Provides dict.keys() functionality.
         """
         return [key for key, value in self.__parameters.items() if not value.private]
-
-    def parameters(self):
-        """
-        Direct iteration over the Parameter objects
-        """
-        for param in self.__parameters.values():
-            if isinstance(param, InputParameters):
-                yield param.parameters()
-            else:
-                yield param
 
     def remove(self, name):
         """
@@ -142,11 +142,13 @@ class InputParameters(object):
 
     def setDefault(self, *args):
         """
-        Set the default value, this will onluy set the value if it is None
+        Set the default value.
         """
         opt = self._getParameter(*args[:-1])
         if opt is not None:
-            opt.default = args[-1]
+            ret, err = opt.setDefault(args[-1])
+            if ret > 0:
+                self.__errorHelper(err)
 
     def getDefault(self, *args):
         """
@@ -176,7 +178,7 @@ class InputParameters(object):
         """
         opt = self._getParameter(*args)
         if opt is not None:
-            return opt.isSetByUser()
+            return opt.is_set_by_user
 
     def set(self, *args):
         """
@@ -200,7 +202,9 @@ class InputParameters(object):
                 args[-1], dict):
             param.value.update(**args[-1])
         elif param is not None:
-            param.value = args[-1]
+            ret, err = param.setValue(args[-1])
+            if ret > 0:
+                self.__errorHelper(err)
 
     def get(self, *args):
         """
@@ -249,8 +253,15 @@ class InputParameters(object):
         """
         Validate that all parameters marked as required are defined
         """
+        retcode = 0
+        errors = list()
         for param in self.__parameters.values():
-            param.validate()
+            ret, err = param.validate()
+            retcode += ret
+            if ret: errors.append(err)
+        if retcode > 0:
+            msg = '\n'.join(errors)
+            self.__errorHelper(msg)
 
     def __str__(self):
         """
@@ -287,8 +298,9 @@ class InputParameters(object):
         opt = self.__parameters.get(args[0])
         if (opt is None) and ('_' in args[0]):
             group, subname = args[0].split('_', 1)
-            args = [group, subname] + list(args[1:]) if len(args) > 1 else [group, subname]
-            return self._getParameter(*args)
+            sub_args = [group, subname] + list(args[1:]) if len(args) > 1 else [group, subname]
+            if self.hasParameter(group):
+                return self._getParameter(*sub_args)
 
         if opt is None:
             self.__errorHelper("The parameter '{}' does not exist.", args[0])
@@ -305,11 +317,14 @@ class InputParameters(object):
         Produce warning, error, or exception based on operation mode.
         """
         msg = text.format(*args, **kwargs)
-        mode = self.get('_error_mode')
+        mode = self.get('error_mode')
+        log = self.get('_moose_object') or logging.getLogger(__name__)
         if mode == InputParameters.ErrorMode.WARNING:
-            self.LOG.warning(msg)
+            log.warning(msg)
         elif mode == InputParameters.ErrorMode.ERROR:
-            self.LOG.error(msg)
+            log.error(msg)
+        elif mode == InputParameters.ErrorMode.CRITICAL:
+            log.critical(msg)
         elif mode == InputParameters.ErrorMode.EXCEPTION:
-            self.LOG.critical(msg)
-            raise InputParameters.InputParameterException(msg)
+            import base
+            raise base.MooseException(msg)
