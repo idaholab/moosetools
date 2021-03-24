@@ -15,7 +15,6 @@ import copy
 
 from .Parameter import Parameter
 
-
 class InputParameters(object):
     """
     A warehouse for creating and storing options
@@ -32,10 +31,9 @@ class InputParameters(object):
         CRITICAL = 3   # logging.critical
         EXCEPTION = 4  # raises MooseException, the import occurs when raised to avoid cyclic imports
 
-    LOG = logging.getLogger('InputParameters')
-
     def __init__(self):
         self.__parameters = OrderedDict()
+        self.add('_moose_object', private=True, doc="The `MooseObject` that the InputParameter object belongs, if provided the error logging will log via the `MooseObject`.")
         self.add('error_mode',
                  default=InputParameters.ErrorMode.EXCEPTION,
                  vtype=InputParameters.ErrorMode)
@@ -84,6 +82,11 @@ class InputParameters(object):
         return self
 
     def parameter(self, *args):
+        """
+        Return the desired `Parameter` object.
+
+        The inputs are as defined in `set` method.
+        """
         return self._getParameter(*args)
 
     def items(self):
@@ -309,12 +312,13 @@ class InputParameters(object):
         """
         msg = text.format(*args, **kwargs)
         mode = self.get('error_mode')
+        log = self.get('_moose_object') or logging.getLogger(__name__)
         if mode == InputParameters.ErrorMode.WARNING:
-            self.LOG.warning(msg)
+            log.warning(msg)
         elif mode == InputParameters.ErrorMode.ERROR:
-            self.LOG.error(msg)
+            log.error(msg)
         elif mode == InputParameters.ErrorMode.CRITICAL:
-            self.LOG.critical(msg)
+            log.critical(msg)
         elif mode == InputParameters.ErrorMode.EXCEPTION:
             import base
             raise base.MooseException(msg)

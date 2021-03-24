@@ -44,6 +44,7 @@ class MooseObject(object):
         self.__log_counts = {key:0 for key in logging._levelToName.keys()}
         self._parameters = params or getattr(self.__class__, 'validParams')()
         self._parameters.update(**kwargs)
+        self._parameters.set('_moose_object', self)
         self._parameters.validate() # once this is called, the mutable flag becomes active
 
     def name(self):
@@ -84,7 +85,7 @@ class MooseObject(object):
         count = 0
         for lvl in levels:
             if lvl not in self.__log_counts:
-                msg = "Attempting to reset logging count for '{}' level, but the level does not exist."
+                msg = "Attempting to get logging count for '{}' level, but the level does not exist."
                 self.error(msg, lvl)
                 continue
             count += self.__log_counts[lvl]

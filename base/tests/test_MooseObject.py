@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import unittest
+import logging
 import parameters
 from base import MooseObject, MooseException
 
@@ -114,19 +115,29 @@ class TestMooseObject(unittest.TestCase):
         obj = CustomObject(year=1980)
         self.assertEqual(obj.getParam('year'), 1980)
 
-    def testType(self):
-        obj = MooseObject()
-        self.assertEqual(obj.getParam('type'), 'MooseObject')
+    def testResetAndStatus(self):
+        obj = MooseObject(error_mode=parameters.InputParameters.ErrorMode.CRITICAL)
+        self.assertEqual(obj.status(), 0)
+        with self.assertLogs(level='ERROR'):
+            obj.getParam('wrong')
+        self.assertEqual(obj.status(), 1)
+        self.assertEqual(obj.status(logging.INFO), 0)
+        self.assertEqual(obj.status(logging.DEBUG), 0)
+        self.assertEqual(obj.status(logging.WARNING), 0)
+        self.assertEqual(obj.status(logging.ERROR), 0)
+        self.assertEqual(obj.status(logging.CRITICAL), 1)
+        obj.reset()
+        self.assertEqual(obj.status(), 0)
 
-        obj = CustomObject()
-        self.assertEqual(obj.getParam('type'), 'CustomObject')
-
-        with self.assertLogs(level='WARNING') as log:
-            obj.parameters().set('type', "SomeOtherName")
+        with self.assertLogs(level='ERROR') as log:
+            obj.reset('WRONG')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("An attempt was made to change 'type', but it is marked as immutable.", log.output[0])
+        self.assertIn("Attempting to reset logging count for 'WRONG'", log.output[0])
 
-
+        with self.assertLogs(level='ERROR') as log:
+            obj.status('WRONG')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("Attempting to get logging count for 'WRONG'", log.output[0])
 
 
 

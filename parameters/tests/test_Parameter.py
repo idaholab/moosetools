@@ -150,6 +150,11 @@ class TestParameter(unittest.TestCase):
             str(e.exception))
 
     def testArray(self):
+        opt = Parameter('foo', array=True)
+        opt.setValue((1,2,3))
+        self.assertEqual(opt.value, (1,2,3))
+        self.assertTrue(opt.array)
+
         opt = Parameter('foo', default=(1, 2), array=True)
         self.assertEqual(opt._Parameter__array, True)
         self.assertEqual(opt.value, (1, 2))
@@ -209,12 +214,6 @@ class TestParameter(unittest.TestCase):
         self.assertIn(
             "The supplied 'size' argument must be a 'int', but <class 'str'> was provided.",
             str(e.exception))
-
-    def testArray(self):
-        opt = Parameter('foo', array=True)
-        opt.setValue((1,2,3))
-        self.assertEqual(opt.value, (1,2,3))
-        self.assertTrue(opt.array)
 
     def testDoc(self):
         opt = Parameter('foo', doc='This is foo, not bar.')

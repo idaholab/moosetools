@@ -14,7 +14,7 @@ import re
 import unittest
 
 from base import MooseException
-from parameters import InputParameters
+from parameters import InputParameters, Parameter
 
 
 class TestInputParameters(unittest.TestCase):
@@ -352,6 +352,12 @@ class TestInputParameters(unittest.TestCase):
         with self.assertRaises(MooseException) as e:
             font.validate()
         self.assertIn("The Parameter 'name' is marked as required, but no value is assigned", str(e.exception))
+
+    def testParameter(self):
+        font = InputParameters()
+        font.add('size', default=24)
+        p = font.parameter('size')
+        self.assertIsInstance(p, Parameter)
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True, exit=False)
