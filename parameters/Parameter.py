@@ -11,6 +11,7 @@ import textwrap
 import inspect
 import logging
 
+
 class Parameter(object):
     """
     Storage container for an "param" that can be type checked, restricted, and documented.
@@ -72,8 +73,8 @@ class Parameter(object):
         self.__required = required  # see validate()
         self.__verify = verify  # verification function
         self.__set_by_user = False  # flag indicating if the parameter was set after construction
-        self.__mutable = mutable # flag indicating if the parameter can change after construction
-        self.__validated = False # set by validate method, used with mutable
+        self.__mutable = mutable  # flag indicating if the parameter can change after construction
+        self.__validated = False  # set by validate method, used with mutable
 
         if not isinstance(self.__name, str):
             msg = "The supplied 'name' argument must be a 'str', but {} was provided."
@@ -317,7 +318,8 @@ class Parameter(object):
 
         if self.__array:
             for v in val:
-                if (val is not None) and (self.__vtype is not None) and not isinstance(v, self.__vtype):
+                if (val is not None) and (self.__vtype
+                                          is not None) and not isinstance(v, self.__vtype):
                     msg = "The values within '{}' must be of type {} but {} provided."
                     return 1, msg.format(self.name, self.__vtype, type(v))
 
@@ -328,7 +330,8 @@ class Parameter(object):
                     return 1, msg.format(self.name, self.__size, len(val))
 
         else:
-            if (val is not None) and (self.__vtype is not None) and not isinstance(val, self.__vtype):
+            if (val is not None) and (self.__vtype
+                                      is not None) and not isinstance(val, self.__vtype):
                 msg = "'{}' must be of type {} but {} provided."
                 return 1, msg.format(self.name, self.__vtype, type(val))
 

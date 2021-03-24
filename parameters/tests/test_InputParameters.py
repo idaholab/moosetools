@@ -27,7 +27,7 @@ class TestInputParameters(unittest.TestCase):
         self.assertIsNone(params.get('foo'))
         self.assertTrue(params.hasParameter('foo'))
 
-        params.set('error_mode', InputParameters.ErrorMode.ERROR) # use error to capture return
+        params.set('error_mode', InputParameters.ErrorMode.ERROR)  # use error to capture return
         with self.assertLogs(level='ERROR') as log:
             params.add('foo')
         self.assertEqual(len(log.output), 1)
@@ -125,7 +125,7 @@ class TestInputParameters(unittest.TestCase):
             params.setDefault('other', 1980)
         self.assertIn("The parameter 'other' does not exist", str(e.exception))
 
-        params.set('error_mode', InputParameters.ErrorMode.ERROR) # use error to capture return
+        params.set('error_mode', InputParameters.ErrorMode.ERROR)  # use error to capture return
         with self.assertLogs(level='ERROR') as log:
             params.setDefault('foo', 'wrong')
         self.assertEqual(len(log.output), 1)
@@ -201,7 +201,7 @@ class TestInputParameters(unittest.TestCase):
             params.set('foo', 1980, 2011)
         self.assertIn("Extra argument(s) found: 1980", str(e.exception))
 
-        params.set('error_mode', InputParameters.ErrorMode.ERROR) # log to capture return
+        params.set('error_mode', InputParameters.ErrorMode.ERROR)  # log to capture return
         with self.assertLogs(level='ERROR') as log:
             params.set('foo')
         self.assertEqual(len(log.output), 1)
@@ -340,7 +340,6 @@ class TestInputParameters(unittest.TestCase):
         self.assertIn('size\n', font.toString())
         self.assertIn('name\n', font.toString())
 
-
         self.assertIn('size\n', font.toString('size'))
         self.assertNotIn('name\n', font.toString('size'))
 
@@ -351,13 +350,15 @@ class TestInputParameters(unittest.TestCase):
 
         with self.assertRaises(MooseException) as e:
             font.validate()
-        self.assertIn("The Parameter 'name' is marked as required, but no value is assigned", str(e.exception))
+        self.assertIn("The Parameter 'name' is marked as required, but no value is assigned",
+                      str(e.exception))
 
     def testParameter(self):
         font = InputParameters()
         font.add('size', default=24)
         p = font.parameter('size')
         self.assertIsInstance(p, Parameter)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True, exit=False)

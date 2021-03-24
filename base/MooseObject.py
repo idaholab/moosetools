@@ -12,6 +12,7 @@ import logging
 import parameters
 from .MooseException import MooseException
 
+
 class MooseObject(object):
     """
     Base for all objects in moosetools package.
@@ -33,20 +34,24 @@ class MooseObject(object):
     `InputParameters.update` method before `InputParameters.validate` is called. Again, refer to
     `InputParameters` documentation for further information.
     """
-
     @staticmethod
     def validParams():
         params = parameters.InputParameters()
-        params.add('name', vtype=str, doc="The name of the object. If using the factory.Parser to build objects from an input file, this will be automatically set to the block name in the input file.")
+        params.add(
+            'name',
+            vtype=str,
+            doc=
+            "The name of the object. If using the factory.Parser to build objects from an input file, this will be automatically set to the block name in the input file."
+        )
         return params
 
     def __init__(self, params=None, **kwargs):
         self.__logger = logging.getLogger(self.__class__.__module__)
-        self.__log_counts = {key:0 for key in logging._levelToName.keys()}
+        self.__log_counts = {key: 0 for key in logging._levelToName.keys()}
         self._parameters = params or getattr(self.__class__, 'validParams')()
         self._parameters.update(**kwargs)
         self._parameters.set('_moose_object', self)
-        self._parameters.validate() # once this is called, the mutable flag becomes active
+        self._parameters.validate()  # once this is called, the mutable flag becomes active
 
     def name(self):
         """
@@ -133,7 +138,8 @@ class MooseObject(object):
         By default this enables the "exc_info" flag passed to `log` and uses `logging.CRITICAL`
         level.
         """
-        assert sys.exc_info() != (None, None, None), "No Exception raised, see `MooseObject.exception` for help."
+        assert sys.exc_info() != (
+            None, None, None), "No Exception raised, see `MooseObject.exception` for help."
         kwargs.setdefault('exc_info', True)
         self.log(logging.CRITICAL, *args, **kwargs)
 
@@ -150,7 +156,9 @@ class MooseObject(object):
         option is not needed, it is automatically set to the correct value by the `exception` method
         that is designed for exception handling.
         """
-        assert isinstance(message, str), "The supplied 'message' must be a python `str` type, see `MooseObject.log`."
+        assert isinstance(
+            message,
+            str), "The supplied 'message' must be a python `str` type, see `MooseObject.log`."
         name = self.getParam('name')
         message = message.format(*args, **kwargs)
         if name is not None: message = '({}): {}'.format(name, message)

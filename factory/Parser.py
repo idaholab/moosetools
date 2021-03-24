@@ -19,12 +19,12 @@ import pyhit
 from .Factory import Factory
 from .Warehouse import Warehouse
 
+
 class Parser(base.MooseObject):
     """
     The `Parser` object is designed for creating instances of `base.MooseObject` objects with
     parameters populated from a HIT input file.
     """
-
     @staticmethod
     def validParams():
         params = base.MooseObject.validParams()
@@ -63,7 +63,7 @@ class Parser(base.MooseObject):
         `status` method (see `base.MooseObject.status()`) will return a non-zero code if an
         error occurred.
         """
-        self.reset() # zero all logging counts
+        self.reset()  # zero all logging counts
 
         if not os.path.exists(filename):
             self.error("The filename '{}' does not exist.".format(filename))
@@ -77,7 +77,9 @@ class Parser(base.MooseObject):
 
         # Iterate of all childless nodes, those should contain a 'type = ...' parameter for building
         paths = set()
-        for node in moosetree.findall(root, func=lambda n: len(n) == 0, method=moosetree.IterMethod.PRE_ORDER):
+        for node in moosetree.findall(root,
+                                      func=lambda n: len(n) == 0,
+                                      method=moosetree.IterMethod.PRE_ORDER):
             self._checkDuplicates(filename, paths, node)
             self._parseNode(filename, node)
         return self.status()
@@ -160,7 +162,8 @@ class Parser(base.MooseObject):
         for key, _ in node.params():
             fullparam = os.path.join(node.fullpath, key)
             if fullparam in paths:
-                msg = "{}:{}\Duplicate parameter '{}'".format(filename, node.line(key, -1), fullparam)
+                msg = "{}:{}\Duplicate parameter '{}'".format(filename, node.line(key, -1),
+                                                              fullparam)
                 self.error(msg)
             else:
                 paths.add(fullparam)
@@ -172,7 +175,8 @@ class Parser(base.MooseObject):
 
         This method is used by the factor.Parser to convert data from HIT files to correct types.
         """
-        assert isinstance(vtypes, tuple) and all(isinstance(v, type) for v in vtypes), "'vtypes' must be a tuple of types"
+        assert isinstance(vtypes, tuple) and all(
+            isinstance(v, type) for v in vtypes), "'vtypes' must be a tuple of types"
         assert isinstance(str_value, str), "'str_value' must be a string"
         assert isinstance(array, bool), "'array' must be a bool"
 

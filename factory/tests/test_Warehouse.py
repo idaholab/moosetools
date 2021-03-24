@@ -15,6 +15,7 @@ from unittest import mock
 import parameters
 import factory
 
+
 class TestWarehouse(unittest.TestCase):
     def testInit(self):
         w = factory.Warehouse()
@@ -28,6 +29,7 @@ class TestWarehouse(unittest.TestCase):
 
         w.clear()
         self.assertEqual(len(w), 0)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

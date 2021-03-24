@@ -17,6 +17,7 @@ import logging
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 from parameters import InputParameters, Parameter
 
+
 class TestParameter(unittest.TestCase):
     def testMinimal(self):
         opt = Parameter('foo')
@@ -52,9 +53,8 @@ class TestParameter(unittest.TestCase):
 
         with self.assertRaises(TypeError) as e:
             Parameter('bar', default='wrong', vtype=int)
-        self.assertIn(
-            "'bar' must be of type (<class 'int'>,) but <class 'str'> provided.",
-            str(e.exception))
+        self.assertIn("'bar' must be of type (<class 'int'>,) but <class 'str'> provided.",
+                      str(e.exception))
 
     def testNone(self):
         opt = Parameter('year')
@@ -93,7 +93,7 @@ class TestParameter(unittest.TestCase):
 
     def testType(self):
         opt = Parameter('foo', vtype=int)
-        self.assertEqual(opt.vtype, (int,))
+        self.assertEqual(opt.vtype, (int, ))
         self.assertIsNone(opt.default)
         self.assertIsNone(opt.value)
 
@@ -151,8 +151,8 @@ class TestParameter(unittest.TestCase):
 
     def testArray(self):
         opt = Parameter('foo', array=True)
-        opt.setValue((1,2,3))
-        self.assertEqual(opt.value, (1,2,3))
+        opt.setValue((1, 2, 3))
+        self.assertEqual(opt.value, (1, 2, 3))
         self.assertTrue(opt.array)
 
         opt = Parameter('foo', default=(1, 2), array=True)
@@ -165,7 +165,7 @@ class TestParameter(unittest.TestCase):
             "'foo' was defined as an array, which require <class 'tuple'> for assignment, but a <class 'int'> was provided.",
             err)
 
-        ret, err = opt.setValue((3,4))
+        ret, err = opt.setValue((3, 4))
         self.assertEqual(ret, 0)
         self.assertEqual(err, None)
         self.assertEqual(opt.value, (3, 4))
@@ -247,8 +247,7 @@ class TestParameter(unittest.TestCase):
 
         ret, err = opt.validate()
         self.assertEqual(ret, 1)
-        self.assertIn("The Parameter 'year' is marked as required, but no value is assigned.",
-                      err)
+        self.assertIn("The Parameter 'year' is marked as required, but no value is assigned.", err)
 
         with self.assertRaises(TypeError) as e:
             Parameter('year', required="wrong")
@@ -422,15 +421,12 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(err, None)
         self.assertEqual(opt.is_set_by_user, True)
 
-
         opt = Parameter('year', default=1949)
         self.assertEqual(opt.is_set_by_user, False)
         ret, err = opt.setValue(1980)
         self.assertEqual(ret, 0)
         self.assertEqual(err, None)
         self.assertEqual(opt.is_set_by_user, True)
-
-
 
 
 if __name__ == '__main__':

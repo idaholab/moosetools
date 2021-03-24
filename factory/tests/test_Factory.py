@@ -15,6 +15,7 @@ from unittest import mock
 import parameters
 import factory
 
+
 class TestFactory(unittest.TestCase):
     def setUp(self):
         self._cwd = os.getcwd()
@@ -116,7 +117,7 @@ class TestFactory(unittest.TestCase):
     def testPrint(self):
         f = factory.Factory()
         f.load()
-        f._registered_types.pop('TestObjectBadParams') # avoid error
+        f._registered_types.pop('TestObjectBadParams')  # avoid error
         out = str(f)
         self.assertIn('CustomObject', out)
         self.assertIn('CustomCustomObject', out)

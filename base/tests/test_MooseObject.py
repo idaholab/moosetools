@@ -13,12 +13,14 @@ import logging
 import parameters
 from base import MooseObject, MooseException
 
+
 class CustomObject(MooseObject):
     @staticmethod
     def validParams():
         params = MooseObject.validParams()
         params.add("year")
         return params
+
 
 class TestMooseObject(unittest.TestCase):
     def testInitAndName(self):
@@ -74,11 +76,14 @@ class TestMooseObject(unittest.TestCase):
 
         with self.assertRaises(AssertionError) as e:
             obj.exception('You called exception wrong')
-        self.assertEqual("No Exception raised, see `MooseObject.exception` for help.", str(e.exception))
+        self.assertEqual("No Exception raised, see `MooseObject.exception` for help.",
+                         str(e.exception))
 
         with self.assertRaises(AssertionError) as e:
             obj.info(42)
-        self.assertEqual("The supplied 'message' must be a python `str` type, see `MooseObject.log`.", str(e.exception))
+        self.assertEqual(
+            "The supplied 'message' must be a python `str` type, see `MooseObject.log`.",
+            str(e.exception))
 
     def testParameters(self):
         obj = MooseObject()
@@ -147,7 +152,6 @@ class TestMooseObject(unittest.TestCase):
             obj.status('WRONG')
         self.assertEqual(len(log.output), 1)
         self.assertIn("Attempting to get logging count for 'WRONG'", log.output[0])
-
 
 
 if __name__ == '__main__':

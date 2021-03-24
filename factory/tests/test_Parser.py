@@ -16,8 +16,8 @@ import factory
 
 from plugins import TestObject
 
-class TestParser(unittest.TestCase):
 
+class TestParser(unittest.TestCase):
     def setUp(self):
         self._cwd = os.getcwd()
         os.chdir(os.path.dirname(__file__))
@@ -26,13 +26,13 @@ class TestParser(unittest.TestCase):
         os.chdir(self._cwd)
 
     def assertConvert(self, vtypes, str_value, gold):
-        if not isinstance(vtypes, tuple): vtypes = (vtypes,)
+        if not isinstance(vtypes, tuple): vtypes = (vtypes, )
         v = factory.Parser._getValueFromStr(vtypes, str_value, False)
         self.assertIsInstance(v, vtypes)
         self.assertEqual(v, gold)
 
     def assertConvertArray(self, vtypes, str_value, gold):
-        if not isinstance(vtypes, tuple): vtypes = (vtypes,)
+        if not isinstance(vtypes, tuple): vtypes = (vtypes, )
         value = factory.Parser._getValueFromStr(vtypes, str_value, True)
         self.assertTrue(all(isinstance(v, vtypes) for v in value))
         self.assertEqual(value, gold)
@@ -60,7 +60,8 @@ class TestParser(unittest.TestCase):
         self.assertConvertArray(float, '1949. 1954 1977. 1980', (1949, 1954, 1977, 1980))
         self.assertConvertArray((int, float), '1949 1954 1977 1980', (1949, 1954, 1977, 1980))
         self.assertConvertArray(str, 'a b c', ('a', 'b', 'c'))
-        self.assertConvertArray(bool, '0 1 false true False True', (False, True, False, True, False, True))
+        self.assertConvertArray(bool, '0 1 false true False True',
+                                (False, True, False, True, False, True))
 
     def testSimple(self):
         f = factory.Factory()
@@ -168,7 +169,8 @@ class TestParser(unittest.TestCase):
                 p.parse('test0.hit')
             self.assertEqual(p.status(), 1)
             self.assertEqual(len(log.output), 2)
-            self.assertIn("Failed to evaluate validParams function of 'TestObjectBadParams'", log.output[0])
+            self.assertIn("Failed to evaluate validParams function of 'TestObjectBadParams'",
+                          log.output[0])
             self.assertIn("Failed to extract parameters from 'TestObjectBadParams'", log.output[1])
 
         # PARAM NO EXISTY
@@ -191,7 +193,9 @@ class TestParser(unittest.TestCase):
                 p.parse('test0.hit')
             self.assertEqual(p.status(), 1)
             self.assertEqual(len(log.output), 1)
-            self.assertIn("Failed to convert 'None' to the correct type(s) of '(<class 'int'>,)' for 'par_int' parameter", log.output[0])
+            self.assertIn(
+                "Failed to convert 'None' to the correct type(s) of '(<class 'int'>,)' for 'par_int' parameter",
+                log.output[0])
 
         # OBJECT FAILS __INIT__
         root = pyhit.Node(None, 'Tests')
@@ -203,7 +207,9 @@ class TestParser(unittest.TestCase):
             self.assertEqual(p.status(), 1)
             self.assertEqual(len(log.output), 2)
             self.assertIn("Failed to create 'TestObjectBadInit' object.", log.output[0])
-            self.assertIn("Failed to create object of type 'TestObjectBadInit' in block 'Tests/obj0'", log.output[1])
+            self.assertIn(
+                "Failed to create object of type 'TestObjectBadInit' in block 'Tests/obj0'",
+                log.output[1])
 
         # DUPLICATE BLOCKS/PARAMS
         root = pyhit.Node(None, 'Tests')
@@ -217,6 +223,7 @@ class TestParser(unittest.TestCase):
             self.assertEqual(len(log.output), 2)
             self.assertIn("Duplicate section 'Tests/obj0'", log.output[0])
             self.assertIn("Duplicate parameter 'Tests/obj0/type'", log.output[1])
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

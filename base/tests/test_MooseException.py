@@ -10,11 +10,13 @@
 import unittest
 import base
 
+
 class TestMooseException(unittest.TestCase):
     def testRaise(self):
         with self.assertRaises(base.MooseException) as me:
             raise base.MooseException("Something {} {word}", "is", word="wrong")
         self.assertEqual(me.exception.message, "Something is wrong")
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

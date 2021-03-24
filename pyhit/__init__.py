@@ -18,7 +18,9 @@ try:
     import hit
 except ImportError:
     log = logging.getLogger(__name__)
-    log.exception("Failed to import python bindings for HIT library, attempting to build with `make bindings`")
+    log.exception(
+        "Failed to import python bindings for HIT library, attempting to build with `make bindings`"
+    )
     subprocess.run(['make', 'bindings'], cwd=hit_dir)
 
 try:

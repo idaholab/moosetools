@@ -15,25 +15,31 @@ import copy
 
 from .Parameter import Parameter
 
+
 class InputParameters(object):
     """
     A warehouse for creating and storing options
     """
-    import base # Avoid cyclic imports
+    import base  # Avoid cyclic imports
 
     __PARAM_TYPE__ = Parameter
 
     class ErrorMode(enum.Enum):
         """Defines the error mode for all instances"""
-        NONE = 0       # disable errors
-        WARNING = 1    # logging.warning
-        ERROR = 2      # logging.error
-        CRITICAL = 3   # logging.critical
+        NONE = 0  # disable errors
+        WARNING = 1  # logging.warning
+        ERROR = 2  # logging.error
+        CRITICAL = 3  # logging.critical
         EXCEPTION = 4  # raises MooseException, the import occurs when raised to avoid cyclic imports
 
     def __init__(self):
         self.__parameters = OrderedDict()
-        self.add('_moose_object', private=True, doc="The `MooseObject` that the InputParameter object belongs, if provided the error logging will log via the `MooseObject`.")
+        self.add(
+            '_moose_object',
+            private=True,
+            doc=
+            "The `MooseObject` that the InputParameter object belongs, if provided the error logging will log via the `MooseObject`."
+        )
         self.add('error_mode',
                  default=InputParameters.ErrorMode.EXCEPTION,
                  vtype=InputParameters.ErrorMode)

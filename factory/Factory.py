@@ -15,6 +15,7 @@ import importlib
 import inspect
 from base import MooseObject
 
+
 class Factory(MooseObject):
     """
     The `Factory` object exists as a convenient way to create `base.MooseObject` objects that
@@ -26,11 +27,16 @@ class Factory(MooseObject):
     @staticmethod
     def validParams():
         params = MooseObject.validParams()
-        params.add('plugin_dirs', default=(os.path.join(os.getcwd(), 'plugins'),), vtype=str, array=True,
+        params.add('plugin_dirs',
+                   default=(os.path.join(os.getcwd(), 'plugins'), ),
+                   vtype=str,
+                   array=True,
                    verify=(lambda dirs: all(os.path.isdir(d) for d in dirs),
                            "Supplied plugin directories must exist."),
                    doc="List of directories to search for plugins.")
-        params.add('plugin_type', default=MooseObject, doc="The python type of the plugins to load.")
+        params.add('plugin_type',
+                   default=MooseObject,
+                   doc="The python type of the plugins to load.")
         return params
 
     def __init__(self, **kwargs):
@@ -50,7 +56,11 @@ class Factory(MooseObject):
         """
         otype = self._registered_types.get(name, None)
         if otype is not None:
-            self.error("The '{}' name is already associated with an object type of {}, it will not be registered again.", name, otype, stack_info=True)
+            self.error(
+                "The '{}' name is already associated with an object type of {}, it will not be registered again.",
+                name,
+                otype,
+                stack_info=True)
         self._registered_types[name] = object_type
 
     def params(self, name):
@@ -78,7 +88,7 @@ class Factory(MooseObject):
             try:
                 return otype(*args, **kwargs)
             except Exception:
-                self.exception("Failed to create '{}' object.",  _registered_name)
+                self.exception("Failed to create '{}' object.", _registered_name)
 
         return None
 
@@ -101,11 +111,13 @@ class Factory(MooseObject):
             try:
                 module = loader.load_module()
             except Exception:
-                self.exception("Failed to load module '{}' in file '{}'", info.name, info.module_finder.path)
+                self.exception("Failed to load module '{}' in file '{}'", info.name,
+                               info.module_finder.path)
                 continue
 
             for name, otype in inspect.getmembers(module):
-                if inspect.isclass(otype) and (plugin_type in inspect.getmro(otype)) and (name not in self._registered_types):
+                if inspect.isclass(otype) and (plugin_type in inspect.getmro(otype)) and (
+                        name not in self._registered_types):
                     self.register(name, otype)
 
         return self.status()
@@ -129,7 +141,7 @@ class Factory(MooseObject):
         for name, otype in self._registered_types.items():
             params = self.params(name)
             if params is not None:
-                out += '{}\n{} Parameters:\n{}\n'.format('='*80, name, '-'*80)
+                out += '{}\n{} Parameters:\n{}\n'.format('=' * 80, name, '-' * 80)
                 out += params.toString()
                 out += '\n\n'
         return out

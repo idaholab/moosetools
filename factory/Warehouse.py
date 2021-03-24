@@ -10,6 +10,7 @@
 
 from base import MooseObject
 
+
 class Warehouse(MooseObject):
     """
     The `Warehouse` object is a basic storage container for `base.MooseObject` objects.
@@ -17,7 +18,6 @@ class Warehouse(MooseObject):
     It was originally designed to be utilized via the `factory.Parser` for storing objects from HIT
     input files.
     """
-
     @staticmethod
     def validParams():
         params = MooseObject.validParams()
