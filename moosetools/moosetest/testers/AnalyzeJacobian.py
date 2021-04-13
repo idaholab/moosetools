@@ -8,25 +8,25 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os, sys
-from TestHarness import util
-from FileTester import FileTester
+from moosetools.moosetest import util
+from moosetools.moosetest.testers.FileTester import FileTester
 
 class AnalyzeJacobian(FileTester):
 
     @staticmethod
     def validParams():
         params = FileTester.validParams()
-        params.addRequiredParam('input',  "The input file to use for this test.")
-        params.addParam('test_name',      "The name of the test - populated automatically")
-        params.addParam('expect_out',     "A regular expression that must occur in the input in order for the test to be considered passing.")
+        #params.addRequiredParam('input',  "The input file to use for this test.")
+        #params.addParam('test_name',      "The name of the test - populated automatically")
+        #params.addParam('expect_out',     "A regular expression that must occur in the input in order for the test to be considered passing.")
         params.addParam('resize_mesh', False, "Resize the input mesh")
         params.addParam('off_diagonal', True, "Also test the off-diagonal Jacobian entries")
         params.addParam('mesh_size',   1, "Resize the input mesh")
 
         return params
 
-    def __init__(self, name, params):
-        FileTester.__init__(self, name, params)
+    def __init__(self, *args, **kwargs):
+        FileTester.__init__(self, *args, **kwargs)
 
     def getOutputFiles(self):
         # analizejacobian.py outputs files prefixed with the input file name

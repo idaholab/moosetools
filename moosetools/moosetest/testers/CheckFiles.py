@@ -7,8 +7,8 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from FileTester import FileTester
-from TestHarness import util
+from moosetools.moosetest.testers.FileTester import FileTester
+from moosetools.moosetest import util
 import os
 
 class CheckFiles(FileTester):
@@ -21,11 +21,11 @@ class CheckFiles(FileTester):
         params.addParam('file_expect_out', "A regular expression that must occur in all of the check files in order for the test to be considered passing.")
         return params
 
-    def __init__(self, name, params):
-        FileTester.__init__(self, name, params)
+    def __init__(self, *args, **kwargs):
+        FileTester.__init__(self, *args, **kwargs)
 
         # Make sure that either input or command is supplied
-        if not (params.isValid('check_files') or params.isValid('check_not_exists')):
+        if not (self.specs.isValid('check_files') or self.specs.isValid('check_not_exists')):
             raise Exception('Either "check_files" or "check_not_exists" must be supplied for a CheckFiles test')
 
     def getOutputFiles(self):

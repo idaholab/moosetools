@@ -24,7 +24,7 @@ try:
 except:
     pass
 
-from TestHarness.testers.Tester import Tester
+from moosetools.moosetest.testers.Tester import Tester
 
 def process_timeout(proc, timeout_sec):
   kill_proc = lambda p: p.kill()
@@ -124,8 +124,8 @@ class SpeedTest(Tester):
         params.addParam('perflog', False,     'true to enable perflog and store its output')
         return params
 
-    def __init__(self, name, params):
-        Tester.__init__(self, name, params)
+    def __init__(self, *args, **kwargs):
+        Tester.__init__(self, *args, **kwargs)
         self.tags.append('speedtests')
         self.timeout = max(3600, float(params['max_time']))
         self.check_only = False

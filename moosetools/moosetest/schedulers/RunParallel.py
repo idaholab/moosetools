@@ -7,8 +7,8 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from TestHarness.schedulers.Scheduler import Scheduler
-from TestHarness import util
+from moosetools.moosetest.schedulers.Scheduler import Scheduler
+from moosetools.moosetest import util
 
 class RunParallel(Scheduler):
     """
@@ -20,8 +20,8 @@ class RunParallel(Scheduler):
         params = Scheduler.validParams()
         return params
 
-    def __init__(self, harness, params):
-        Scheduler.__init__(self, harness, params)
+    def __init__(self, harness, *args, **kwargs):
+        Scheduler.__init__(self, harness, *args, **kwargs)
 
     def run(self, job):
         """ Run a tester command """

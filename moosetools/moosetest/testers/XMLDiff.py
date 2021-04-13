@@ -7,10 +7,10 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from RunApp import RunApp
-from TestHarness import util
 import os
-from TestHarness.XMLDiffer import XMLDiffer
+from moosetools.moosetest.testers.RunApp import RunApp
+from moosetools.moosetest.XMLDiffer import XMLDiffer
+from moosetools.moosetest import util
 
 class XMLDiff(RunApp):
 
@@ -25,8 +25,8 @@ class XMLDiff(RunApp):
 
         return params
 
-    def __init__(self, name, params):
-        RunApp.__init__(self, name, params)
+    def __init__(self, *args, **kwargs):
+        RunApp.__init__(self, *args, **kwargs)
 
     def prepare(self, options):
         if self.specs['delete_output_before_running'] == True:

@@ -7,8 +7,8 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 import sys
-from TestHarness.JobDAG import JobDAG
-from FactorySystem.MooseObject import MooseObject
+from moosetools.moosetest.JobDAG import JobDAG
+from moosetools.base import MooseObject
 import os, traceback
 from time import sleep
 from timeit import default_timer as clock
@@ -37,17 +37,16 @@ class Scheduler(MooseObject):
     @staticmethod
     def validParams():
         params = MooseObject.validParams()
-        params.addRequiredParam('average_load',  64.0, "Average load to allow")
-        params.addRequiredParam('max_processes', None, "Hard limit of maxium processes to use")
+        params.addParam('average_load',  64.0, "Average load to allow")
+        params.addParam('max_processes', None, "Hard limit of maxium processes to use")
         params.addParam('min_reported_time', 10, "The minimum time elapsed before a job is reported as taking to long to run.")
-
         return params
 
     # This is what will be checked for when we look for valid schedulers
     IS_SCHEDULER = True
 
-    def __init__(self, harness, params):
-        MooseObject.__init__(self, harness, params)
+    def __init__(self, harness, *args, **kwargs):
+        MooseObject.__init__(self, *args, **kwargs)
 
         ## The test harness to run callbacks on
         self.harness = harness
@@ -58,16 +57,16 @@ class Scheduler(MooseObject):
         # The Scheduler class can be initialized with no "max_processes" argument and it'll default
         # to a soft limit. If however a max_processes is passed we'll treat it as a hard limit.
         # The difference is whether or not we allow single jobs to exceed the number of slots.
-        if params['max_processes'] == None:
+        if self.getParam('max_processes') == None:
             self.available_slots = 1
             self.soft_limit = True
         else:
-            self.available_slots = params['max_processes'] # hard limit
+            self.available_slots = self.getParam('max_processes') # hard limit
             self.soft_limit = False
 
-        self.average_load = params['average_load']
+        self.average_load = self.getParam('average_load')
 
-        self.min_report_time = params['min_reported_time']
+        self.min_report_time = self.getParam('min_reported_time')
 
         # Initialize run_pool based on available slots
         self.run_pool = ThreadPool(processes=self.available_slots)

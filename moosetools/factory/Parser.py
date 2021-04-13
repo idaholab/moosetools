@@ -109,6 +109,7 @@ class Parser(base.MooseObject):
 
         # Set the object name to that of the block (e.g., [object])
         params.set('name', node.name)
+        params.add('_hit_path', default=node.fullpath, private=True)
 
         # Loop through all the parameters in the hit file
         for key, value in node.params():

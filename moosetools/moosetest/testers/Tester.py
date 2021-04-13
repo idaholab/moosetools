@@ -8,14 +8,15 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import platform, re, os, sys, pkgutil, shutil
-from moosetools import mooseutils
-import mooseutils
-from TestHarness import util
-from TestHarness.StatusSystem import StatusSystem
-from FactorySystem.MooseObject import MooseObject
 from tempfile import SpooledTemporaryFile
 import subprocess
 from signal import SIGTERM
+
+from moosetools import mooseutils
+from moosetools.base import MooseObject
+from moosetools.moosetest import util
+from moosetools.moosetest.StatusSystem import StatusSystem
+
 
 class Tester(MooseObject):
     """
@@ -26,7 +27,7 @@ class Tester(MooseObject):
         params = MooseObject.validParams()
 
         # Common Options
-        params.addRequiredParam('type', "The type of test of Tester to create for this test.")
+        #params.addRequiredParam('type', "The type of test of Tester to create for this test.")
         params.addParam('max_time',   int(os.getenv('MOOSE_TEST_MAX_TIME', 300)), "The maximum in seconds that the test will be allowed to run.")
         params.addParam('skip',     "Provide a reason this test will be skipped.")
         params.addParam('deleted',         "Tests that only show up when using the '-e' option (Permanently skipped or not implemented).")
@@ -34,12 +35,12 @@ class Tester(MooseObject):
 
         params.addParam('heavy',    False, "Set to True if this test should only be run when the '--heavy' option is used.")
         params.addParam('group',       [], "A list of groups for which this test belongs.")
-        params.addParam('prereq',      [], "A list of prereq tests that need to run successfully before launching this test. When 'prereq = ALL', TestHarness will run this test last. Multiple 'prereq = ALL' tests, or tests that depend on a 'prereq = ALL' test will result in cyclic errors. Naming a test 'ALL' when using 'prereq = ALL' will also result in an error.")
+        params.addParam('prereq', "", "A list of prereq tests that need to run successfully before launching this test. When 'prereq = ALL', TestHarness will run this test last. Multiple 'prereq = ALL' tests, or tests that depend on a 'prereq = ALL' test will result in cyclic errors. Naming a test 'ALL' when using 'prereq = ALL' will also result in an error.")
         params.addParam('skip_checks', False, "Tells the TestHarness to skip additional checks (This parameter is set automatically by the TestHarness during recovery tests)")
         params.addParam('scale_refine',    0, "The number of refinements to do when scaling")
         params.addParam('success_message', 'OK', "The successful message")
 
-        params.addParam('cli_args',       [], "Additional arguments to be passed to the test.")
+        params.addParam('cli_args', "", "Additional arguments to be passed to the test.")
         params.addParam('allow_test_objects', False, "Allow the use of test objects by adding --allow-test-objects to the command line.")
 
         params.addParam('valgrind', 'NONE', "Set to (NONE, NORMAL, HEAVY) to determine which configurations where valgrind will run.")
@@ -113,15 +114,19 @@ class Tester(MooseObject):
     # This is what will be checked for when we look for valid testers
     IS_TESTER = True
 
-    def __init__(self, name, params):
-        MooseObject.__init__(self, name, params)
-        self.specs = params
+    def __init__(self, *args, **kwargs):
+        MooseObject.__init__(self, *args, **kwargs)
+
+        self._parameters.set('prereq', self.getParam('prereq').split())
+        self._parameters.set('cli_args', self.getParam('cli_args').split())
+
+        self.specs = self._parameters
         self.outfile = None
         self.errfile = None
         self.joined_out = ''
         self.exit_code = 0
         self.process = None
-        self.tags = params['tags']
+        self.tags = self.specs['tags']
         self.__caveats = set([])
 
         # Alternate text we want to print as part of our status instead of the

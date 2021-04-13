@@ -7,8 +7,8 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from FileTester import FileTester
-from TestHarness import util
+from moosetools.moosetest.testers.FileTester import FileTester
+from moosetools.moosetest import util
 from moosetools.mooseutils.csvdiff import CSVTools
 from moosetools.mooseutils import colorText
 import os

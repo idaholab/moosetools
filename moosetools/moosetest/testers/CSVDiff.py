@@ -7,8 +7,8 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from FileTester import FileTester
-from TestHarness import util
+from moosetools.moosetest.testers.FileTester import FileTester
+from moosetools.moosetest import util
 import os
 
 class CSVDiff(FileTester):
@@ -21,13 +21,13 @@ class CSVDiff(FileTester):
         params.addParam('override_rel_err',   [], "A list of customized relative error tolerances.")
         params.addParam('override_abs_zero',   [], "A list of customized absolute zero tolerances.")
         params.addParam('comparison_file', "Use supplied custom comparison config file.")
-        params.addParam('rel_err', "A customized relative error tolerances.")
-        params.addParam('abs_zero', "A customized relative error tolerances.")
+        #params.addParam('rel_err', "A customized relative error tolerances.")
+        #params.addParam('abs_zero', "A customized relative error tolerances.")
 
         return params
 
-    def __init__(self, name, params):
-        FileTester.__init__(self, name, params)
+    def __init__(self, *args, **kwargs):
+        FileTester.__init__(self, *args, **kwargs)
 
     def getOutputFiles(self):
         return self.specs['csvdiff']

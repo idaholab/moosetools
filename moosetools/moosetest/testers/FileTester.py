@@ -7,8 +7,8 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from RunApp import RunApp
-from TestHarness import util
+from moosetools.moosetest.testers.RunApp import RunApp
+from moosetools.moosetest import util
 
 # Classes that derive from this class are expected to write
 # output files. The Tester::getOutputFiles() method should
@@ -22,8 +22,8 @@ class FileTester(RunApp):
         params.addParam('rel_err',       5.5e-6, "Relative error value used in exodiff comparisons.")
         return params
 
-    def __init__(self, name, params):
-        RunApp.__init__(self, name, params)
+    def __init__(self, *args, **kwargs):
+        RunApp.__init__(self, *args, **kwargs)
 
     def prepare(self, options):
         if self.specs['delete_output_before_running']:

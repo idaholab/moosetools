@@ -7,9 +7,10 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from FileTester import FileTester
 import os
 import sys
+from moosetools.moosetest import util
+from moosetools.moosetest.testers.FileTester import FileTester
 from moosetools.mooseutils.ImageDiffer import ImageDiffer
 
 class ImageDiff(FileTester):

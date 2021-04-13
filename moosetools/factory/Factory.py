@@ -28,7 +28,7 @@ class Factory(MooseObject):
     def validParams():
         params = MooseObject.validParams()
         params.add('plugin_dirs',
-                   default=(os.path.join(os.getcwd(), 'plugins'), ),
+                   #default=(os.path.join(os.getcwd(), 'plugins'), ),
                    vtype=str,
                    array=True,
                    verify=(lambda dirs: all(os.path.isdir(d) for d in dirs),

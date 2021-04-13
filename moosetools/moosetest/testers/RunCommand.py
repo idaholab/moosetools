@@ -7,7 +7,7 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from Tester import Tester
+from moosetools.moosetest.testers.Tester import Tester
 
 class RunCommand(Tester):
 
@@ -18,9 +18,9 @@ class RunCommand(Tester):
         params.addParam('test_name',          "The name of the test - populated automatically")
         return params
 
-    def __init__(self, name, params):
-        Tester.__init__(self, name, params)
-        self.command = params['command']
+    def __init__(self, *args, **kwargs):
+        Tester.__init__(self, *args, **kwargs)
+        self.command = self.specs['command']
 
     def getCommand(self, options):
         # Create the command line string to run

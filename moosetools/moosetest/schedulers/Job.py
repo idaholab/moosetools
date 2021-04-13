@@ -10,8 +10,8 @@
 import re, os, json
 import time
 from timeit import default_timer as clock
-from TestHarness.StatusSystem import StatusSystem
-from TestHarness.FileChecker import FileChecker
+from moosetools.moosetest.StatusSystem import StatusSystem
+from moosetools.moosetest.FileChecker import FileChecker
 
 class Timer(object):
     """

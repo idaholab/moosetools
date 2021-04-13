@@ -7,11 +7,11 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from RunApp import RunApp
 import re
 import math
-from TestHarness import util
 import os
+from moosetools.moosetest import util
+from moosetools.moosetest.testers.RunApp import RunApp
 
 class PetscJacobianTester(RunApp):
     @staticmethod
@@ -28,9 +28,9 @@ class PetscJacobianTester(RunApp):
         params.addParam('turn_off_exodus_output', True, "Whether to set exodus=false in Outputs")
 
         # override default values
-        params.valid['valgrind'] = 'NONE'
-        params.valid['petsc_version'] = ['>=3.9.4']
-        params.valid['method'] = ['OPT']
+        params.setDefault('valgrind', 'NONE')
+        params.setDefault('petsc_version', '>=3.9.4')
+        params.setDefault('method', 'OPT')
 
         return params
 
@@ -41,8 +41,8 @@ class PetscJacobianTester(RunApp):
             return False
         return RunApp.checkRunnable(self, options)
 
-    def __init__(self, name, params):
-        RunApp.__init__(self, name, params)
+    def __init__(self, *args, **kwargs):
+        RunApp.__init__(self, *args, **kwargs)
 
         self.moose_dir = os.environ.get('MOOSE_DIR',
                                         os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),

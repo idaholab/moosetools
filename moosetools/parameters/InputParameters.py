@@ -328,3 +328,19 @@ class InputParameters(object):
         elif mode == InputParameters.ErrorMode.EXCEPTION:
             from moosetools import base
             raise base.MooseException(msg)
+
+    # The following are deprecated
+    def addParam(self, name, *args, required=False):
+        if len(args) == 1:
+            self.add(name, doc=args[0], required=required)
+        elif len(args) == 2:
+            self.add(name, default=args[0], doc=args[1], required=required)
+
+    def addRequiredParam(self, name, *args):
+        self.addParam(name, *args, required=True)
+
+    def __getitem__(self, name):
+        return self.get(name)
+
+    def __setitem__(self, name, value):
+        return self.set(name, value)

@@ -20,6 +20,8 @@ from socket import gethostname
 from moosetools import factory
 from moosetools import pyhit
 from . import util
+from .testers.Tester import Tester
+from .schedulers.Scheduler import Scheduler
 
 import argparse
 from timeit import default_timer as clock
@@ -197,7 +199,6 @@ class TestHarness:
         os.chdir(rootdir)
         argv = argv[:1] + args + argv[1:]
 
-        self.factory = factory.Factory()
 
         self.app_name = app_name
 
@@ -208,15 +209,16 @@ class TestHarness:
 
         # Get dependant applications and load dynamic tester plugins
         # If applications have new testers, we expect to find them in <app_dir>/scripts/TestHarness/testers
-        dirs = [os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))]
-        dirs.append(os.path.join(moose_dir, 'share', 'moose', 'python', 'TestHarness', 'testers'))
+        dirs = (os.path.join(os.path.dirname(__file__), 'testers'), )
+        #dirs.append(os.path.join(moose_dir, 'share', 'moose', 'python', 'TestHarness', 'testers'))
 
         # Use the find_dep_apps script to get the dependant applications for an app
-        depend_app_dirs = findDepApps(app_name, use_current_only=True)
-        dirs.extend([os.path.join(my_dir, 'scripts', 'TestHarness') for my_dir in depend_app_dirs.split('\n')])
+        #depend_app_dirs = findDepApps(app_name, use_current_only=True)
+        #dirs.extend([os.path.join(my_dir, 'scripts', 'TestHarness') for my_dir in depend_app_dirs.split('\n')])
 
         # Finally load the plugins!
-        self.factory.loadPlugins(dirs, 'testers', "IS_TESTER")
+        self.factory = factory.Factory(plugin_dirs=dirs, plugin_type=Tester)
+        self.factory.load()
 
         self._infiles = ['tests', 'speedtests']
         self.parse_errors = []
@@ -445,14 +447,15 @@ class TestHarness:
     # abspath to basename (dirpath), and the test file in queustion (file)
     def createTesters(self, dirpath, file, find_only, testroot_params={}):
         # Build a Parser to parse the objects
-        parser = Parser(self.factory, self.warehouse)
+        parser = factory.Parser(self.factory, self.warehouse)
 
         # Parse it
-        parser.parse(file, testroot_params.get("root_params", self.root_params))
-        self.parse_errors.extend(parser.errors)
+        #parser.parse(file, testroot_params.get("root_params", self.root_params))
+        parser.parse(file)
+        #self.parse_errors.extend(parser.errors)
 
         # Retrieve the tests from the warehouse
-        testers = self.warehouse.getActiveObjects()
+        testers = self.warehouse.objects
 
         # Augment the Testers with additional information directly from the TestHarness
         for tester in testers:
@@ -464,7 +467,7 @@ class TestHarness:
         # Short circuit this loop if we've only been asked to parse Testers
         # Note: The warehouse will accumulate all testers in this mode
         if find_only:
-            self.warehouse.markAllObjectsInactive()
+            #self.warehouse.markAllObjectsInactive()
             return []
 
         # Clear out the testers, we won't need them to stick around in the warehouse
@@ -498,20 +501,20 @@ class TestHarness:
                 relative_path = relative_path.replace('/' + infile + '/', ':')
                 break
         relative_path = re.sub('^[/:]*', '', relative_path)  # Trim slashes and colons
-        relative_hitpath = os.path.join(*params['hit_path'].split(os.sep)[2:])  # Trim root node "[Tests]"
+        relative_hitpath = os.path.join(*params['_hit_path'].split(os.sep)[2:])  # Trim root node "[Tests]"
         formatted_name = relative_path + '.' + relative_hitpath
 
-        params['spec_file'] = filename
-        params['test_name'] = formatted_name
-        params['test_dir'] = test_dir
-        params['relative_path'] = relative_path
-        params['executable'] = testroot_params.get("executable", self.executable)
-        params['hostname'] = self.host_name
-        params['moose_dir'] = self.moose_dir
-        params['moose_python_dir'] = self.moose_python_dir
-        params['base_dir'] = self.base_dir
-        params['first_directory'] = first_directory
-        params['root_params'] = testroot_params.get("root_params", self.root_params)
+        params.add('spec_file', default=filename, private=True)
+        params.set('test_name', formatted_name)
+        params.add('test_dir', default=test_dir, private=True)
+        params.add('relative_path', default=relative_path, private=True)
+        params.add('executable', default=testroot_params.get("executable", self.executable), private=True)
+        params.add('hostname', default=self.host_name, private=True)
+        params.add('moose_dir', default=self.moose_dir, private=True)
+        params.add('moose_python_dir', default=self.moose_python_dir, private=True)
+        params.add('base_dir', default=self.base_dir, private=True)
+        params.add('first_directory', default=first_directory, private=True)
+        params.add('root_params', default=testroot_params.get("root_params", self.root_params), private=True)
 
         if params.isValid('prereq'):
             if type(params['prereq']) != list:
@@ -529,8 +532,8 @@ class TestHarness:
             tester.setStatus(tester.fail, 'Max Fails Exceeded')
         elif self.num_failed > self.options.max_fails:
             tester.setStatus(tester.fail, 'Max Fails Exceeded')
-        elif tester.parameters().isValid('have_errors') and tester.parameters()['have_errors']:
-            tester.setStatus(tester.fail, 'Parser Error')
+        #elif tester.parameters().isValid('have_errors') and tester.parameters()['have_errors']:
+        #    tester.setStatus(tester.fail, 'Parser Error')
 
     # This method splits a lists of tests into two pieces each, the first piece will run the test for
     # approx. half the number of timesteps and will write out a restart file.  The second test will
@@ -848,8 +851,11 @@ class TestHarness:
 
     def initialize(self, argv, app_name):
         # Load the scheduler plugins
-        plugin_paths = [os.path.join(self.moose_dir, 'python', 'TestHarness'), os.path.join(self.moose_dir, 'share', 'moose', 'python', 'TestHarness')]
-        self.factory.loadPlugins(plugin_paths, 'schedulers', "IS_SCHEDULER")
+        #plugin_paths = [os.path.join(self.moose_dir, 'python', 'TestHarness'), os.path.join(self.moose_dir, 'share', 'moose', 'python', 'TestHarness')]
+        dirs = (os.path.join(os.path.dirname(__file__), 'schedulers'), )
+
+        s_factory = factory.Factory(plugin_dirs=dirs, plugin_type=Scheduler)
+        s_factory.load()
 
         self.options.queueing = False
         if self.options.pbs:
@@ -867,14 +873,16 @@ class TestHarness:
             scheduler_plugin = 'RunParallel'
 
         # Augment the Scheduler params with plugin params
-        plugin_params = self.factory.validParams(scheduler_plugin)
+        #plugin_params = self.factory.validParams()
 
         # Set Scheduler specific params based on some provided options.arguments
-        plugin_params['max_processes'] = self.options.jobs
-        plugin_params['average_load'] = self.options.load
+        #plugin_params.add('max_processes', default=self.options.jobs)
+        #plugin_params.add('average_load', default=self.options.load)
 
         # Create the scheduler
-        self.scheduler = self.factory.create(scheduler_plugin, self, plugin_params)
+        self.scheduler = s_factory.create(scheduler_plugin, self,
+                                          max_processes=self.options.jobs,
+                                          average_load=self.options.load)
 
         ## Save executable-under-test name to self.executable
         exec_suffix = 'Windows' if platform.system() == 'Windows' else ''

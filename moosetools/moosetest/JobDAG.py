@@ -8,7 +8,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 from .schedulers.Job import Job
-from contrib import dag
+from .contrib import dag
 import pyhit
 import os
 

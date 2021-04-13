@@ -7,8 +7,8 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from FileTester import FileTester
-from TestHarness import util
+from moosetools.moosetest.testers.FileTester import FileTester
+from moosetools.moosetest import util
 import os
 
 def findExodiff(moose_dir):
@@ -25,7 +25,7 @@ class Exodiff(FileTester):
     @staticmethod
     def validParams():
         params = FileTester.validParams()
-        params.addRequiredParam('exodiff',   [], "A list of files to exodiff.")
+        params.addParam('exodiff',   [], "A list of files to exodiff.")
         params.addParam('exodiff_opts',      [], "Additional arguments to be passed to invocations of exodiff.")
         params.addParam('custom_cmp',            "Custom comparison file")
         params.addParam('use_old_floor',  False, "Use Exodiff old floor option")
@@ -36,8 +36,8 @@ class Exodiff(FileTester):
 
         return params
 
-    def __init__(self, name, params):
-        FileTester.__init__(self, name, params)
+    def __init__(self, *args, **kwargs):
+        FileTester.__init__(self, *args, **kwargs)
         if self.specs['map'] and self.specs['partial']:
             raise Exception("For the Exodiff tester, you cannot specify both 'map' and 'partial' as True")
 

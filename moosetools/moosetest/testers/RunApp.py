@@ -8,8 +8,8 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import re, os, shutil
-from Tester import Tester
-from TestHarness import util
+from moosetools.moosetest.testers.Tester import Tester
+from moosetools.moosetest import util
 
 class RunApp(Tester):
 
@@ -46,12 +46,12 @@ class RunApp(Tester):
         params.addParam('no_error_deprecated', False, "Don't pass --error-deprecated on the command line even when running the TestHarness with --error-deprecated")
 
         # Valgrind
-        params.addParam('valgrind', 'NORMAL', "Set to (NONE, NORMAL, HEAVY) to determine which configurations where valgrind will run.")
+        #params.addParam('valgrind', 'NORMAL', "Set to (NONE, NORMAL, HEAVY) to determine which configurations where valgrind will run.")
 
         return params
 
-    def __init__(self, name, params):
-        Tester.__init__(self, name, params)
+    def __init__(self, *args, **kwargs):
+        Tester.__init__(self, *args, **kwargs)
         if os.environ.get("MOOSE_MPI_COMMAND"):
             self.mpi_command = os.environ['MOOSE_MPI_COMMAND']
             self.force_mpi = True
@@ -60,7 +60,7 @@ class RunApp(Tester):
             self.force_mpi = False
 
         # Make sure that either input or command is supplied
-        if not (params.isValid('input') or params.isValid('command')):
+        if not (self.specs.isValid('input') or self.specs.isValid('command')):
             raise Exception('Either "input" or "command" must be supplied for a RunApp test')
 
     def getInputFile(self):

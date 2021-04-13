@@ -7,7 +7,7 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from RunApp import RunApp
+from moosetools.moosetest.testers.RunApp import RunApp
 import os
 
 class PythonUnitTest(RunApp):
@@ -16,7 +16,7 @@ class PythonUnitTest(RunApp):
         params = RunApp.validParams()
 
         # Input is optional in the base class. Make it required here
-        params.addRequiredParam('input', "The python input file to use for this test.")
+       # params.addRequiredParam('input', "The python input file to use for this test.")
         params.addParam('test_case', "The specific test case to run (Default: All test cases in the module)")
         params.addParam('buffer', False, "Equivalent to passing -b or --buffer to the unittest.")
         params.addParam('separate', False, "Run each test in the file in a separate subprocess")
@@ -26,8 +26,8 @@ class PythonUnitTest(RunApp):
         params['recover'] = False
         return params
 
-    def __init__(self, name, params):
-        RunApp.__init__(self, name, params)
+    def __init__(self, *args, **kwargs):
+        RunApp.__init__(self, *args, **kwargs)
 
     def getCommand(self, options):
         """
