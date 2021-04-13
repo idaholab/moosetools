@@ -12,7 +12,7 @@ import os
 import logging
 import subprocess
 
-hit_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'contrib', 'hit'))
+hit_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'contrib', 'hit'))
 sys.path.append(hit_dir)
 try:
     import hit

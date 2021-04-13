@@ -9,7 +9,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import unittest
-import moosetree
+from moosetools import moosetree
 from test_iterate import build_tree
 
 

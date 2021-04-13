@@ -14,7 +14,7 @@ import shutil
 import unittest
 import subprocess
 import time
-import mooseutils
+from moosetools import mooseutils
 
 
 class TestrPostprocessorReader(unittest.TestCase):

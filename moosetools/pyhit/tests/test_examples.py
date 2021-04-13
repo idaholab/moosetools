@@ -10,7 +10,7 @@
 
 import os
 import unittest
-import pyhit
+from moosetools import pyhit
 
 
 class TestExamples(unittest.TestCase):
@@ -23,8 +23,8 @@ class TestExamples(unittest.TestCase):
 
         # MOOSEDOCS:example-begin
         # Load the packages
-        import pyhit
-        import moosetree
+        from moosetools import pyhit
+        from moosetools import moosetree
 
         # Read the file
         root = pyhit.load(os.path.join(os.path.dirname(__file__), 'input.i'))

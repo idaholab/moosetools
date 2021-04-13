@@ -12,7 +12,7 @@ import os
 import shutil
 import unittest
 import tempfile
-import mooseutils
+from moosetools import mooseutils
 
 
 class Test(unittest.TestCase):

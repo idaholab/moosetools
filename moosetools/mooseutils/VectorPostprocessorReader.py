@@ -153,7 +153,7 @@ class VectorPostprocessorReader(object):
            (output, imports) The necessary script and include statements to re-create data load.
         """
 
-        imports = ['import mooseutils']
+        imports = ['from moosetools import mooseutils']
         output = ['\n# Read VectorPostprocessor Data']
         output += ['data = mooseutils.VectorPostprocessorReader({})'.format(repr(self._pattern))]
         return output, imports

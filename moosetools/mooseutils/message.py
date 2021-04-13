@@ -9,7 +9,7 @@
 
 import os
 import traceback
-from mooseutils import colorText
+from moosetools.mooseutils import colorText
 
 try:
     from PyQt5 import QtWidgets, QtCore

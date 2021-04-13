@@ -13,8 +13,8 @@ import sys
 import re
 import unittest
 
-from base import MooseException
-from parameters import InputParameters, Parameter
+from moosetools.base import MooseException
+from moosetools.parameters import InputParameters, Parameter
 
 
 class TestInputParameters(unittest.TestCase):

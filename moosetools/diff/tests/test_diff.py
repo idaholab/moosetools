@@ -11,7 +11,7 @@
 import sys
 import os
 import unittest
-import diff
+from moosetools import diff
 
 
 class TestDiff(unittest.TestCase):

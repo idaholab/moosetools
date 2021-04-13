@@ -12,7 +12,7 @@ import os
 import argparse
 import json
 import collections
-import mooseutils
+from moosetools import mooseutils
 
 
 def parse_args():

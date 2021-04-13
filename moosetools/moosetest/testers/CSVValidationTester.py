@@ -9,8 +9,8 @@
 
 from FileTester import FileTester
 from TestHarness import util
-from mooseutils.csvdiff import CSVTools
-from mooseutils import colorText
+from moosetools.mooseutils.csvdiff import CSVTools
+from moosetools.mooseutils import colorText
 import os
 import math
 import statistics

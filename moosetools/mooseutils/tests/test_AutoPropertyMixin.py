@@ -11,9 +11,9 @@
 import platform
 import os
 import unittest
-import mooseutils
 import pickle
 import multiprocessing
+from moosetools import mooseutils
 
 # Fix python 3.8/3.9 on MacOS due to this https://github.com/python/cpython/pull/13603
 # There is some more information here:

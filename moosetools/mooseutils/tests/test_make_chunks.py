@@ -9,7 +9,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import unittest
-import mooseutils
+from moosetools import mooseutils
 
 
 class Test(unittest.TestCase):

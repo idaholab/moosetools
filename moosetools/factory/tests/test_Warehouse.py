@@ -12,8 +12,8 @@ import sys
 import importlib
 import unittest
 from unittest import mock
-import parameters
-import factory
+from moosetools import parameters
+from moosetools import factory
 
 
 class TestWarehouse(unittest.TestCase):

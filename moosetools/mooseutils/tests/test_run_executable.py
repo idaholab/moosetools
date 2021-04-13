@@ -11,7 +11,7 @@
 import unittest
 from unittest import mock
 import subprocess
-import mooseutils
+from moosetools import mooseutils
 
 
 class Test(unittest.TestCase):

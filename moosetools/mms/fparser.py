@@ -184,7 +184,7 @@ def build_hit(expr, name, **kwargs):
         name[str]: The name of the input file block to create
         kwargs: Key, value pairs for val, vals input parameters (defaults to 1.0) if not provided
     """
-    import pyhit
+    from moosetools import pyhit
 
     if hasattr(expr, 'free_symbols'):
         symbols = set([str(s)

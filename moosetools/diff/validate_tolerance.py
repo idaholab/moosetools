@@ -11,7 +11,7 @@ import os
 import sys
 import json
 import logging
-import mooseutils
+from moosetools import mooseutils
 
 
 def validate_tolerance(relative_error, absolute_error, raise_on_error=False, log_on_error=True):

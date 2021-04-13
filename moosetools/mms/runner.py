@@ -9,8 +9,8 @@
 
 import os
 import copy
-import mooseutils
 import pandas
+from moosetools import mooseutils
 
 SPATIAL = 0
 TEMPORAL = 1

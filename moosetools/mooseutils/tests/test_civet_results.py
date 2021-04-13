@@ -10,7 +10,7 @@
 
 import collections
 import unittest
-import mooseutils.civet_results as cr
+from moosetools.mooseutils import civet_results as cr
 
 SITE = 'https://civet.inl.gov'
 REPO = 'idaholab/moose'

@@ -9,7 +9,7 @@
 """Wrapper for hit parser."""
 import os
 import subprocess
-import moosetree
+from moosetools import moosetree
 import hit
 
 

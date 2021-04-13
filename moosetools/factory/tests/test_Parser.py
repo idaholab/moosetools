@@ -10,9 +10,9 @@
 import os
 import unittest
 from unittest import mock
-import parameters
-import pyhit
-import factory
+from moosetools import parameters
+from moosetools import pyhit
+from moosetools import factory
 
 from plugins import TestObject
 
@@ -117,7 +117,7 @@ class TestParser(unittest.TestCase):
         w = factory.Warehouse()
         p = factory.Parser(f, w)
 
-        with mock.patch('pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.load') as load:
             load.return_value = root
             p.parse('test0.hit')
 
@@ -141,7 +141,7 @@ class TestParser(unittest.TestCase):
         self.assertIn("The filename 'wrong' does not exist.", log.output[0])
 
         # FAIL PYHIT.LOAD
-        with mock.patch('pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.load') as load:
             load.side_effect = Exception()
             with self.assertLogs(level='ERROR') as log:
                 p.parse('test0.hit')
@@ -152,7 +152,7 @@ class TestParser(unittest.TestCase):
         # MISSING TYPE
         root = pyhit.Node(None, 'Tests')
         root.append('obj0', raise_on_init='True')
-        with mock.patch('pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.load') as load:
             load.return_value = root
             with self.assertLogs(level='ERROR') as log:
                 p.parse('test0.hit')
@@ -163,7 +163,7 @@ class TestParser(unittest.TestCase):
         # OBJECT FAILS VALIDPARAMS
         root = pyhit.Node(None, 'Tests')
         root.append('obj0', type='TestObjectBadParams')
-        with mock.patch('pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.load') as load:
             load.return_value = root
             with self.assertLogs(level='ERROR') as log:
                 p.parse('test0.hit')
@@ -176,7 +176,7 @@ class TestParser(unittest.TestCase):
         # PARAM NO EXISTY
         root = pyhit.Node(None, 'Tests')
         root.append('obj0', type='TestObject', nope='1')
-        with mock.patch('pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.load') as load:
             load.return_value = root
             with self.assertLogs(level='ERROR') as log:
                 p.parse('test0.hit')
@@ -187,7 +187,7 @@ class TestParser(unittest.TestCase):
         # PARAM WRONG TYPE
         root = pyhit.Node(None, 'Tests')
         root.append('obj0', type='TestObject', par_int='abc')
-        with mock.patch('pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.load') as load:
             load.return_value = root
             with self.assertLogs(level='ERROR') as log:
                 p.parse('test0.hit')
@@ -200,7 +200,7 @@ class TestParser(unittest.TestCase):
         # OBJECT FAILS __INIT__
         root = pyhit.Node(None, 'Tests')
         root.append('obj0', type='TestObjectBadInit')
-        with mock.patch('pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.load') as load:
             load.return_value = root
             with self.assertLogs(level='ERROR') as log:
                 p.parse('test0.hit')
@@ -215,7 +215,7 @@ class TestParser(unittest.TestCase):
         root = pyhit.Node(None, 'Tests')
         root.append('obj0', type='TestObject')
         root.append('obj0', type='TestObject')
-        with mock.patch('pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.load') as load:
             load.return_value = root
             with self.assertLogs(level='ERROR') as log:
                 p.parse('test0.hit')

@@ -10,7 +10,7 @@
 
 import os
 import unittest
-import pyhit
+from moosetools import pyhit
 
 
 class TestHitTokenize(unittest.TestCase):

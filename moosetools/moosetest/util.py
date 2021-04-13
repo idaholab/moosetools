@@ -9,9 +9,9 @@
 
 import platform, os, re
 import subprocess
-from mooseutils import colorText
 from collections import OrderedDict
 import json
+from moosetools.mooseutils import colorText
 
 TERM_COLS = int(os.getenv('MOOSE_TERM_COLS', '110'))
 TERM_FORMAT = os.getenv('MOOSE_TERM_FORMAT', 'njcst')

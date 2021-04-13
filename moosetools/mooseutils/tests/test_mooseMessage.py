@@ -12,7 +12,7 @@ import sys
 import unittest
 from io import StringIO
 from unittest import mock
-from mooseutils import message
+from moosetools.mooseutils import message
 
 
 class TestMooseMessage(unittest.TestCase):

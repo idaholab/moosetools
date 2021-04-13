@@ -10,8 +10,8 @@
 
 import unittest
 import logging
-import parameters
-from base import MooseObject, MooseException
+from moosetools import parameters
+from moosetools.base import MooseObject, MooseException
 
 
 class CustomObject(MooseObject):

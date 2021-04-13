@@ -9,7 +9,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import unittest
-import mms
+from moosetools import mms
 
 
 class TestMMS(unittest.TestCase):

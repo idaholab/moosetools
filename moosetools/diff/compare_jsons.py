@@ -12,7 +12,7 @@ import sys
 import json
 import logging
 
-import mooseutils
+from moosetools import mooseutils
 from .validate_tolerance import validate_tolerance
 from .MooseDeepDiff import MooseDeepDiff
 

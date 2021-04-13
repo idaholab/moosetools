@@ -9,8 +9,8 @@
 
 from sympy import *  # use star so all functions are available to supplied strings
 from sympy.vector import divergence, gradient, Vector, CoordSys3D
-from mms.fparser import print_fparser
-from mms.moosefunction import print_moose
+from .fparser import print_fparser
+from .moosefunction import print_moose
 
 
 def evaluate(pde,

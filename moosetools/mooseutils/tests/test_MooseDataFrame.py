@@ -12,7 +12,7 @@ import os
 import shutil
 import unittest
 import time
-import mooseutils
+from moosetools import mooseutils
 
 
 class TestMooseDataFrame(unittest.TestCase):

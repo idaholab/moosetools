@@ -12,7 +12,7 @@ import os
 import glob
 import shutil
 import unittest
-import mooseutils
+from moosetools import mooseutils
 import time
 import subprocess
 

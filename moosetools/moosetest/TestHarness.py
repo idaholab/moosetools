@@ -17,11 +17,9 @@ import subprocess
 import shutil
 
 from socket import gethostname
-from FactorySystem.Factory import Factory
-from FactorySystem.Parser import Parser
-from FactorySystem.Warehouse import Warehouse
+from moosetools import factory
+from moosetools import pyhit
 from . import util
-import pyhit
 
 import argparse
 from timeit import default_timer as clock
@@ -199,14 +197,14 @@ class TestHarness:
         os.chdir(rootdir)
         argv = argv[:1] + args + argv[1:]
 
-        self.factory = Factory()
+        self.factory = factory.Factory()
 
         self.app_name = app_name
 
         self.root_params = root_params
 
         # Build a Warehouse to hold the MooseObjects
-        self.warehouse = Warehouse()
+        self.warehouse = factory.Warehouse()
 
         # Get dependant applications and load dynamic tester plugins
         # If applications have new testers, we expect to find them in <app_dir>/scripts/TestHarness/testers

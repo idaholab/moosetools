@@ -14,9 +14,8 @@ import unittest
 from unittest import mock
 import tempfile
 import subprocess
-import mooseutils
-
-from mooseutils.gitutils import git_submodule_status
+from moosetools import mooseutils
+from moosetools.mooseutils.gitutils import git_submodule_status
 
 
 class Test(unittest.TestCase):
@@ -52,7 +51,7 @@ class Test(unittest.TestCase):
     @unittest.skipIf(not mooseutils.is_git_repo(), "Not a Git repository")
     def testGitRootDir(self):
         root = mooseutils.git_root_dir()
-        self.assertEqual(root, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+        self.assertEqual(root, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
     @unittest.skipIf(not mooseutils.is_git_repo(), "Not a Git repository")
     def testGitSubmoduleStatus(self):
@@ -61,7 +60,7 @@ class Test(unittest.TestCase):
         self.assertEqual(status, dict())
 
     @mock.patch('subprocess.call')
-    @mock.patch('mooseutils.gitutils.git_submodule_status')
+    @mock.patch('moosetools.mooseutils.gitutils.git_submodule_status')
     @unittest.skipIf(not mooseutils.is_git_repo(), "Not a Git repository")
     def testGitInitSubmodule(self, status_func, call_func):
         status_func.return_value = {'test': '-'}
@@ -123,7 +122,7 @@ class Test(unittest.TestCase):
     def testGitLocalPath(self):
         filename = os.path.abspath(__file__)
         local = mooseutils.git_localpath(filename)
-        self.assertEqual(local, 'mooseutils/tests/test_gitutils.py')
+        self.assertEqual(local, 'moosetools/mooseutils/tests/test_gitutils.py')
 
     @mock.patch('subprocess.run')
     def testGitRepo(self, mock_out):

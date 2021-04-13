@@ -12,7 +12,7 @@ import os
 import sys
 import unittest
 
-from mooseutils.validate import validate_extension, validate_paths_exist
+from moosetools.mooseutils.validate import validate_extension, validate_paths_exist
 
 
 class TestValidate(unittest.TestCase):

@@ -49,7 +49,7 @@ class PostprocessorReader(MooseDataFrame):
            (output, imports) The necessary script and include statements to re-create data load.
         """
 
-        imports = ['import mooseutils']
+        imports = ['from moosetools import mooseutils']
         output = ['\n# Read Postprocessor Data']
         output += ['data = mooseutils.PostprocessorReader({})'.format(repr(self.filename))]
         return output, imports

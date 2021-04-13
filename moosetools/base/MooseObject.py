@@ -9,7 +9,7 @@
 
 import sys
 import logging
-import parameters
+from moosetools import parameters
 
 
 class MooseObject(object):

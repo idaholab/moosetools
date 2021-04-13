@@ -8,6 +8,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import platform, re, os, sys, pkgutil, shutil
+from moosetools import mooseutils
 import mooseutils
 from TestHarness import util
 from TestHarness.StatusSystem import StatusSystem

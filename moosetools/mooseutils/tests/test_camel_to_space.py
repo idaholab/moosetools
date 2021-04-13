@@ -9,7 +9,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import unittest
-from mooseutils import camel_to_space
+from moosetools.mooseutils import camel_to_space
 
 
 class TestCamelCaseToSpace(unittest.TestCase):

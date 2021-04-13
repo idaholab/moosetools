@@ -10,7 +10,7 @@
 
 import sys
 import unittest
-import mooseutils
+from moosetools import mooseutils
 
 try:
     from PyQt5 import QtWidgets, QtCore

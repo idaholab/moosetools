@@ -11,7 +11,7 @@
 import os
 import unittest
 import tempfile
-from mooseutils.yaml_load import yaml_load, yaml_write, IncludeYamlFile
+from moosetools.mooseutils.yaml_load import yaml_load, yaml_write, IncludeYamlFile
 
 
 class TestYamlLoad(unittest.TestCase):

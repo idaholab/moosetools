@@ -10,7 +10,7 @@
 from FileTester import FileTester
 import os
 import sys
-from mooseutils.ImageDiffer import ImageDiffer
+from moosetools.mooseutils.ImageDiffer import ImageDiffer
 
 class ImageDiff(FileTester):
 

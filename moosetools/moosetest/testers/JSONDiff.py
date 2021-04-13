@@ -10,7 +10,7 @@
 from RunApp import RunApp
 from TestHarness import util
 import os
-from mooseutils import JSONDiffer
+from moosetools.mooseutils import JSONDiffer
 
 class JSONDiff(RunApp):
 
