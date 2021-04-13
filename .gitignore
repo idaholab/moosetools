@@ -10,6 +10,7 @@ htmlcov/
 contrib/unit/moosetools-unit
 contrib/hit/hit
 contrib/hit/hit.*
+contrib/hit/*.dylib
 contrib/**/.libs
 contrib/**/*.o
 contrib/**/*.la
