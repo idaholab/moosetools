@@ -127,10 +127,10 @@ class SpeedTest(Tester):
     def __init__(self, *args, **kwargs):
         Tester.__init__(self, *args, **kwargs)
         self.tags.append('speedtests')
-        self.timeout = max(3600, float(params['max_time']))
+        self.timeout = max(3600, float(self.specs['max_time']))
         self.check_only = False
 
-        self.params = params
+        #self.params = params
         self.benchmark = None
         self.db = os.environ.get('MOOSE_SPEED_DB', 'speedtests.sqlite')
 
@@ -147,14 +147,14 @@ class SpeedTest(Tester):
         # if user is not explicitly running benchmarks, we only run moose once and just check
         # input - to make sure the benchmark isn't broken.
         if 'speedtests' not in options.runtags:
-            self.params['max_runs'] = 1
-            self.params['cli_args'].insert(0, '--check-input')
+            self.specs['max_runs'] = 1
+            self.specs['cli_args'].insert(0, '--check-input')
             self.check_only = True
         return True
 
     # override
     def run(self, timer, options):
-        p = self.params
+        p = self.specs
         if not self.check_only and options.method not in ['opt', 'oprof', 'dbg']:
             raise ValueError('cannot run benchmark with "' + options.method + '" build')
         t = Test(p['executable'], p['input'], args=p['cli_args'], rootdir=p['test_dir'], perflog=p['perflog'])

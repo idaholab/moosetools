@@ -16,8 +16,8 @@ class CheckFiles(FileTester):
     @staticmethod
     def validParams():
         params = FileTester.validParams()
-        params.addParam('check_files', [], "A list of files that MUST exist.")
-        params.addParam('check_not_exists', [], "A list of files that must NOT exist.")
+        params.add('check_files', vtype=str, array=True, doc="A list of files that MUST exist.")
+        params.add('check_not_exists', vtype=str, array=True, doc="A list of files that must NOT exist.")
         params.addParam('file_expect_out', "A regular expression that must occur in all of the check files in order for the test to be considered passing.")
         return params
 
@@ -29,7 +29,13 @@ class CheckFiles(FileTester):
             raise Exception('Either "check_files" or "check_not_exists" must be supplied for a CheckFiles test')
 
     def getOutputFiles(self):
-        return self.specs['check_files'] + self.specs['check_not_exists']
+        out = list()
+        for key in ['check_files', 'check_not_exists']:
+            files = self.specs[key]
+            if files is not None:
+                out += list(files)
+
+        return out
 
     def processResults(self, moose_dir, options, output):
         output += FileTester.processResults(self, moose_dir, options, output)
@@ -41,11 +47,11 @@ class CheckFiles(FileTester):
         else:
             reason = ''
             # if still no errors, check other files (just for existence)
-            for file in self.specs['check_files']:
+            for file in (self.specs['check_files'] or []):
                 if not os.path.isfile(os.path.join(self.getTestDir(), file)):
                     reason = 'MISSING FILES'
                     break
-            for file in self.specs['check_not_exists']:
+            for file in (self.specs['check_not_exists'] or []):
                 if os.path.isfile(os.path.join(self.getTestDir(), file)):
                     reason = 'UNEXPECTED FILES'
                     break

@@ -319,9 +319,7 @@ def parse(content, root=None, filename=''):
     """
     hit_node = hit.parse(filename, content)
     hit.explode(hit_node)
-    root = Node(root, hit_node) if root is not None else Node(None, hit_node)
-    _parse_hit(root, hit_node, filename)
-    return root
+    return _parse_hit(Node(root, hit_node), hit_node, filename)
 
 
 def tokenize(content, filename=''):

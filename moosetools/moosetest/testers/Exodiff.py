@@ -25,8 +25,8 @@ class Exodiff(FileTester):
     @staticmethod
     def validParams():
         params = FileTester.validParams()
-        params.addParam('exodiff',   [], "A list of files to exodiff.")
-        params.addParam('exodiff_opts',      [], "Additional arguments to be passed to invocations of exodiff.")
+        params.add('exodiff',  vtype=str, array=True, doc="A list of files to exodiff.")
+        params.add('exodiff_opts', vtype=str, array=True, doc="Additional arguments to be passed to invocations of exodiff.")
         params.addParam('custom_cmp',            "Custom comparison file")
         params.addParam('use_old_floor',  False, "Use Exodiff old floor option")
         params.addParam('map',  True, "Use geometrical mapping to match up elements.  This is usually a good idea because it makes files comparable between runs with Serial and Parallel Mesh.")
@@ -38,6 +38,7 @@ class Exodiff(FileTester):
 
     def __init__(self, *args, **kwargs):
         FileTester.__init__(self, *args, **kwargs)
+
         if self.specs['map'] and self.specs['partial']:
             raise Exception("For the Exodiff tester, you cannot specify both 'map' and 'partial' as True")
 
@@ -65,8 +66,9 @@ class Exodiff(FileTester):
             else:
                 partial_option = ''
 
+            exo_opts = ' '.join(self.specs['exodiff_opts']) if self.specs['exodiff_opts'] else ''
             commands.append(findExodiff(moose_dir) + map_option + partial_option + custom_cmp + ' -F' + ' ' + str(self.specs['abs_zero']) \
-                            + old_floor + ' -t ' + str(self.specs['rel_err']) + ' ' + ' '.join(self.specs['exodiff_opts']) + ' ' \
+                            + old_floor + ' -t ' + str(self.specs['rel_err']) + ' ' + exo_opts + ' ' \
                             + os.path.join(self.getTestDir(), self.specs['gold_dir'], file) + ' ' + os.path.join(self.getTestDir(), file))
 
 
@@ -95,8 +97,8 @@ class Exodiff(FileTester):
 
             for command in commands:
                 exo_output = util.runCommand(command)
-
-                output += 'Running exodiff: ' + command + '\n' + exo_output + ' ' + ' '.join(self.specs['exodiff_opts'])
+                exo_opts = ' '.join(self.specs['exodiff_opts']) if self.specs['exodiff_opts'] else ''
+                output += 'Running exodiff: ' + command + '\n' + exo_output + ' ' + exo_opts
 
                 if ('different' in exo_output or 'ERROR' in exo_output) and not "Files are the same" in exo_output:
                     self.setStatus(self.diff, 'EXODIFF')

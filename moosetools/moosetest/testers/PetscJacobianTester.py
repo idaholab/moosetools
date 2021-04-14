@@ -29,7 +29,7 @@ class PetscJacobianTester(RunApp):
 
         # override default values
         params.setDefault('valgrind', 'NONE')
-        params.setDefault('petsc_version', '>=3.9.4')
+        params.setDefault('petsc_version', ('>=3.9.4',))
         params.setDefault('method', 'OPT')
 
         return params

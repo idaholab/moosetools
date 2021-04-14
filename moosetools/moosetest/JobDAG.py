@@ -8,8 +8,8 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 from .schedulers.Job import Job
-from .contrib import dag
-import pyhit
+from . import dag
+from moosetools import pyhit
 import os
 
 class JobDAG(object):

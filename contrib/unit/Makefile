@@ -10,7 +10,7 @@ GTEST_DIR = ../gtest
 UNIT_SRCFILES := $(shell find ./src -name "*.C")
 
 # Flags passed to the C++ compiler.
-CXXFLAGS += -g -DGTEST_HAS_PTHREAD=0
+CXXFLAGS += -g -DGTEST_HAS_PTHREAD=0 -std=c++11
 
 all : moosetools-unit
 

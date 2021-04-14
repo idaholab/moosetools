@@ -19,8 +19,10 @@ class RunApp(Tester):
         params.addParam('input',              "The input file to use for this test.")
         params.addParam('test_name',          "The name of the test - populated automatically")
         params.addParam('input_switch', '-i', "The default switch used for indicating an input to the executable")
-        params.addParam('errors',             ['ERROR', 'command not found', 'terminate called after throwing an instance of'], "The error messages to detect a failed run")
-        params.addParam('expect_out',         "A regular expression or literal string that must occur in the input in order for the test to be considered passing (see match_literal).")
+        params.add('errors', vtype=str, array=True, default=('ERROR', 'command not found', 'terminate called after throwing an instance of'), doc="The error messages to detect a failed run")
+        params.add('expect_out', vtype=str, doc="A regular expression or literal string that must occur in the input in order for the test to be considered passing (see match_literal).")
+        params.add('expect_err', vtype=str, doc="A regular expression or literal string that must occur in the output (see match_literal). (Test may terminate unexpectedly and be considered passing)")
+
         params.addParam('match_literal', False, "Treat expect_out as a string not a regular expression.")
         params.addParam('absent_out',         "A regular expression that must be *absent* from the output for the test to pass.")
         params.addParam('should_crash', False, "Inidicates that the test is expected to crash or otherwise terminate early")
@@ -37,7 +39,6 @@ class RunApp(Tester):
         params.addParam('min_parallel',    1, "Minimum number of MPI processes that this test can be run with (Default: 1)")
         params.addParam('max_threads',    16, "Max number of threads (Default: 16)")
         params.addParam('min_threads',     1, "Min number of threads (Default: 1)")
-        params.addParam('redirect_output',  False, "Redirect stdout to files. Neccessary when expecting an error when using parallel options")
 
         params.addParam('allow_warnings',   True, "Whether or not warnings are allowed.  If this is False then a warning will be treated as an error.  Can be globally overridden by setting 'allow_warnings = False' in the testroot file.");
         params.addParam('allow_unused',   True, "Whether or not unused parameters are allowed in the input file.  Can be globally overridden by setting 'allow_unused = False' in the testroot file.");
@@ -230,7 +231,7 @@ class RunApp(Tester):
                            }
 
         for param,attr in params_and_msgs.items():
-            if specs.isValid(param) and (options.method in attr['modes'] or attr['modes'] == ['ALL']):
+            if (param in specs) and specs.isValid(param) and (options.method in attr['modes'] or attr['modes'] == ['ALL']):
                 match_type = ""
                 if specs['match_literal']:
                     have_expected_out = util.checkOutputForLiteral(output, specs[param])
@@ -258,7 +259,7 @@ class RunApp(Tester):
             # We won't pay attention to the ERROR strings if EXPECT_ERR is set (from the derived class)
             # since a message to standard error might actually be a real error.  This case should be handled
             # in the derived class.
-            if options.valgrind_mode == '' and not specs.isValid('expect_err') and len( [x for x in filter( lambda x: x in output, specs['errors'] )] ) > 0:
+            if options.valgrind_mode == '' and ('expect_err' in specs and not specs.isValid('expect_err')) and len( [x for x in filter( lambda x: x in output, specs['errors'] )] ) > 0:
                 reason = 'ERRMSG'
             elif self.exit_code == 0 and specs['should_crash'] == True:
                 reason = 'NO CRASH'

@@ -16,10 +16,10 @@ class CSVDiff(FileTester):
     @staticmethod
     def validParams():
         params = FileTester.validParams()
-        params.addRequiredParam('csvdiff',   [], "A list of files to run CSVDiff on.")
-        params.addParam('override_columns',   [], "A list of variable names to customize the CSVDiff tolerances.")
-        params.addParam('override_rel_err',   [], "A list of customized relative error tolerances.")
-        params.addParam('override_abs_zero',   [], "A list of customized absolute zero tolerances.")
+        params.add('csvdiff', vtype=str, array=True, doc="A list of files to run CSVDiff on.")
+        params.add('override_columns', array=True, vtype=str, doc="A list of variable names to customize the CSVDiff tolerances.")
+        params.add('override_rel_err',  array=True, doc="A list of customized relative error tolerances.")
+        params.add('override_abs_zero',  array=True, doc="A list of customized absolute zero tolerances.")
         params.addParam('comparison_file', "Use supplied custom comparison config file.")
         #params.addParam('rel_err', "A customized relative error tolerances.")
         #params.addParam('abs_zero', "A customized relative error tolerances.")
@@ -34,11 +34,11 @@ class CSVDiff(FileTester):
 
     # Check that override parameter lists are the same length
     def checkRunnable(self, options):
-        if ((len(self.specs['override_columns']) != len(self.specs['override_rel_err']))
-        or (len(self.specs['override_columns']) != len(self.specs['override_abs_zero']))
-        or (len(self.specs['override_rel_err']) != len(self.specs['override_abs_zero']))):
-           self.setStatus(self.fail, 'Override inputs not the same length')
-           return False
+        #if (((self.specs['override_columns'] is not None) != len(self.specs['override_rel_err']))
+        #or ((self.specs['override_columns'] is not None) != len(self.specs['override_abs_zero']))
+        #or ((self.specs['override_rel_err'] is not None) != len(self.specs['override_abs_zero']))):
+        #   self.setStatus(self.fail, 'Override inputs not the same length')
+        #   return False
         return FileTester.checkRunnable(self, options)
 
     def processResultsCommand(self, moose_dir, options):

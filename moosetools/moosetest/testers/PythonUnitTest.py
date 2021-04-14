@@ -21,7 +21,7 @@ class PythonUnitTest(RunApp):
         params.addParam('buffer', False, "Equivalent to passing -b or --buffer to the unittest.")
         params.addParam('separate', False, "Run each test in the file in a separate subprocess")
         # We don't want to check for any errors on the screen with unit tests
-        params['errors'] = []
+        params['errors'] = tuple()
         params['valgrind'] = 'NONE'
         params['recover'] = False
         return params

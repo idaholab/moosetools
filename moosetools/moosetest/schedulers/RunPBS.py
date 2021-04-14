@@ -8,8 +8,8 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os, re
-from QueueManager import QueueManager
-from TestHarness import util # to execute qsub
+from moosetools.moosetest.schedulers.QueueManager import QueueManager
+from moosetools.moosetest import util # to execute qsub
 import math # to compute node requirement
 
 ## This Class is responsible for maintaining an interface to the PBS scheduling syntax

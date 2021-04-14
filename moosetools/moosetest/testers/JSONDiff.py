@@ -17,7 +17,7 @@ class JSONDiff(RunApp):
     @staticmethod
     def validParams():
         params = RunApp.validParams()
-        params.addRequiredParam('jsondiff',   [], "A list of XML files to compare.")
+        params.add('jsondiff', vtype=str, array=True, required=True, doc="A list of XML files to compare.")
         params.addParam('gold_dir',      'gold', "The directory where the \"golden standard\" files reside relative to the TEST_DIR: (default: ./gold/)")
         params.addParam('skip_keys', [], "A list of keys to skip in the JSON comparison")
         return params

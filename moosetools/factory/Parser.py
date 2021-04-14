@@ -71,6 +71,7 @@ class Parser(base.MooseObject):
 
         try:
             root = pyhit.load(filename)
+
         except Exception as err:
             self.exception("Failed to load filename with pyhit: {}", filename)
             return 1
@@ -126,7 +127,7 @@ class Parser(base.MooseObject):
             param = params.parameter(key)
             vtype = param.vtype
             if param.array or ((vtype is not None) and (type(value) not in vtype)):
-                new_value = self._getValueFromStr(vtype, value, param.array)
+                new_value = self._getValueFromStr(vtype, str(value), param.array)
                 if new_value is None:
                     msg = "{}:{}\nFailed to convert '{}' to the correct type(s) of '{}' for '{}' parameter."
                     self.error(msg, filename, node.line(key, -1), new_value, vtype, key)
@@ -178,7 +179,7 @@ class Parser(base.MooseObject):
         """
         assert isinstance(vtypes, tuple) and all(
             isinstance(v, type) for v in vtypes), "'vtypes' must be a tuple of types"
-        assert isinstance(str_value, str), "'str_value' must be a string"
+        assert isinstance(str_value, str), "'str_value' must be a string, a type of {} provided in value {}".format(type, str_value, repr(str_value))
         assert isinstance(array, bool), "'array' must be a bool"
 
         def convert(val, vtypes):

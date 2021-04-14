@@ -34,11 +34,12 @@ class Tester(MooseObject):
         params.addParam('unique_test_id', "The unique hash given to a test")
 
         params.addParam('heavy',    False, "Set to True if this test should only be run when the '--heavy' option is used.")
-        params.addParam('group',       [], "A list of groups for which this test belongs.")
+        params.add('group', vtype=str, array=True, doc="A list of groups for which this test belongs.")
         params.addParam('prereq', "", "A list of prereq tests that need to run successfully before launching this test. When 'prereq = ALL', TestHarness will run this test last. Multiple 'prereq = ALL' tests, or tests that depend on a 'prereq = ALL' test will result in cyclic errors. Naming a test 'ALL' when using 'prereq = ALL' will also result in an error.")
         params.addParam('skip_checks', False, "Tells the TestHarness to skip additional checks (This parameter is set automatically by the TestHarness during recovery tests)")
         params.addParam('scale_refine',    0, "The number of refinements to do when scaling")
         params.addParam('success_message', 'OK', "The successful message")
+        params.addParam('redirect_output',  False, "Redirect stdout to files. Neccessary when expecting an error when using parallel options")
 
         params.addParam('cli_args', "", "Additional arguments to be passed to the test.")
         params.addParam('allow_test_objects', False, "Allow the use of test objects by adding --allow-test-objects to the command line.")
@@ -52,9 +53,9 @@ class Tester(MooseObject):
         # Test Filters
         params.addParam('platform',      ['ALL'], "A list of platforms for which this test will run on. ('ALL', 'DARWIN', 'LINUX', 'SL', 'LION', 'ML')")
         params.addParam('compiler',      ['ALL'], "A list of compilers for which this test is valid on. ('ALL', 'GCC', 'INTEL', 'CLANG')")
-        params.addParam('petsc_version', ['ALL'], "A list of petsc versions for which this test will run on, supports normal comparison operators ('<', '>', etc...)")
+        params.add('petsc_version', vtype=str, array=True, default=('ALL',), doc="A list of petsc versions for which this test will run on, supports normal comparison operators ('<', '>', etc...)")
         params.addParam('petsc_version_release', ['ALL'], "A test that runs against PETSc master if FALSE ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('slepc_version', [], "A list of slepc versions for which this test will run on, supports normal comparison operators ('<', '>', etc...)")
+        params.add('slepc_version', vtype=str, array=True, default=('ALL',), doc= "A list of slepc versions for which this test will run on, supports normal comparison operators ('<', '>', etc...)")
         params.addParam('mesh_mode',     ['ALL'], "A list of mesh modes for which this test will run ('DISTRIBUTED', 'REPLICATED')")
         params.addParam('min_ad_size',   None, "A minimum AD size for which this test will run")
         params.addParam('ad_mode',       ['ALL'], "A list of AD modes for which this test will run ('SPARSE', 'NONSPARSE')")
@@ -66,7 +67,7 @@ class Tester(MooseObject):
         params.addParam('recover',       True,    "A test that runs with '--recover' mode enabled")
         params.addParam('vtk',           ['ALL'], "A test that runs only if VTK is detected ('ALL', 'TRUE', 'FALSE')")
         params.addParam('tecplot',       ['ALL'], "A test that runs only if Tecplot is detected ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('dof_id_bytes',  ['ALL'], "A test that runs only if libmesh is configured --with-dof-id-bytes = a specific number, e.g. '4', '8'")
+        params.add('dof_id_bytes',  vtype=str, array=True, default=('ALL',), doc="A test that runs only if libmesh is configured --with-dof-id-bytes = a specific number, e.g. '4', '8'")
         params.addParam('petsc_debug',   ['ALL'], "{False,True} -> test only runs when PETSc is configured with --with-debugging={0,1}, otherwise test always runs.")
         params.addParam('curl',          ['ALL'], "A test that runs only if CURL is detected ('ALL', 'TRUE', 'FALSE')")
         params.addParam('threading',     ['ALL'], "A list of threading models ths tests runs with ('ALL', 'TBB', 'OPENMP', 'PTHREADS', 'NONE')")
@@ -453,10 +454,11 @@ class Tester(MooseObject):
             return False
 
         # Are we running only tests in a specific group?
-        if options.group != 'ALL' and options.group not in self.specs['group']:
+        group = self.specs['group'] or []
+        if options.group != 'ALL' and options.group not in group:
             self.setStatus(self.silent)
             return False
-        if options.not_group != '' and options.not_group in self.specs['group']:
+        if options.not_group != '' and options.not_group in group:
             self.setStatus(self.silent)
             return False
 
@@ -484,10 +486,10 @@ class Tester(MooseObject):
         if self.isSkip() and self.getStatusMessage():
             reasons['skip'] = self.getStatusMessage()
         # Test is skipped
-        elif self.specs.type('skip') is bool and self.specs['skip']:
+        elif self.specs.parameter('skip').vtype is bool and self.specs['skip']:
             # Backwards compatible (no reason)
             reasons['skip'] = 'no reason'
-        elif self.specs.type('skip') is not bool and self.specs.isValid('skip'):
+        elif self.specs.parameter('skip').vtype is not bool and self.specs.isValid('skip'):
             reasons['skip'] = self.specs['skip']
         # If were testing for SCALE_REFINE, then only run tests with a SCALE_REFINE set
         elif (options.scaling) and self.specs['scale_refine'] == 0:
@@ -537,7 +539,9 @@ class Tester(MooseObject):
             test_platforms = set()
             operator_display = '!='
             inverse_set = False
-            for x in self.specs[check]:
+            param = self.specs[check]
+            if not isinstance(param, list): param = [str(param)]
+            for x in param:
                 if x[0] == '!':
                     if inverse_set:
                         reasons[check] = 'Multiple Negation Unsupported'

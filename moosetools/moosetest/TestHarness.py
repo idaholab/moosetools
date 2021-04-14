@@ -9,6 +9,7 @@
 
 import sys
 import itertools
+import copy
 import platform
 import os, re, inspect, errno, copy, json
 import shlex
@@ -396,6 +397,7 @@ class TestHarness:
                                 caveats.append("Ignoring args %s" % args)
                             testroot_params["caveats"] = caveats
                             testroot_params["root_params"] = root_params
+                            print(testroot_params)
 
                         # See if there were other arguments (test names) passed on the command line
                         if file in self._infiles \
@@ -455,11 +457,16 @@ class TestHarness:
         #self.parse_errors.extend(parser.errors)
 
         # Retrieve the tests from the warehouse
-        testers = self.warehouse.objects
+        testers = copy.copy(self.warehouse.objects)
 
         # Augment the Testers with additional information directly from the TestHarness
         for tester in testers:
             self.augmentParameters(file, tester, testroot_params)
+
+            for key, value in self.root_params.params():
+                if (key in tester.parameters()) and (not tester.parameters().isSetByUser(key)):
+                    tester.parameters().set(key, value)
+
             if testroot_params.get("caveats"):
                 # Show what executable we are using if using a different testroot file
                 tester.addCaveats(testroot_params["caveats"])

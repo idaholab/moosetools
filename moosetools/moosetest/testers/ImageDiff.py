@@ -18,7 +18,7 @@ class ImageDiff(FileTester):
     @staticmethod
     def validParams():
         params = FileTester.validParams()
-        params.addRequiredParam('imagediff', [], 'A list of files to compare against the gold.')
+        params.add('imagediff', vtype=list, doc='A list of files to compare against the gold.')
         params.addParam('allowed', 0.98, "Absolute zero cutoff used in exodiff comparisons.")
         params.addParam('allowed_linux', "Absolute zero cuttoff used for linux machines, if not provided 'allowed' is used.")
         params.addParam('allowed_darwin', "Absolute zero cuttoff used for Mac OS (Darwin) machines, if not provided 'allowed' is used.")
