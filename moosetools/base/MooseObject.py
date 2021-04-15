@@ -9,7 +9,34 @@
 
 import sys
 import logging
+from moosetools import mooseutils
 from moosetools import parameters
+
+class MooseObjectFormatter(logging.Formatter):
+    """
+    A formatter that is aware of the class hierarchy of the MooseDocs library.
+    Call the init_logging function to initialize the use of this custom formatter.
+    TODO: ChiggerFormatter or something similar (MooseDocsFormatter) should be used by all
+          moosetools as should be the logging methods in ChiggerObject.
+          Perhaps a "mixins" package: 'moosetools.mixins.MooseLoggerMixin' would add the log methods,
+          other objects such at the AutoProperty would also go within that module
+    """
+    COLOR = dict(DEBUG='cyan_1',
+                 INFO='white',
+                 WARNING='yellow_1',
+                 ERROR='red_1',
+                 CRITICAL='magenta_1')
+
+    COUNTS = dict(CRITICAL=0, ERROR=0, WARNING=0, INFO=0, DEBUG=0)
+
+    def format(self, record):
+        """Format the supplied logging record and count the occurrences."""
+        self.COUNTS[record.levelname] += 1
+        return record.mooseobject.logFormat(self, record)
+
+# Setup the logging
+level = dict(critical=logging.CRITICAL, error=logging.ERROR, warning=logging.warning,
+             info=logging.INFO, debug=logging.DEBUG, notset=logging.NOTSET)
 
 
 class MooseObject(object):
@@ -42,6 +69,14 @@ class MooseObject(object):
             doc=
             "The name of the object. If using the factory.Parser to build objects from an input file, this will be automatically set to the block name in the input file."
         )
+
+        params.add('log_level', default=logging.INFO, mutable=False,
+                   allow=(logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL),
+                   doc="Set the logging level, see python 'logging' package for details.")
+
+        params.add('_logger', vtype=logging.Logger, mutable=False, private=True)
+        params.add('_formatter', default=MooseObjectFormatter(), vtype=logging.Formatter, mutable=False, private=True)
+        params.add('_handler', default=logging.StreamHandler(), vtype=logging.Handler, mutable=False, private=True)
         return params
 
     def __init__(self, params=None, **kwargs):
@@ -50,7 +85,13 @@ class MooseObject(object):
         self._parameters = params or getattr(self.__class__, 'validParams')()
         self._parameters.update(**kwargs)
         self._parameters.set('_moose_object', self)
+        self._parameters.set('_logger', self.__logger)
         self._parameters.validate()  # once this is called, the mutable flag becomes active
+        formatter = self.getParam('_formatter')
+        handler = self.getParam('_handler')
+        handler.setFormatter(formatter)
+        self.__logger.addHandler(handler)
+        self.__logger.setLevel(self.getParam('log_level'))
 
     def name(self):
         """
@@ -160,9 +201,19 @@ class MooseObject(object):
             str), "The supplied 'message' must be a python `str` type, see `MooseObject.log`."
         name = self.getParam('name')
         message = message.format(*args, **kwargs)
-        if name is not None: message = '({}): {}'.format(name, message)
-        self.__logger.log(level, message, exc_info=exc_info, stack_info=stack_info, extra=extra)
+        log_extra = {'mooseobject':self}
+        if extra is not None: log_extra.update(extra)
+        self.__logger.log(level, message, exc_info=exc_info, stack_info=stack_info, extra=log_extra)
         self.__log_counts[level] += 1
+
+    def logFormat(self, formatter, record):
+        """
+        Called by formatter to produce log output.
+        """
+        name = self.name() or record.levelname
+        msg = '{} {}'.format(mooseutils.color_text(name + ':', formatter.COLOR[record.levelname]),
+                             logging.Formatter.format(formatter, record))
+        return msg
 
     def isParamValid(self, *args):
         """

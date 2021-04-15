@@ -28,6 +28,7 @@ from .yaml_load import yaml_load, yaml_write, IncludeYamlFile
 from .MooseDataFrame import MooseDataFrame
 from .PostprocessorReader import PostprocessorReader
 from .VectorPostprocessorReader import VectorPostprocessorReader
+from .color_text import color_text
 
 try:
     from .ImageDiffer import ImageDiffer
