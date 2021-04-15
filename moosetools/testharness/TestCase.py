@@ -1,6 +1,11 @@
 import enum
 from moosetools.base import MooseObject
 
+
+
+
+
+
 class TestCase(MooseObject):
     class State(enum.Enum):
         WAITING = 1
@@ -15,17 +20,16 @@ class TestCase(MooseObject):
 
     def execute(self):
         self.__state = State.RUNNING
-        out = list()
-        out.append(self.__runner.check()
-        if rcode > 0:
+        self.__runner.init()
+        if self.__runner.status(logging.WARNING):
             self.__state = State.DONE
-            self.__results = out
+            return self.__runner.getStream()
 
 
-        out.append(self.__runner.execute())
-        for differ in self.__differs:
-            out.append(differ.execute(*out[0]))
-        return out
+        returncode, stdout, stderr = self.__runner.execute()
+        #for differ in self.__differs:
+        #    out.append(differ.execute(*out[0]))
+        #return out
 
     def done(self, future):
         self.__state = State.DONE

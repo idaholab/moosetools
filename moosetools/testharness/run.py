@@ -1,8 +1,12 @@
-
+import sys
+import concurrent.futures
+from moosetools.moosetest.base import State, TestCase
+from moosetools.moosetest.runners import ProcessRunner
 
 
 
 def run_testcases(testcase):
+
     return testcase.execute()
 
 
@@ -15,57 +19,33 @@ def main():
 
 
     waiting = list()
-    for i in range(4):
-        waiting.append(TestCase(Runner(i), [Differ(i+1), Differ(i+2)]))
+    for i in range(10):
+        waiting.append(TestCase(ProcessRunner(name='foo/bar.{}'.format(i), command=('sleep', str(i)))))
 
     num = len(waiting)
     pool = concurrent.futures.ThreadPoolExecutor(n_threads)
     futures = [None]*num
     for i, testcase in enumerate(waiting):
-        futures[i] = pool.submit(run_test_case, testcase)
+        futures[i] = pool.submit(run_testcases, testcase)
         futures[i].add_done_callback(testcase.done)
 
     num_finished = 0
     while num_finished < num:
         for testcase, future in zip(waiting, futures):
-            if future.done() and testcase.state() == State.DONE:
-                print(testcase.results())
+            if testcase.getState() == TestCase.Progress.DONE:
                 num_finished += 1
-            elif testcase.state() == State.RUNNING:
-                update = testcase.update()
-                if update is not None:
-                    print(update)
 
+            testcase.report()
+            #state = testcase.getState()
+            #if state != State.CLOSED:
+            #    print(state)
+            #if state == State.DONE:
+            #    print(testcase.results())
 
-
-
-    #running = list()
-
-    #finished = list()
-
-    """
-    max_running = 4
-    num = len(waiting)
-    num_finished = 0#len(waiting)
-    num_running = 0
-    while num_finished < num:
-        #time.sleep(0.1)
-        num_running = 0
-        for testcase in waiting:
-
-            if (num_running < max_running) and (testcase.state() == State.WAITING):
-                testcase.execute()
-                num_running += 1
-
-            if testcase.state() == State.FINISHED:
-                num_finished += 1
-                #print(testcase.results())
-
-    for testcase in waiting:
-        for d in testcase._differs:
-            d._process.join()
-        print(testcase.results())
-    """
+            #elif testcase.state() == State.RUNNING:
+            #    update = testcase.update()
+            #    if update is not None:
+            #        print(update)
 
 
 

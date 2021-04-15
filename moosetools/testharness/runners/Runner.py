@@ -22,12 +22,16 @@ class Runner(MooseObject):
     def getStream(self):
         return self.getParam('_stream').getvalue()
 
+    def skip(self, *args, **kwargs):
+        self.warning(*args, **kwargs)
+
     def init(self):
+        self.debug('Initializing TestCase:')
         sys_platform = platform.system()
         self.debug('platform.system() = {}', repr(sys_platform))
         pf = self.getParam('platform')
         if (pf is not None) and (sys_platform not in pf):
-            self.error('{} not in {}', repr(sys_platform), repr(platform))
+            self.skip('{} not in {}', repr(sys_platform), repr(platform))
 
     def execute(self):
         raise NotImplementedError()
