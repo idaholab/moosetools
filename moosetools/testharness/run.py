@@ -20,7 +20,7 @@ def run_testcases(testcase):
     return testcase.execute()
 
 def main():
-    n_threads = 3
+    n_threads = 2
     #tc = TestCase(None, None)
     #tc.evaluate()
 

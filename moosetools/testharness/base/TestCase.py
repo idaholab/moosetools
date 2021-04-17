@@ -48,42 +48,47 @@ class SysRedirect(object):
 """
 
 class SysRedirect(object):
-    def __init__(self):
-        self.stdout = sys.stdout
+    def __init__(self, sysout):
+        self._sysout = sysout
         self.out = io.StringIO()
 
     def write(self, message):
         if threading.main_thread().ident == threading.current_thread().ident:
-            self.stdout.write(message)
+            self._sysout.write(message)
         else:
             self.out.write(message)
 
     def flush(self):
-        self.stdout.flush()
-
+        if threading.main_thread().ident == threading.current_thread().ident:
+            self._sysout.flush()
+        #else:
+        #    self.out.flush()
 
 class RedirectOutput(object):
     """
 
     """
-    #def __init__(self):
-    #    self._sys_stdout = sys.stdout
-    #    self._sys_stderr = sys.stderr
+    def __init__(self):
+        self.stdout = None
+        self.stderr = None
+        pass
+        #self._sys_stdout = sys.stdout
+        #self._sys_stderr = sys.stderr
 
     def __enter__(self):
-        if threading.current_thread().native_id != threading.main_thread().native_id:
-            self._sys_stdout = sys.stdout
-            self._sys_stderr = sys.stdout
-            self._sys_stdout.flush()
-            self._sys_stderr.flush()
-            sys.stdout = self.stdout = io.StringIO()
-            sys.stderr = self.stderr = io.StringIO()
+        self._sys_stdout = sys.stdout
+        self._sys_stderr = sys.stderr
+
+        sys.stdout = SysRedirect(sys.stdout)
+        sys.stderr = SysRedirect(sys.stderr)
+        return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        if threading.current_thread().native_id != threading.main_thread().native_id:
-            self.stdout.flush(); self.stderr.flush()
-            sys.stdout = self._sys_stdout
-            sys.stderr = self._sys_stderr
+        self.stdout = sys.stdout.out
+        self.stderr = sys.stderr.out
+
+        sys.stdout = self._sys_stdout
+        sys.stderr = self._sys_stderr
 
 
 class TestCase(MooseObject):
@@ -147,9 +152,9 @@ class TestCase(MooseObject):
         self.__start_time.value = time.time()
 
         # Setup streams
-        s = sys.stdout
-        r = SysRedirect()
-        sys.stdout = r
+        #s = sys.stdout
+        #r = SysRedirect(sys.stdout)
+        #sys.stdout = r
 
         # Runner.initialize
         # Determines if the runner can actually run, see Runner.initialize for details
@@ -176,10 +181,10 @@ class TestCase(MooseObject):
             return {self._runner.name() : (TestCase.Result.ERROR, out)}
 
         # Runner.execute
-        self._runner.reset() # clear log counts
         try:
-            #with self.redirectOutput() as out:
-            returncode, stdout, stderr = self._runner.execute()
+            with self.redirectOutput() as x:
+                self._runner.reset() # clear log counts
+                returncode, stdout, stderr = self._runner.execute()
         except Exception as ex:
             self.exception("Exception occurred during execution of {} object.", self._runner.name())
             return {self._runner.name() : (TestCase.Result.EXCEPTION, out)}
@@ -189,8 +194,15 @@ class TestCase(MooseObject):
             self.error("The Runner object logged an error during execution.")
             return {self._runner.name() : (TestCase.Result.ERROR, out)}
 
-        sys.stdout = s
-        print(r.out.getvalue())
+
+
+        # TODO: Create context manager in constructor so that stderr, stdout can go to the same
+        # object. Then provide nice access from to the io.StrigIO via stderr, stdout properties
+
+
+
+        #sys.stdout = s
+        #print(r.out.getvalue())
 
         # Tester.execute
 
@@ -200,12 +212,12 @@ class TestCase(MooseObject):
         # Retore stream
 
 
-        out = dict()
-        out[self._runner.name()] = (TestCase.Result.PASS, stdout)
+        #out = dict()
+        #out[self._runner.name()] = (TestCase.Result.PASS, stdout)
 
+        #print(out)
 
-
-        return out
+        return TestCase.Result.PASS, x.stdout
 
     def doneCallback(self, future):
         self.setProgress(TestCase.Progress.FINISHED)
@@ -224,9 +236,10 @@ class TestCase(MooseObject):
 
     def _printResult(self):
 
-        r_state, r_out = self.__results.get(self._runner.name())
-        self._printState(self._runner, r_state)
 
+        r_state, r_out = self.__results#.get(self._runner.name())
+        self._printState(self._runner, r_state)
+        print(r_out)
 
         #print('SHOW RESULTS HERE')
         pass #self._printProgress()
@@ -244,8 +257,6 @@ class TestCase(MooseObject):
     def _printState(self, obj, state, show_time=False):
         """
         """
-
-
 
         pcolor = state.color
         name = obj.name()
