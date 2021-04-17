@@ -12,33 +12,6 @@ import logging
 from moosetools import mooseutils
 from moosetools import parameters
 
-class MooseObjectFormatter(logging.Formatter):
-    """
-    A formatter that is aware of the class hierarchy of the MooseDocs library.
-    Call the init_logging function to initialize the use of this custom formatter.
-    TODO: ChiggerFormatter or something similar (MooseDocsFormatter) should be used by all
-          moosetools as should be the logging methods in ChiggerObject.
-          Perhaps a "mixins" package: 'moosetools.mixins.MooseLoggerMixin' would add the log methods,
-          other objects such at the AutoProperty would also go within that module
-    """
-    COLOR = dict(DEBUG='cyan_1',
-                 INFO='white',
-                 WARNING='yellow_1',
-                 ERROR='red_1',
-                 CRITICAL='magenta_1')
-
-    COUNTS = dict(CRITICAL=0, ERROR=0, WARNING=0, INFO=0, DEBUG=0)
-
-    def format(self, record):
-        """Format the supplied logging record and count the occurrences."""
-        self.COUNTS[record.levelname] += 1
-        return record.mooseobject.logFormat(self, record)
-
-# Setup the logging
-level = dict(critical=logging.CRITICAL, error=logging.ERROR, warning=logging.warning,
-             info=logging.INFO, debug=logging.DEBUG, notset=logging.NOTSET)
-
-
 class MooseObject(object):
     """
     Base for all objects in moosetools package.
@@ -60,6 +33,9 @@ class MooseObject(object):
     `InputParameters.update` method before `InputParameters.validate` is called. Again, refer to
     `InputParameters` documentation for further information.
     """
+    __MooseObject_counter__ = -1
+
+
     @staticmethod
     def validParams():
         params = parameters.InputParameters()
@@ -70,28 +46,31 @@ class MooseObject(object):
             "The name of the object. If using the factory.Parser to build objects from an input file, this will be automatically set to the block name in the input file."
         )
 
-        params.add('log_level', default=logging.INFO, mutable=False,
-                   allow=(logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL),
+        levels = tuple(logging._nameToLevel.keys())
+        params.add('log_level', default='INFO', vtype=str, allow=levels, mutable=False,
                    doc="Set the logging level, see python 'logging' package for details.")
+        params.add('log_status_error_level', default='ERROR', vtype=str, allow=levels,
+                   doc="Set the allowable logging level for the status method to return an error code.")
 
         params.add('_logger', vtype=logging.Logger, mutable=False, private=True)
-        params.add('_formatter', default=MooseObjectFormatter(), vtype=logging.Formatter, mutable=False, private=True)
-        params.add('_handler', default=logging.StreamHandler(), vtype=logging.Handler, mutable=False, private=True)
         return params
 
     def __init__(self, params=None, **kwargs):
-        self.__logger = logging.getLogger(self.__class__.__module__)
+        type(self).__MooseObject_counter__ += 1
         self.__log_counts = {key: 0 for key in logging._levelToName.keys()}
         self._parameters = params or getattr(self.__class__, 'validParams')()
         self._parameters.update(**kwargs)
         self._parameters.set('_moose_object', self)
-        self._parameters.set('_logger', self.__logger)
         self._parameters.validate()  # once this is called, the mutable flag becomes active
-        formatter = self.getParam('_formatter')
-        handler = self.getParam('_handler')
-        handler.setFormatter(formatter)
-        self.__logger.addHandler(handler)
-        self.__logger.setLevel(self.getParam('log_level'))
+
+        # Create a unique logger for this object
+        logger_name = '{}.{}'.format(self.__class__.__module__, type(self).__MooseObject_counter__)
+        logger = self.getParam('_logger') or logging.getLogger(logger_name)
+        logger.setLevel(self.getParam('log_level'))
+        self.__logger = logger
+
+    def __del__(self):
+        type(self).__MooseObject_counter__ -= 1
 
     def name(self):
         """
@@ -120,21 +99,18 @@ class MooseObject(object):
                 continue
             self.__log_counts[lvl] = 0
 
-    def status(self, *levels):
+    def status(self):
         """
         Return 1 if logging messages exist.
 
         By default only the logging.ERROR and logging.CRITICAL levels are
         considered. If *levels* is provided the levels given are used.
         """
-        if not levels: levels = [logging.ERROR, logging.CRITICAL]
+        level = logging._nameToLevel[self.getParam('log_status_error_level')]
         count = 0
-        for lvl in levels:
-            if lvl not in self.__log_counts:
-                msg = "Attempting to get logging count for '{}' level, but the level does not exist."
-                self.error(msg, lvl)
-                continue
-            count += self.__log_counts[lvl]
+        for lvl, cnt in self.__log_counts.items():
+            if lvl >= level:
+                count += cnt
         return int(count > 0)
 
     def info(self, *args, **kwargs):
@@ -201,19 +177,10 @@ class MooseObject(object):
             str), "The supplied 'message' must be a python `str` type, see `MooseObject.log`."
         name = self.getParam('name')
         message = message.format(*args, **kwargs)
-        log_extra = {'mooseobject':self}
-        if extra is not None: log_extra.update(extra)
-        self.__logger.log(level, message, exc_info=exc_info, stack_info=stack_info, extra=log_extra)
+        #if extra is None: extra = dict()
+        #extra.setdefault('mooseobject_name', self.name()
+        self.__logger.log(level, message, exc_info=exc_info, stack_info=stack_info, extra=extra)
         self.__log_counts[level] += 1
-
-    def logFormat(self, formatter, record):
-        """
-        Called by formatter to produce log output.
-        """
-        name = self.name() or record.levelname
-        msg = '{} {}'.format(mooseutils.color_text(name + ':', formatter.COLOR[record.levelname]),
-                             logging.Formatter.format(formatter, record))
-        return msg
 
     def isParamValid(self, *args):
         """

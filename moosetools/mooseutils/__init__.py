@@ -29,6 +29,7 @@ from .MooseDataFrame import MooseDataFrame
 from .PostprocessorReader import PostprocessorReader
 from .VectorPostprocessorReader import VectorPostprocessorReader
 from .color_text import color_text
+from .log import color_log
 
 try:
     from .ImageDiffer import ImageDiffer
