@@ -47,45 +47,51 @@ class SysRedirect(object):
             pass
 """
 
-class SysRedirect(object):
-    def __init__(self, sysout):
-        self._sysout = sysout
-        self.out = io.StringIO()
-
-    def write(self, message):
-        if threading.main_thread().ident == threading.current_thread().ident:
-            self._sysout.write(message)
-        else:
-            self.out.write(message)
-
-    def flush(self):
-        if threading.main_thread().ident == threading.current_thread().ident:
-            self._sysout.flush()
-        #else:
-        #    self.out.flush()
-
 class RedirectOutput(object):
     """
 
-    """
-    def __init__(self):
-        self.stdout = None
-        self.stderr = None
-        pass
-        #self._sys_stdout = sys.stdout
-        #self._sys_stderr = sys.stderr
+    TODO: pass in io.StringIO()
 
-    def __enter__(self):
+    """
+    class SysRedirect(object):
+        def __init__(self, sysout, out):
+            self._sysout = sysout
+            self._out = out
+
+        def write(self, message):
+            if threading.main_thread().ident == threading.current_thread().ident:
+                self._sysout.write(message)
+            else:
+                self._out.write(message)
+
+        def flush(self):
+            if threading.main_thread().ident == threading.current_thread().ident:
+                self._sysout.flush()
+
+    def __init__(self, stdout, stderr):
+        #assert type
+        self._stdout = stdout
+        self._stderr = stderr
+
         self._sys_stdout = sys.stdout
         self._sys_stderr = sys.stderr
 
-        sys.stdout = SysRedirect(sys.stdout)
-        sys.stderr = SysRedirect(sys.stderr)
+    @property
+    def stdout(self):
+        return self._stdout.getvalue()
+
+    @property
+    def stderr(self):
+        return self._stdrr.getvalue()
+
+    def __enter__(self):
+        sys.stdout = RedirectOutput.SysRedirect(self._sys_stdout, self._stdout)
+        sys.stderr = RedirectOutput.SysRedirect(self._sys_stderr, self._stderr)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.stdout = sys.stdout.out
-        self.stderr = sys.stderr.out
+        #self.stdout = sys.stdout.out
+        #self.stderr = sys.stderr.out
 
         sys.stdout = self._sys_stdout
         sys.stderr = self._sys_stderr
@@ -134,11 +140,10 @@ class TestCase(MooseObject):
 
         self.__start_time = multiprocessing.Value('d', 0)
 
-
         self.setProgress(TestCase.Progress.WAITING)
 
-    def redirectOutput(self):
-        return RedirectOutput()
+    def redirectOutput(self, stdout, stderr):
+        return RedirectOutput(stdout, stderr)
 
     def setProgress(self, progress):
         self.__progress = progress
@@ -152,16 +157,17 @@ class TestCase(MooseObject):
         self.__start_time.value = time.time()
 
         # Setup streams
+        r_stdout, r_stderr = io.StringIO(), io.StringIO()
         #s = sys.stdout
         #r = SysRedirect(sys.stdout)
         #sys.stdout = r
 
         # Runner.initialize
         # Determines if the runner can actually run, see Runner.initialize for details
-        self._runner.reset() # clear log counts
         try:
-            #with self.redirectOutput() as out:
-            self._runner.initialize()
+            with self.redirectOutput(r_stdout, r_stderr):
+                self._runner.reset() # clear log counts
+                self._runner.initialize()
         except Exception as ex:
             self.exception("Exception occurred during initialization of {} object.", self._runner.name())
             return {self._runner.name() : (TestCase.Result.EXCEPTION, out)}
@@ -182,9 +188,9 @@ class TestCase(MooseObject):
 
         # Runner.execute
         try:
-            with self.redirectOutput() as x:
+            with self.redirectOutput(r_stdout, r_stderr):
                 self._runner.reset() # clear log counts
-                returncode, stdout, stderr = self._runner.execute()
+                returncode = self._runner.execute()
         except Exception as ex:
             self.exception("Exception occurred during execution of {} object.", self._runner.name())
             return {self._runner.name() : (TestCase.Result.EXCEPTION, out)}
@@ -217,7 +223,7 @@ class TestCase(MooseObject):
 
         #print(out)
 
-        return TestCase.Result.PASS, x.stdout
+        return TestCase.Result.PASS, r_stdout.getvalue().rstrip('\n')
 
     def doneCallback(self, future):
         self.setProgress(TestCase.Progress.FINISHED)

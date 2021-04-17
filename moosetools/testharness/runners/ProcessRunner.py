@@ -21,4 +21,4 @@ class ProcessRunner(Runner):
         kwargs['timeout'] = self.getParam('timeout')
         print(threading.current_thread().ident, self.getParam('command'))
         out = subprocess.run(self.getParam('command'), **kwargs)
-        return out.returncode, out.stdout, out.stderr
+        return out.returncode#, out.stdout, out.stderr
