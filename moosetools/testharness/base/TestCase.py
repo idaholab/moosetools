@@ -3,12 +3,14 @@ import sys
 import io
 import enum
 import time
+import uuid
 import logging
 import multiprocessing
 import threading
 from moosetools import mooseutils
 from moosetools.base import MooseObject
-from ..runners.Runner import Runner
+from .MooseTestController import MooseTestController
+from .Runner import Runner
 
 class State(enum.Enum):
     def __new__(cls, value, exitcode, display, color):
@@ -50,7 +52,7 @@ class SysRedirect(object):
 class RedirectOutput(object):
     """
 
-    TODO: pass in io.StringIO()
+    TODO: move to mooseutils, process/threading toggle
 
     """
     class SysRedirect(object):
@@ -58,31 +60,35 @@ class RedirectOutput(object):
             self._sysout = sysout
             self._out = out
 
+        @property
+        def is_main(self):
+            return threading.main_thread().ident == threading.current_thread().ident
+
         def write(self, message):
-            if threading.main_thread().ident == threading.current_thread().ident:
+            if self.is_main:
                 self._sysout.write(message)
             else:
                 self._out.write(message)
 
         def flush(self):
-            if threading.main_thread().ident == threading.current_thread().ident:
+            if self.is_main:
                 self._sysout.flush()
 
-    def __init__(self, stdout, stderr):
+    def __init__(self, stdout=None, stderr=None):
         #assert type
-        self._stdout = stdout
-        self._stderr = stderr
+        self._stdout = stdout or io.StrigIO()
+        self._stderr = stderr or io.StrigIO()
 
         self._sys_stdout = sys.stdout
         self._sys_stderr = sys.stderr
 
     @property
     def stdout(self):
-        return self._stdout.getvalue()
+        return self._stdout.getvalue().strip('\n')
 
     @property
     def stderr(self):
-        return self._stdrr.getvalue()
+        return self._stdrr.getvalue().strip('\n')
 
     def __enter__(self):
         sys.stdout = RedirectOutput.SysRedirect(self._sys_stdout, self._stdout)
@@ -90,61 +96,53 @@ class RedirectOutput(object):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        #self.stdout = sys.stdout.out
-        #self.stderr = sys.stderr.out
-
         sys.stdout = self._sys_stdout
         sys.stderr = self._sys_stderr
 
 
 class TestCase(MooseObject):
     class Progress(State):
-        WAITING  = (1, 0, 'WAITING', 'grey_82')
-        RUNNING  = (2, 0, 'RUNNING', 'dodger_blue_3')
-        FINISHED = (3, 0, 'FINISHED', 'white')
+        WAITING  = (1, 0, 'WAITING', ('grey_82',))
+        RUNNING  = (2, 0, 'RUNNING', ('dodger_blue_3',))
+        FINISHED = (3, 0, 'FINISHED', ('white',))
 
     class Result(State):
-        SKIP      = (11, 0, 'SKIP', 'cyan')
-        PASS      = (12, 0, 'OK', 'green')
-        #FAIL      = (13, 1, 'FAIL', 'red')
-        ERROR     = (14, 1, 'ERROR', 'red')
-        EXCEPTION = (15, 1, 'EXCEPTION', 'magenta')
+        SKIP      = (11, 0, 'SKIP', ('cyan_1',))
+        PASS      = (12, 0, 'OK', ('green_1',))
+        ERROR     = (14, 1, 'ERROR', ('red_1',))
+        EXCEPTION = (15, 1, 'EXCEPTION', ('magenta_1',))
+        FATAL     = (16, 1, 'FATAL', ('white', 'red_1')) # internal error (see, run.py)
 
     @staticmethod
     def validParams():
         params = MooseObject.validParams()
+        params.add('controller', vtype=MooseTestController,
+                   doc="The 'MooseTestController' used to determine if the TestCase members should execute.")
         params.add('runner', vtype=Runner, required=True,
                    doc="The 'Runner' object to execute.")
-        params.add('_job_id', vtype=int, private=True)
+        params.add('_unique_id', vtype=uuid.UUID, mutable=True, private=True)
 
         # Don't add anything here, these don't get set from anywhere
-
-        # Runner parameters
-        #r_params =
-
-
-
-
 
         return params
 
     def __init__(self, *args, **kwargs):
+        kwargs['_unique_id'] = uuid.uuid4()
         MooseObject.__init__(self, *args, **kwargs)
+        self._controller = self.getParam('controller') or MooseTestController()
         self._runner = self.getParam('runner')
         self.__results = None
         self.__progress = None
 
 
-
         self.__running_report_time = None
         self.__running_report_interval = self._runner.getParam('output_progress_interval')
-
         self.__start_time = multiprocessing.Value('d', 0)
 
         self.setProgress(TestCase.Progress.WAITING)
 
-    def redirectOutput(self, stdout, stderr):
-        return RedirectOutput(stdout, stderr)
+    #def redirectOutput(self, stdout, stderr):
+    #    return
 
     def setProgress(self, progress):
         self.__progress = progress
@@ -154,125 +152,64 @@ class TestCase(MooseObject):
 
     def execute(self):
         self.setProgress(TestCase.Progress.RUNNING)
-
-        """
-        TODO:
-        I don't think we need a TestSpec class, as below, but just different methods that main
-        function uses...I really would like the running of the TestCase to be separated from the hit
-        file so that they can be created programattically. But, if using hit it should also be part
-        of the execute. Which brings me back to the testspecification idea that can encapsulate it.
-
-
-
-        - Loop through files and create TestSpecification for each file, but do nothing that could cause an error
-        - Execute the TestSpecification:
-          1. Parse the file (The TestSpecification should be the warehouse and require a factory)
-          2. Create TestCase for each block, pass in the Runner and Tester objects
-          3. Run the test cases
-
-        TestRunner -> TestSpecification
-        TestExecutioner should operate on actual TestCases
-        TestSpecificationExectuioner should use a factory to parse the input then pass along to
-        base class method.
-
-        - The TestSpecification should parse the file (report errors if needed) and return the
-          constructed TestCases. It should loop through the TestCases one after another...
-
-        - Create TestSpecification.createRunner, createTester methods so they can be mocked.
-        - Annotate the methods that are used off process, the entire TestCase should be off-process,
-          these methods could assert if not used as such. Use @subprocess decorator???
-
-        TestExecutioner::execute():
-        for tc in testcases:
-          tc.execute()
-
-
-        TestCase::execute(objs)
-        for obj in objs:
-          self.executeObject(obj)
-
-        TestCase::executeObject(obj)
-
-
-
-        """
-
+        #return TestCase.Result.PASS, 'WTF'
 
 
         self.__start_time.value = time.time()
 
         # Setup streams
-        r_stdout, r_stderr = io.StringIO(), io.StringIO()
+        result_out = io.StringIO()
+        redirect_output = RedirectOutput(result_out, result_out)
         #s = sys.stdout
         #r = SysRedirect(sys.stdout)
         #sys.stdout = r
 
         # Runner.initialize
         # Determines if the runner can actually run, see Runner.initialize for details
+        """
         try:
-            with self.redirectOutput(r_stdout, r_stderr):
-                self._runner.reset() # clear log counts
-                self._runner.initialize()
+            with redirect_output:
+                self._controller.reset() # clear log counts
+                self._controller.execute(self._runner)
         except Exception as ex:
-            self.exception("Exception occurred during initialization of {} object.", self._runner.name())
-            return {self._runner.name() : (TestCase.Result.EXCEPTION, out)}
+            self.exception("Exception occurred during execution of the controller ({}) with {} object.", type(self._controller), self._runner.name())
+            return TestCase.Result.EXCEPTION, out.stdout
 
         # Stop if the runner is unable to run...thanks Capt. obvious
-        if not self._runner.isRunnable():
-            return {self._runner.name() : (TestCase.Result.SKIP, out)}
+        if not self._controller.status():
+            return TestCase.Result.SKIP, out.stdout
+        """
+
 
         # Stop if an error is logged on the Runner object
-        if self._runner.status():
-            self.error("An error was logged during during initialization of {} object.", runner.name())
-            return {self._runner.name() : (TestCase.Result.ERROR, out)}
+        #if self._runner.status():
+        #    self.error("An error was logged during during initialization of {} object.", self._runner.name())
+        #    return TestCase.Result.ERROR, out.stdout
 
         # If an error occurs then report it and exit
-        if self._runner.status():
-            self.exception("An error was logged during during execution of {} object.", runner.name())
-            return {self._runner.name() : (TestCase.Result.ERROR, out)}
+        #if self._runner.status():
+        #    self.exception("An error was logged during during execution of {} object.", self._runner.name())
+        #    return TestCase.Result.ERROR, out.stdout
 
         # Runner.execute
         try:
-            with self.redirectOutput(r_stdout, r_stderr):
+            with redirect_output:
                 self._runner.reset() # clear log counts
                 returncode = self._runner.execute()
         except Exception as ex:
             self.exception("Exception occurred during execution of {} object.", self._runner.name())
-            return {self._runner.name() : (TestCase.Result.EXCEPTION, out)}
+            return TestCase.Result.EXCEPTION, redirect_output.stdout
 
         # If an error occurs then report it and exit
         if self._runner.status():
             self.error("The Runner object logged an error during execution.")
-            return {self._runner.name() : (TestCase.Result.ERROR, out)}
+            return TestCase.Result.ERROR, redirect_output.stdout
 
+        return TestCase.Result.PASS, redirect_output.stdout
 
-
-        # TODO: Create context manager in constructor so that stderr, stdout can go to the same
-        # object. Then provide nice access from to the io.StrigIO via stderr, stdout properties
-
-
-
-        #sys.stdout = s
-        #print(r.out.getvalue())
-
-        # Tester.execute
-
-        #if self._runner.status(logging.ERROR, logging.CRITICAL):
-        #    return TestCase.Result.FAIL, self._runner.getStream()
-
-        # Retore stream
-
-
-        #out = dict()
-        #out[self._runner.name()] = (TestCase.Result.PASS, stdout)
-
-        #print(out)
-
-        return TestCase.Result.PASS, r_stdout.getvalue().rstrip('\n')
-
-    def doneCallback(self, future):
-        self.setProgress(TestCase.Progress.FINISHED)
-        self.__results = future.result()
+    #def doneCallback(self, future):
+    #    self.setProgress(TestCase.Progress.FINISHED)
+    #    self.__results = future.result()
 
     def setResult(self, result):
         self.setProgress(TestCase.Progress.FINISHED)
@@ -318,8 +255,8 @@ class TestCase(MooseObject):
         tinfo = '[{:.1f}s] '.format(time.time() - self.__start_time.value) if show_time else ''
         width = 100 - len(name) - len(state) - len(tinfo)
         dots = '.'*width
-        state = mooseutils.color_text(state, pcolor)
-        name = mooseutils.color_text(name, pcolor)
+        state = mooseutils.color_text(state, *pcolor)
+        name = mooseutils.color_text(name, *pcolor)
         kwargs = dict(name=name, dots=dots, tinfo=tinfo, state=state)
         frmt = '{name}{dots}{tinfo}{state}'
 
