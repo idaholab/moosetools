@@ -115,6 +115,7 @@ class TestCase(MooseObject):
         params = MooseObject.validParams()
         params.add('runner', vtype=Runner, required=True,
                    doc="The 'Runner' object to execute.")
+        params.add('_job_id', vtype=int, private=True)
 
         # Don't add anything here, these don't get set from anywhere
 
@@ -153,6 +154,50 @@ class TestCase(MooseObject):
 
     def execute(self):
         self.setProgress(TestCase.Progress.RUNNING)
+
+        """
+        TODO:
+        I don't think we need a TestSpec class, as below, but just different methods that main
+        function uses...I really would like the running of the TestCase to be separated from the hit
+        file so that they can be created programattically. But, if using hit it should also be part
+        of the execute. Which brings me back to the testspecification idea that can encapsulate it.
+
+
+
+        - Loop through files and create TestSpecification for each file, but do nothing that could cause an error
+        - Execute the TestSpecification:
+          1. Parse the file (The TestSpecification should be the warehouse and require a factory)
+          2. Create TestCase for each block, pass in the Runner and Tester objects
+          3. Run the test cases
+
+        TestRunner -> TestSpecification
+        TestExecutioner should operate on actual TestCases
+        TestSpecificationExectuioner should use a factory to parse the input then pass along to
+        base class method.
+
+        - The TestSpecification should parse the file (report errors if needed) and return the
+          constructed TestCases. It should loop through the TestCases one after another...
+
+        - Create TestSpecification.createRunner, createTester methods so they can be mocked.
+        - Annotate the methods that are used off process, the entire TestCase should be off-process,
+          these methods could assert if not used as such. Use @subprocess decorator???
+
+        TestExecutioner::execute():
+        for tc in testcases:
+          tc.execute()
+
+
+        TestCase::execute(objs)
+        for obj in objs:
+          self.executeObject(obj)
+
+        TestCase::executeObject(obj)
+
+
+
+        """
+
+
 
         self.__start_time.value = time.time()
 
@@ -229,6 +274,11 @@ class TestCase(MooseObject):
         self.setProgress(TestCase.Progress.FINISHED)
         self.__results = future.result()
 
+    def setResult(self, result):
+        self.setProgress(TestCase.Progress.FINISHED)
+        self.__results = result
+
+
     def report(self):
         progress = self.getProgress()
         if progress != TestCase.Progress.FINISHED:
@@ -241,8 +291,6 @@ class TestCase(MooseObject):
 
 
     def _printResult(self):
-
-
         r_state, r_out = self.__results#.get(self._runner.name())
         self._printState(self._runner, r_state)
         print(r_out)

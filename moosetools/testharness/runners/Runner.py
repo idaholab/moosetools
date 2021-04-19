@@ -16,6 +16,7 @@ class Runner(MooseObject):
                    doc="Limit the execution to the supplied platform(s).")
         params.add('output_progress_interval', vtype=int, default=5, mutable=False,
                    doc="The during between printing the 'RUNNING' progress message.")
+
         #params.add('_stream', private=True, mutable=False, default=io.StringIO())
         return params
 
