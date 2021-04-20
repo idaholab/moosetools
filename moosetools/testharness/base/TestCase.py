@@ -90,6 +90,7 @@ class TestCase(MooseObject):
         WAITING  = (1, 0, 'WAITING', ('grey_82',))
         RUNNING  = (2, 0, 'RUNNING', ('dodger_blue_3',))
         FINISHED = (3, 0, 'FINISHED', ('white',))
+        CLOSED   = (4, 0, 'CLOSED', ('white',))
 
     class Result(State):
         SKIP      = (11, 0, 'SKIP', ('cyan_1',))
@@ -130,8 +131,7 @@ class TestCase(MooseObject):
         self.setProgress(TestCase.Progress.WAITING)
 
     def redirectOutput(self):
-        stream = io.StringIO()
-        return RedirectOutput(stream, stream)
+        return RedirectOutput()
 
     def setProgress(self, progress):
         self.__progress = progress
@@ -160,28 +160,27 @@ class TestCase(MooseObject):
 
     def executeObject(self, obj, *args, **kwargs):
 
-        redirect = RedirectOutput()
-
         # Use Controller to determines if the runner can actually run
         try:
-            with redirect:
+            with self.redirectOutput() as c_run_out:
                 self._controller.reset() # clear log counts
                 self._controller.execute(obj)
         except Exception as ex:
-            self._controller.exception("An unexpected exception occurred during execution of the controller ({}) with {} object.", type(self._controller), obj.name())
-            return TestCase.Result.FATAL, redirect.stdout, None
+            with self.redirectOutput() as err_out:
+                self._controller.exception("An unexpected exception occurred during execution of the controller ({}) with {} object.\n{}", type(self._controller), obj.name(), c_run_out.stdout)
+            return TestCase.Result.FATAL, err_out.stdout, None
 
         # Stop if an error is logged on the Controller object
         if self._controller.status():
-            with redirect:
-                self._controller.error("An unexpected error was logged on the Controller '{}' during execution with the supplied '{}' object.", self._controller.name(), obj.name())
+            with self.redirectOutput() as err_out:
+                self._controller.error("An unexpected error was logged on the Controller '{}' during execution with the supplied '{}' object.\n{}", self._controller.name(), obj.name(), c_run_out.stdout)
             return TestCase.Result.FATAL, redirect.stdout, None
 
         # Stop if an error is logged on the Runner object, due to execution of Controller
         if obj.status():
-            with redirect:
-                obj.error("An unexpected error was logged on the supplied object '{}' during execution of the Controller '{}'.", obj.name(), self._controller.name())
-            return TestCase.Result.FATAL, redirect.stdout, None
+            with self.redirectOutput() as err_out:
+                obj.error("An unexpected error was logged on the supplied object '{}' during execution of the Controller '{}'.\n{}", obj.name(), self._controller.name(), c_run_out.stdout)
+            return TestCase.Result.FATAL, err_out.stdout, None
 
         # Stop if the runner is unable to run...thanks Capt. obvious
         if not self._controller.isRunnable():
@@ -189,21 +188,21 @@ class TestCase(MooseObject):
 
         # Runner.execute
         try:
-            with redirect:
+            with self.redirectOutput() as run_out:
                 obj.reset() # clear log counts
                 returncode = obj.execute(*args, **kwargs)
         except Exception as ex:
-            with redirect:
-                obj.exception("An exception occurred during execution of '{}' object.", obj.name())
-            return TestCase.Result.EXCEPTION, redirect.stdout, None
+            with self.redirectOutput() as err_out:
+                obj.exception("An exception occurred during execution of '{}' object.\n{}", obj.name(), run_out.stdout)
+            return TestCase.Result.EXCEPTION, err_out.stdout, None
 
         # If an error occurs then report it and exit
         if obj.status():
-            with redirect:
-                obj.error("An error was logged on the '{}' object during execution.", obj.name())
-            return TestCase.Result.ERROR, redirect.stdout, returncode
+            with self.redirectOutput() as err_out:
+                obj.error("An error was logged on the '{}' object during execution.\n{}", obj.name(), run_out.stdout)
+            return TestCase.Result.ERROR, err_out.stdout, returncode
 
-        return TestCase.Result.PASS, redirect.stdout, returncode
+        return TestCase.Result.PASS, run_out.stdout, returncode
 
     def setResult(self, result):
         self.setProgress(TestCase.Progress.FINISHED)
@@ -211,13 +210,14 @@ class TestCase(MooseObject):
 
     def report(self):
         progress = self.getProgress()
-        if progress != TestCase.Progress.FINISHED:
+        if progress not in (TestCase.Progress.FINISHED, TestCase.Progress.CLOSED):
             self._printProgress()
 
         elif progress == TestCase.Progress.FINISHED:
             self._printResult()
 
     def _printResult(self):
+        self.setProgress(TestCase.Progress.CLOSED)
         state, out = self.__results
         self._printState(self._runner, state, show_time=True)
 

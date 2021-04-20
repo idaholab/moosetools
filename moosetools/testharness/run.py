@@ -58,8 +58,8 @@ def run(groups, n_threads=None):
             tc.report()
 
         for tc in jobs.values():#key in list(jobs.keys()):
-            if tc.getProgress() != TestCase.Progress.FINISHED:
-                tc.report()
+            #if tc.getProgress() != TestCase.Progress.FINISHED:
+            tc.report()
 
         #time.sleep(0.1)
 
