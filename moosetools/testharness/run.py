@@ -4,11 +4,10 @@ import sys
 import time
 import traceback
 import concurrent.futures
-import multiprocessing
-import threading
 import queue
 from moosetools.moosetest.base import State, TestCase
 from moosetools.moosetest.runners import ProcessRunner
+from moosetools.moosetest.differs import TextDiff
 
 """
 TODO:
@@ -21,9 +20,6 @@ TODO:
 # - show run time information in Runner/Testers (probably add to output from TestCase.execute)
 # - add percent complete to output
 
-
-def make_runner(i, r=None):
-    return ProcessRunner(name='foo/bar.i'.format(i), command=('sleep', str(i)))
 
 def run_the_testcases(testcases, comm):
     for tc in testcases:
@@ -43,6 +39,8 @@ def run(groups, n_threads=None):
 
     comm = queue.Queue()
     pool = concurrent.futures.ThreadPoolExecutor(n_threads)
+    #comm = multiprocessing.Queue()
+    #pool = concurrent.futures.ProcessPoolExecutor(n_threads)
 
     jobs = dict()
     futures = list()
@@ -53,56 +51,45 @@ def run(groups, n_threads=None):
 
 
     while any(not f.done() for f in futures):
-        if not comm.empty():
+        while not comm.empty():
             unique_id, result = comm.get()
-            jobs[unique_id].setResult(result)
-
-        for key in list(jobs.keys()):
-            tc = jobs[key]
-            tc.report()
-            if tc.getProgress() == TestCase.Progress.FINISHED:
-                jobs.pop(key)
-
-
-
-
-
-
-    """
-    while len(jobs) > 0:
-        #if not comm.empty():
-        #    unique_id, result = comm.get()
-        #    jobs.pop(unique_id).setResult(result)
-        #    print(unique_id)
-
-        for key in list(jobs.keys()):
-            tc = jobs[key]
+            tc = jobs.pop(unique_id)
+            tc.setResult(result)
             tc.report()
 
-            if tc.getProgress() == TestCase.Progress.FINISHED:
-                jobs.pop(key)
+        for tc in jobs.values():#key in list(jobs.keys()):
+            #tc = jobs[key]
+            tc.report()
+            #if tc.getProgress() == TestCase.Progress.FINISHED:
+            #    jobs.pop(key)
 
-        time.sleep(0.5)
-    """
-
+        #time.sleep(0.1)
 
 if __name__ == '__main__':
     import random
     import logging
-    logging.basicConfig()
+
+    handler = logging.StreamHandler()
+    logging.basicConfig(handlers=[handler], format='%(message)s')
 
 
-    sleep_range = (2,20)
+    sleep_range = (1,2)
     n_groups = 4
     n_per_group = 3
     groups = list()
 
-    for i in range(n_groups):
-        local = list()
-        for j in range(n_per_group):
-            t =  random.randint(*sleep_range)
-            runner = ProcessRunner(name='{}/{}.rand_{}'.format(i, j, t), command=('sleep', str(t)))
-            local.append(TestCase(controller=None, runner=runner))
-        groups.append(local)
+    #for i in range(n_groups):
+    #    local = list()
+    #    for j in range(n_per_group):
+    #        t =  random.randint(*sleep_range)
+    #        runner = ProcessRunner(name='{}/{}.rand_{}'.format(i, j, t), command=('sleep', str(t)))
+    #        differs = (TextDiff(name=runner.name() + '.text', text_in='sleep'),
+    #                   TextDiff(name=runner.name() + '.text2', text_in='sleep 2'))
+    #        local.append(TestCase(controller=None, runner=runner, differs=differs))
+    #    groups.append(local)
 
-    sys.exit(run(groups, n_threads=4))
+
+    groups = [[TestCase(differs=tuple(), runner=ProcessRunner(name='bad', command=('wrong',)))],
+              [TestCase(differs=tuple(), runner=ProcessRunner(name='bad', command=('sleep', '2')))]]
+
+    sys.exit(run(groups, n_threads=1))

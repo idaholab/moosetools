@@ -13,6 +13,7 @@ class MooseTestObject(MooseObject):
     @staticmethod
     def validParams():
         params = MooseObject.validParams()
+        params.setRequired('name', True)
         params.add('output_progress_interval', vtype=int, default=5, mutable=False,
                    doc="The during between printing the 'RUNNING' progress message.")
         return params

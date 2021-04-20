@@ -17,7 +17,16 @@ class MooseTestController(MooseObject):
         return params
 
     def __init__(self, *args, **kwargs):
+        kwargs.setdefault('name', self.__class__.__name__)
         MooseObject.__init__(self, *args, **kwargs)
+        self.__runnable = True
+
+    def isRunnable(self):
+        return self.__runnable
+
+    def skip(self, *args, **kwargs):
+        self.__runnable = False
+        self.warning(*args, **kwargs)
 
     def execute(self, obj):
         skip = False
@@ -26,4 +35,4 @@ class MooseTestController(MooseObject):
         self.debug('platform.system() = {}', repr(sys_platform))
         pf = obj.getParam('env_platform')
         if (pf is not None) and (sys_platform not in pf):
-            self.error('{} not in {}', repr(sys_platform), repr(platform))
+            self.skip('{} not in {}', repr(sys_platform), repr(platform))

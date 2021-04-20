@@ -141,6 +141,16 @@ class InputParameters(object):
         if opt is not None:
             return opt.value is not None
 
+    def setRequired(self, *args):
+        """
+        Set the required status for a paramter
+        """
+        opt = self._getParameter(*args[:-1])
+        if opt is not None:
+            ret, err = opt.setRequired(args[-1])
+            if ret > 0:
+                self.__errorHelper(err)
+
     def setDefault(self, *args):
         """
         Set the default value.
@@ -181,6 +191,7 @@ class InputParameters(object):
         if opt is not None:
             return opt.is_set_by_user
 
+    # TODO: Change to setValue and getValue
     def set(self, *args):
         """
         Set the value of a parameter or update contents of a sub-parameters.

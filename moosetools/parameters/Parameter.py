@@ -215,6 +215,23 @@ class Parameter(object):
             raise TypeError(err)
         return self.__set_by_user
 
+    def setRequired(self, value):
+        """
+        Set the required status.
+
+        The supplied *value* should be a `bool` and this method will return a non-zero exit status
+        if called after the `validate` method has been called.
+        """
+        if not isinstance(value, bool):
+            msg = "The supplied value for `setRequired` must be a `bool`, a {} was provided."
+            return 1, msg.format(self.name, type(value))
+
+        if self.__validated:
+            msg = "The Parameter has already been validated, the required state cannot be changed."
+            return 1, msg.format(self.name)
+        self.__required = value
+        return 0, None
+
     def setDefault(self, val):
         """
         Set the default value for this parameter.

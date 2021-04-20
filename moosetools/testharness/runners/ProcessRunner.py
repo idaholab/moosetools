@@ -19,6 +19,9 @@ class ProcessRunner(Runner):
         kwargs['text'] = True # encode output to UTF-8
         kwargs['check'] = self.getParam('allow_exception')
         kwargs['timeout'] = self.getParam('timeout')
-        print(threading.current_thread().ident, self.getParam('command'))
+
+        cmd = self.getParam('command')
+        str_cmd = ' '.join(cmd)
+        print('{0}\n{1}\n{0}'.format('-'*len(str_cmd) , str_cmd))
         out = subprocess.run(self.getParam('command'), **kwargs)
         return out.returncode
