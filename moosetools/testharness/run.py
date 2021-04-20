@@ -50,18 +50,16 @@ def run(groups, n_threads=None):
             jobs[tc.getParam('_unique_id')] = tc
 
 
-    while any(not f.done() for f in futures):
+    while any(not f.done() for f in futures) or (not comm.empty()):
         while not comm.empty():
             unique_id, result = comm.get()
-            tc = jobs.pop(unique_id)
+            tc = jobs.get(unique_id)
             tc.setResult(result)
             tc.report()
 
         for tc in jobs.values():#key in list(jobs.keys()):
-            #tc = jobs[key]
-            tc.report()
-            #if tc.getProgress() == TestCase.Progress.FINISHED:
-            #    jobs.pop(key)
+            if tc.getProgress() != TestCase.Progress.FINISHED:
+                tc.report()
 
         #time.sleep(0.1)
 
@@ -78,18 +76,14 @@ if __name__ == '__main__':
     n_per_group = 3
     groups = list()
 
-    #for i in range(n_groups):
-    #    local = list()
-    #    for j in range(n_per_group):
-    #        t =  random.randint(*sleep_range)
-    #        runner = ProcessRunner(name='{}/{}.rand_{}'.format(i, j, t), command=('sleep', str(t)))
-    #        differs = (TextDiff(name=runner.name() + '.text', text_in='sleep'),
-    #                   TextDiff(name=runner.name() + '.text2', text_in='sleep 2'))
-    #        local.append(TestCase(controller=None, runner=runner, differs=differs))
-    #    groups.append(local)
-
-
-    groups = [[TestCase(differs=tuple(), runner=ProcessRunner(name='bad', command=('wrong',)))],
-              [TestCase(differs=tuple(), runner=ProcessRunner(name='bad', command=('sleep', '2')))]]
+    for i in range(n_groups):
+        local = list()
+        for j in range(n_per_group):
+            t =  random.randint(*sleep_range)
+            runner = ProcessRunner(name='{}/{}.rand_{}'.format(i, j, t), command=('sleep', str(t)))
+            differs = (TextDiff(name=runner.name() + '.text', text_in='sleep'),
+                       TextDiff(name=runner.name() + '.text2', text_in='sleep 2'))
+            local.append(TestCase(controller=None, runner=runner, differs=differs))
+        groups.append(local)
 
     sys.exit(run(groups, n_threads=1))

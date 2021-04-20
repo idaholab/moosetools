@@ -5,6 +5,7 @@ import enum
 import time
 import uuid
 import logging
+import collections
 import multiprocessing
 import threading
 import textwrap
@@ -38,27 +39,27 @@ class RedirectOutput(object):
             if self.is_main:
                 self._sysout.write(message)
             else:
-                self._out.write(message)
+                self._out[threading.current_thread().ident].write(message)
 
         def flush(self):
             if self.is_main:
                 self._sysout.flush()
 
-    def __init__(self, stdout=None, stderr=None):
+    def __init__(self):
         #assert type
-        self._stdout = stdout or io.StrigIO()
-        self._stderr = stderr or io.StrigIO()
+        self._stdout = collections.defaultdict(io.StringIO)
+        self._stderr = collections.defaultdict(io.StringIO)
 
         self._sys_stdout = sys.stdout
         self._sys_stderr = sys.stderr
 
     @property
     def stdout(self):
-        return self._stdout.getvalue().strip('\n')
+        return self._stdout[threading.current_thread().ident].getvalue()
 
     @property
     def stderr(self):
-        return self._stdrr.getvalue().strip('\n')
+        return self._stdrr[threading.current_thread().ident].getvalue()
 
     def __enter__(self):
         #print("ENTER")
@@ -159,8 +160,7 @@ class TestCase(MooseObject):
 
     def executeObject(self, obj, *args, **kwargs):
 
-        stream = io.StringIO()
-        redirect = RedirectOutput(stream, stream)
+        redirect = RedirectOutput()
 
         # Use Controller to determines if the runner can actually run
         try:
@@ -206,7 +206,6 @@ class TestCase(MooseObject):
         return TestCase.Result.PASS, redirect.stdout, returncode
 
     def setResult(self, result):
-        print(result)
         self.setProgress(TestCase.Progress.FINISHED)
         self.__results = result
 
@@ -222,16 +221,16 @@ class TestCase(MooseObject):
         state, out = self.__results
         self._printState(self._runner, state, show_time=True)
 
-        print(out)
         r_state, r_out = out.get(self._runner.name())
         prefix = '{} '.format(mooseutils.color_text(self._runner.name(), *state.color))
-        print(textwrap.indent(r_out, prefix=prefix))
+        print(textwrap.indent(r_out.strip('\n'), prefix=prefix))
 
-        #for obj in [d for d in self._differs if d.name() in out]:
-        #    d_state, d_out = out.get(obj.name())
-        #    self._printState(obj, d_state)
-        #    prefix = '{} '.format(mooseutils.color_text(obj.name(), *d_state.color))
-        #    print(textwrap.indent(d_out, prefix=prefix))
+        for obj in [d for d in self._differs if d.name() in out]:
+            d_state, d_out = out.get(obj.name())
+            self._printState(obj, d_state)
+            if d_out:
+                prefix = '{} '.format(mooseutils.color_text(obj.name(), *d_state.color))
+                print(textwrap.indent(d_out.strip('\n'), prefix=prefix))
 
     def _printProgress(self):
         progress = self.getProgress()
