@@ -1,0 +1,7 @@
+[Main]
+  type = MooseTest
+  #plugin_dirs = ./plugins
+  progress_interval = 2
+[]
+#[Controllers]
+#[]

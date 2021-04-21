@@ -21,14 +21,15 @@ TODO:
 # - add percent complete to output
 
 
-def run_the_testcases(testcases, comm):
+
+
+def run_testcases(testcases, controllers, comm):
     for tc in testcases:
         try:
             # TODO: document that this should not throw, but if it does...
             r = tc.execute()
         except Exception as ex:
-            r = ((TestCase.Result.FATAL, traceback.format_exc()))
-
+            r = (TestCase.Result.FATAL, {tc.name(): (TestCase.Result.FATAL, traceback.format_exc())})
         comm.put((tc.getParam('_unique_id'), r))
 
 
@@ -36,16 +37,13 @@ def run_the_testcases(testcases, comm):
 def run(groups, n_threads=None):
     if n_threads is None: n_threads = os.cpu_count()
 
-
     comm = queue.Queue()
     pool = concurrent.futures.ThreadPoolExecutor(n_threads)
-    #comm = multiprocessing.Queue()
-    #pool = concurrent.futures.ProcessPoolExecutor(n_threads)
 
     jobs = dict()
     futures = list()
     for testcases in groups:
-        futures.append(pool.submit(run_the_testcases, testcases, comm))
+        futures.append(pool.submit(run_testcases, testcases, comm))
         for tc in testcases:
             jobs[tc.getParam('_unique_id')] = tc
 
@@ -57,19 +55,18 @@ def run(groups, n_threads=None):
             tc.setResult(result)
             tc.report()
 
-        for tc in jobs.values():#key in list(jobs.keys()):
-            #if tc.getProgress() != TestCase.Progress.FINISHED:
+        for tc in jobs.values():
             tc.report()
 
-        #time.sleep(0.1)
+    # TODO: SUM Results, track total time
 
 if __name__ == '__main__':
     import random
     import logging
 
     handler = logging.StreamHandler()
+    #logging.basicConfig(handlers=[handler])#, format='%(levelname)s: %(message)s')
     logging.basicConfig(handlers=[handler], format='%(message)s')
-
 
     sleep_range = (1,2)
     n_groups = 4

@@ -6,13 +6,7 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-#import logging
-#logger = logging.getLogger(__module__)
-#handler = logging.StreamHandler()
-#logger.addHandler(handler)
-
-import logging
-logging.getLogger('')
-
+from . import base
+from . import controllers
 from . import runners
 from . import differs

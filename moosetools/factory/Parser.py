@@ -29,7 +29,7 @@ class Parser(base.MooseObject):
     def validParams():
         params = base.MooseObject.validParams()
         params.add('_factory', private=True, required=True, vtype=Factory)
-        params.add('_warehouse', private=True, required=True, vtype=Warehouse)
+        params.add('_warehouse', private=True, required=True, vtype=(Warehouse, list))
         return params
 
     def __init__(self, factory, warehouse, **kwargs):
@@ -54,9 +54,11 @@ class Parser(base.MooseObject):
         """Return the `factory.Warehouse` object provided in the constructor."""
         return self.getParam('_warehouse')
 
-    def parse(self, filename):
+    def parse(self, filename, root=None):
         """
-        Open the supplied *filename* and instantiate the `MooseObject` objects.
+        Instantiate the `MooseObjects` in the supplied *filename* or in the `pyhit.Node` tree with
+        a *root* node. If the *root* is supplied, the *filename* is only used for error reporting, if
+        it is omitted then the file is opened to create the *root*.
 
         This method should not raise exceptions. It reports all problems with logging errors. Prior
         to running it resets the error counts (see `base.MooseObject.reset()`). As such the
@@ -64,17 +66,16 @@ class Parser(base.MooseObject):
         error occurred.
         """
         self.reset()  # zero all logging counts
-
         if not os.path.exists(filename):
             self.error("The filename '{}' does not exist.".format(filename))
             return 1
 
-        try:
-            root = pyhit.load(filename)
-
-        except Exception as err:
-            self.exception("Failed to load filename with pyhit: {}", filename)
-            return 1
+        if root is None:
+            try:
+                root = pyhit.load(filename)
+            except Exception as err:
+                self.exception("Failed to load filename with pyhit: {}", filename)
+                return 1
 
         # Iterate of all childless nodes, those should contain a 'type = ...' parameter for building
         paths = set()

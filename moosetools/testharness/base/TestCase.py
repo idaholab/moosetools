@@ -11,7 +11,7 @@ import threading
 import textwrap
 from moosetools import mooseutils
 from moosetools.base import MooseObject
-from .MooseTestController import MooseTestController
+#from .MooseTestController import MooseTestController
 from .Runner import Runner
 from .Differ import Differ
 
@@ -95,20 +95,20 @@ class TestCase(MooseObject):
     class Result(State):
         SKIP      = (11, 0, 'SKIP', ('cyan_1',))
         PASS      = (12, 0, 'OK', ('green_1',))
-        ERROR     = (14, 1, 'ERROR', ('red_1',))
-        EXCEPTION = (15, 1, 'EXCEPTION', ('magenta_1',))
-        FATAL     = (16, 1, 'FATAL', ('white', 'red_1')) # internal error (see, run.py)
+        ERROR     = (13, 1, 'ERROR', ('red_1',))
+        EXCEPTION = (14, 1, 'EXCEPTION', ('magenta_1',))
+        FATAL     = (15, 1, 'FATAL', ('white', 'red_1')) # internal error (see, run.py)
 
     @staticmethod
     def validParams():
         params = MooseObject.validParams()
-        params.add('controller', vtype=MooseTestController,
-                   doc="The 'MooseTestController' used to determine if the TestCase members should execute.")
+
         params.add('runner', vtype=Runner, required=True,
                    doc="The 'Runner' object to execute.")
         params.add('differs', vtype=Differ, array=True,
                    doc="The 'Differ' object(s) to execute.")
 
+        params.add('_progress_interval', default=5, vtype=int, private=True)
         params.add('_unique_id', vtype=uuid.UUID, mutable=True, private=True)
 
         # Don't add anything here, these don't get set from anywhere
@@ -118,14 +118,19 @@ class TestCase(MooseObject):
     def __init__(self, *args, **kwargs):
         kwargs['_unique_id'] = uuid.uuid4()
         MooseObject.__init__(self, *args, **kwargs)
+
+
+
         self._controller = self.getParam('controller') or MooseTestController()
         self._runner = self.getParam('runner')
+        self.parameters().set('name', self._runner.name())
         self._differs = self.getParam('differs')
+
         self.__results = None
         self.__progress = None
 
         self.__running_report_time = None
-        self.__running_report_interval = self._runner.getParam('output_progress_interval')
+        self.__running_report_interval = self.getParam('_progress_interval')
         self.__start_time = None
 
         self.setProgress(TestCase.Progress.WAITING)
@@ -159,7 +164,6 @@ class TestCase(MooseObject):
         return state, results
 
     def executeObject(self, obj, *args, **kwargs):
-
         # Use Controller to determines if the runner can actually run
         try:
             with self.redirectOutput() as c_run_out:
@@ -174,7 +178,7 @@ class TestCase(MooseObject):
         if self._controller.status():
             with self.redirectOutput() as err_out:
                 self._controller.error("An unexpected error was logged on the Controller '{}' during execution with the supplied '{}' object.\n{}", self._controller.name(), obj.name(), c_run_out.stdout)
-            return TestCase.Result.FATAL, redirect.stdout, None
+            return TestCase.Result.FATAL, err_out.stdout, None
 
         # Stop if an error is logged on the Runner object, due to execution of Controller
         if obj.status():
@@ -184,7 +188,7 @@ class TestCase(MooseObject):
 
         # Stop if the runner is unable to run...thanks Capt. obvious
         if not self._controller.isRunnable():
-            return TestCase.Result.SKIP, redirect.stdout, None
+            return TestCase.Result.SKIP, c_run_out.stdout, None
 
         # Runner.execute
         try:
@@ -242,6 +246,9 @@ class TestCase(MooseObject):
                 self._printState(self._runner, self.getProgress(), show_time=True)
                 self.__running_report_time = current
 
+    # TODO:
+    # _printDifferState
+    # _printRunnerState
     def _printState(self, obj, state, width=100, show_time=False):
         """
         """
