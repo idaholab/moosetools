@@ -2,145 +2,43 @@ import os
 import sys
 import logging
 import argparse
+from moosetools import parameters
 from moosetools import moosetree
 from moosetools import pyhit
 from moosetools import factory
 from moosetools.moosetest.base import MooseTest, Controller
 from moosetools.moosetest.controllers import EnvironmentController
 
-def locate_config(start):
-    if not os.path.isdir(start):
-        msg =  "The supplied starting directory, '{}', does not exist or is not a directory."
-        raise RuntimeError(msg.format(start))
 
-    root_dir = os.path.abspath(start) + os.sep # add trailing / to consider the start directory
-    for i in range(root_dir.count(os.sep)):
-        fname = os.path.join(root_dir.rsplit(os.sep, 1)[0], '.moosetest')
-        if os.path.isfile(fname):
-            return fname
+# TODO:
+# - check status() of factory after factory calls
+# - change ProcessRunner to RunCommand
 
-def load_config(filename):
-    if not os.path.isfile(filename):
-        msg =  "The configuration file, '{}', does not exist."
-        raise RuntimeError(msg.format(filename))
-    root = pyhit.load(filename)
-    return root
-
-def create_objects(filename, root):
+def valid_params():
     """
-
+    No need for MooseObject
     """
-    # Create a MooseTest object.
-    # The MooseTest object is the starting point for managing the tests that will be executed. It is
-    # not the intent to specialize this class. However, it is configurable via a ".moosetest" file.
-    # As such, the moosetools.factory system is used to parse this file and create the object. The
-    # parameters at the root level of the file, which is a HIT file, are used in creating the object.
-    f = factory.Factory(plugin_type=MooseTest)
-    f.register('MooseTest', MooseTest)
-    w = list()
-    p = factory.Parser(f, w)
-    p.parse(filename, root)
-    if p.status():
-        raise RuntimeError("An error occurred during the creation of the 'MooseTest' object.")
-    mt_obj = w[0]
+    params = parameters.InputParameters()
+    params.add('progress_interval', vtype=int, default=10,
+               doc="The duration between printing the progress message of test cases.")
 
-    # Create `Controller` objects
-    plugin_dirs = [os.path.dirname(EnvironmentController.__file__)]
-    if mt_obj.isParamValid('plugin_dirs'): plugin_dirs += list(mt_obj.getParam('plugin_dirs'))
+    params.add('plugin_dirs',
+               vtype=str,
+               array=True,
+               verify=(lambda dirs: all(os.path.isdir(d) for d in dirs),
+                       "Supplied plugin directories must exist."),
+               doc="List of directories to search for plugins, the location should be relative to the configure file.")
 
-    f = factory.Factory(plugin_dirs=tuple(plugin_dirs), plugin_type=Controller)
-    f.load()
-
-    w = list()
-    p = factory.Parser(f, w)
-    for child in config:
-        p._parseNode(filename, child)
+    params.add('spec_file_names', vtype=str, array=True, default=('tests',),
+               doc="List of file names (e.g., 'tests') that contain test specifications to run.")
+    params.add('spec_file_blocks', vtype=str, array=True, default=('Tests',),
+               doc="List of top-level test specifications (e.g., `[Tests]`) HIT blocks to run.")
 
 
-    return mt_obj, None
+    return params
 
 
-
-
-def locate_and_load_config(location=os.getcwd()):
-    """
-    Create and return a `pyhit` tree containing the configuration for the testing.
-
-    If a directory is provided to *location* the directory structure is searched from the supplied
-    location up the tree. When a ".moosetest" file is found, it is used to create the tree. If it
-    is not found then an empty tree structure is returned.
-
-    If a file is provided to *location* this file is used to create the tree.
-    """
-    filename = location if os.path.isfile(location) else locate_config(location)
-    if filename is None:
-        logging.debug('Using default configuration.')
-        config = pyhit.Node(None)
-        config.append('Main', type='MooseTest')
-        controllers = config.append('Controllers')
-        controllers.append('env', type='EnvironmentController')
-    else:
-        logging.debug('Using configuration from file: {}'.format(filename))
-        config = load_config(filename)
-    return filename, config
-
-def create_moose_test(filename, config):
-    """
-    Create the base `MooseTest` object responsible for managing the testing given the *config* input,
-    which is a `pyhit.Node` that include the parameters for the object to be created. Generally, the
-    *config* input should be obtained by calling the `locate_and_load_config` function. The
-    *filename* is provided for error reporting during parsing.
-    """
-    if ('type' in config) and (config['type'] != 'MooseTest'):
-        msg = "The 'type' should not exist or be `MooseTest`. If you are needing to specialize, " \
-              "please contact the developers and explain what you are trying to do, perhaps there " \
-              "is an improvement that can be made to support your need."
-        raise RuntimeError(msg)
-
-    # Set default/private parameters for the MooseTest object to be created
-    config['type'] = 'MooseTest'
-    config['_root_dir'] = os.path.dirname(filename)
-
-    # Create a MooseTest object.
-    # The MooseTest object is the starting point for managing the tests that will be executed. It is
-    # not the intent to specialize this class. However, it is configurable via a ".moosetest" file.
-    # As such, the moosetools.factory system is used to parse this file and create the object. The
-    # parameters at the root level of the file, which is a HIT file, are used in creating the object.
-    f = factory.Factory(plugin_type=MooseTest)
-    f.register('MooseTest', MooseTest)
-    w = list()
-    p = factory.Parser(f, w)
-    p._parseNode(filename, config)
-    if p.status():
-        raise RuntimeError("An error occurred during the creation of the 'MooseTest' object.")
-    obj = w[0]
-    return w[0] # MooseTest instance
-
-
-def create_controllers(filename, config, plugin_dirs):
-    """
-    Create the `Controller` objects that dictate if a test should execute given the *config* input,
-    which is a `pyhit.Node` that includes the object to create and the associated parameters.
-    Generally, the *config* input should be obtained by extracting the `[Controllers]` block returned
-    by calling the `locate_and_load_config` function. The *filename* is provided for error reporting
-    during parsing. The *plugin_dirs* is a list of locations to look for `Controller` objects, in
-    addition to the locations in this module.
-    """
-
-    # Load `Controller` plugins
-    f = factory.Factory(plugin_dirs=plugin_dirs or tuple(), plugin_type=Controller)
-    f.load()
-    f.register('EnvironmentController', EnvironmentController)
-
-    w = list()
-    p = factory.Parser(f, w)
-    for child in config:
-        p._parseNode(filename, child)
-
-    print(w)
-
-
-def get_options():
+def cli_args():
     parser = argparse.ArgumentParser(description='Testing system inspired by MOOSE')
     parser.add_argument('--config', default=os.getcwd(), type=str,
                         help="The configuration file or directory. If a directory is provided a " \
@@ -151,41 +49,125 @@ def get_options():
 
     return parser.parse_args()
 
-
 def main():
     """
 
-    Give some notes about mockable/testable functions
+    Give some notes about mockable/testable functions and avoiding classes
 
     """
-
-
     # Extract command-line arguments
-    args = get_options()
+    args = cli_args()
 
     # TODO: update docs after this is working, perhaps the handler needs to be set on the MooseTest object
     # TODO: change formatter in redirect output of TestCase
     # Setup basic logging. The formatting is removed to allow for captured logs from the tests to
     # have a minimal width. A stream handler is also added to allow for the capture to occur, this
     # occurs in the TestCase object.
-    handler = logging.StreamHandler()
-    logging.basicConfig(handlers=[handler], level=args.level)#, format='%(message)s')
+    #handler = logging.StreamHandler()
+    #logging.basicConfig(handlers=[handler], level=args.level)#, format='%(message)s')
+    logging.basicConfig(level='DEBUG')
 
     # Load the configuration
-    filename, config = locate_and_load_config(args.config)
+    filename, config = _locate_and_load_config(args.config)
 
-    # Create the object that will manage the testing.
-    moosetest, controllers = create_objects(filename, config)
-    #moosetest = create_moose_test(filename, config)
+    # Get/update the [Main] parameters
+    params = _create_main_parameters(filename, config)
 
-    # Create the Controller objects.
-    #cnode = moosetree.find(config, func=lambda n: n.name=='Controllers') or pyhit.Node(None)
-    #controllers = create_controllers(filename, cnode, moosetest.getParam('plugin_dirs'))
+    # Create `Controller` objects for managing the testing
+    controllers = _create_controllers(filename, config, params.get('plugin_dirs') or tuple())
 
 
+    # testcase_groups = discover(...)
+
+    # run(testcase_groups)
+    # - remove execute functions from TestCase
+    # - remove 'controllers' from TestCase, it should just be an argument in run_testcases function
+
+    # return 0|1
+
+def _create_main_parameters(filename, config):
+    """
+    ...
+    """
+    # Update the parameters with the key/value pairs in the [Main] block
+    parameters = valid_params()
+    m_mode = moosetree.find(config, func=lambda n: n.name == 'Main')
+    if m_mode is not None:
+        factory.Parser.setParameters(params, filename, m_mode)
+
+    # Update the paths
+    if params.isValid('plugin_dirs'):
+        plugin_dirs = set()
+        root_dir_name = os.path.dirname(filename) if os.path.isfile(filename) else filename
+        for p_dir in params.get('plugin_dirs'):
+            plugin_dirs.add(os.path.join(root_dir_name, p_dir))
+        params.set('plugin_dirs', tuple(plugin_dirs))
+
+    return params
 
 
+def _locate_config(start):
+    if not os.path.isdir(start):
+        msg =  "The supplied starting directory, '{}', does not exist or is not a directory."
+        raise RuntimeError(msg.format(start))
 
+    root_dir = os.path.abspath(start) + os.sep # add trailing / to consider the start directory
+    for i in range(root_dir.count(os.sep)):
+        fname = os.path.join(root_dir.rsplit(os.sep, 1)[0], '.moosetest')
+        if os.path.isfile(fname):
+            return fname
+
+def _load_config(filename):
+    if not os.path.isfile(filename):
+        msg =  "The configuration file, '{}', does not exist."
+        raise RuntimeError(msg.format(filename))
+    root = pyhit.load(filename)
+    return root
+
+def _locate_and_load_config(location=os.getcwd()):
+    """
+    Create and return a `pyhit` tree containing the configuration for the testing.
+
+    If a directory is provided to *location* the directory structure is searched from the supplied
+    location up the tree. When a ".moosetest" file is found, it is used to create the tree. If it
+    is not found then an empty tree structure is returned.
+
+    If a file is provided to *location* this file is used to create the tree.
+    """
+    filename = location if os.path.isfile(location) else _locate_config(location)
+    if filename is None:
+        logging.debug('Using default configuration.')
+        config = pyhit.Node(None)
+        config.append('Main', type='MooseTest')
+        controllers = config.append('Controllers')
+        controllers.append('env', type='EnvironmentController')
+    else:
+        logging.debug('Using configuration from file: {}'.format(filename))
+        config = _load_config(filename)
+    return filename, config
+
+def _create_controllers(filename, config, plugin_dirs):
+    """
+    Create the `Controller` objects that dictate if a test should execute given the *config* input,
+    which is a `pyhit.Node` that includes the object to create and the associated parameters.
+    Generally, the *config* input should be obtained by extracting the `[Controllers]` block returned
+    by calling the `locate_and_load_config` function. The *filename* is provided for error reporting
+    during parsing. The *plugin_dirs* is a list of locations to look for `Controller` objects, in
+    addition to the locations in this module.
+    """
+
+    # Get `Controllers` node
+    cnode = moosetree.find(config, func=lambda n: n.name == 'Controllers')
+    print(cnode)
+
+    # Load `Controller` plugins
+    f = factory.Factory(plugin_dirs=plugin_dirs, plugin_type=Controller)
+    f.load()
+
+    w = list()
+    p = factory.Parser(f, w)
+    p.parse(filename, cnode)
+    return w
 
 
 if __name__ == '__main__':

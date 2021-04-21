@@ -1,17 +1,24 @@
 import io
 import platform
 import logging
+from moosetools.parameters import InputParameters
 from ..base import Controller
 
 class EnvironmentController(Controller):
-    PREFIX = 'env'
 
     @staticmethod
     def validParams():
         params = Controller.validParams()
+        params.set('prefix', 'env')
+        return params
+
+    @staticmethod
+    def validObjectParams():
+        params = parameters.InputParameters()
         params.add('platform', array=True, allow=('Linux', 'Darwin', 'Windows'),
                    doc="Limit the execution to the supplied platform(s).")
         return params
+
 
     def __init__(self, *args, **kwargs):
         Controller.__init__(self, *args, **kwargs)

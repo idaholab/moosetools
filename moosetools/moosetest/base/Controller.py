@@ -24,6 +24,8 @@ class Controller(MooseObject):
     @staticmethod
     def validParams():
         params = MooseObject.validParams()
+        params.add('prefix', vtype=str, required=True, mutable=False,
+                   doc="Set the sub-parameters prefix of the controller.")
         return params
 
     def __init__(self, *args, **kwargs):

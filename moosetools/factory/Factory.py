@@ -107,6 +107,8 @@ class Factory(MooseObject):
         plugin_dirs = self.getParam('plugin_dirs')
         plugin_type = self.getParam('plugin_type')
 
+        print(plugin_dirs, plugin_type)
+
         for info in pkgutil.iter_modules(plugin_dirs):
             loader = info.module_finder.find_module(info.name)
             try:

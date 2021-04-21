@@ -1,0 +1,11 @@
+[Tests]
+  [runner]
+    type = ProcessRunner
+  []
+[]
+
+[Assessments]
+  [runner]
+    type = ProcessRunner
+  []
+[]
