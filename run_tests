@@ -36,7 +36,7 @@ run_local_python_unit_tests(){
   echo -e "\n\n"
 }
 
-for PACKAGE in */; do
+for PACKAGE in moosetools/*/; do
     TESTS_DIR=${PACKAGE}tests
     if [ -f ${TESTS_DIR}/../run_tests ]; then
         run_local_python_unit_tests ${TESTS_DIR}/..
