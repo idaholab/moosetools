@@ -7,7 +7,7 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from moosetools.moosetest.testers.Tester import Tester
+from moosetools.testharness.testers.Tester import Tester
 
 class RunCommand(Tester):
 

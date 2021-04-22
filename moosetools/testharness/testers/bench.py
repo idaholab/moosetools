@@ -24,7 +24,7 @@ try:
 except:
     pass
 
-from moosetools.moosetest.testers.Tester import Tester
+from moosetools.testharness.testers.Tester import Tester
 
 def process_timeout(proc, timeout_sec):
   kill_proc = lambda p: p.kill()

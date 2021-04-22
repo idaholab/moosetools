@@ -7,8 +7,8 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from moosetools.moosetest.schedulers.Scheduler import Scheduler
-from moosetools.moosetest import util
+from moosetools.testharness.schedulers.Scheduler import Scheduler
+from moosetools.testharness import util
 
 class RunParallel(Scheduler):
     """

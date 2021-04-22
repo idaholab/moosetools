@@ -8,8 +8,8 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import re, os, shutil
-from moosetools.moosetest.testers.Tester import Tester
-from moosetools.moosetest import util
+from moosetools.testharness.testers.Tester import Tester
+from moosetools.testharness import util
 
 class RunApp(Tester):
 

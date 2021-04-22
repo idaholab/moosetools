@@ -9,8 +9,8 @@
 
 import os
 import sys
-from moosetools.moosetest import util
-from moosetools.moosetest.testers.FileTester import FileTester
+from moosetools.testharness import util
+from moosetools.testharness.testers.FileTester import FileTester
 from moosetools.mooseutils.ImageDiffer import ImageDiffer
 
 class ImageDiff(FileTester):

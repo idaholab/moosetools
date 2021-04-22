@@ -9,8 +9,8 @@
 
 import sys, os, json, shutil
 from collections import namedtuple
-from moosetools.moosetest.schedulers.Scheduler import Scheduler
-from moosetools.moosetest.StatusSystem import StatusSystem
+from moosetools.testharness.schedulers.Scheduler import Scheduler
+from moosetools.testharness.StatusSystem import StatusSystem
 
 class QueueManager(Scheduler):
     """

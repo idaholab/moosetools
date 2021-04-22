@@ -7,7 +7,7 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 import sys
-from moosetools.moosetest.JobDAG import JobDAG
+from moosetools.testharness.JobDAG import JobDAG
 from moosetools.base import MooseObject
 import os, traceback
 from time import sleep

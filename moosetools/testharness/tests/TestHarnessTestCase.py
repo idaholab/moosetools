@@ -12,6 +12,7 @@ import unittest
 import subprocess
 import re
 
+@unittest.skip("deprecated")
 class TestHarnessTestCase(unittest.TestCase):
     """
     TestCase class for running TestHarness commands.

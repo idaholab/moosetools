@@ -8,8 +8,8 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os, sys
-from moosetools.moosetest import util
-from moosetools.moosetest.testers.FileTester import FileTester
+from moosetools.testharness import util
+from moosetools.testharness.testers.FileTester import FileTester
 
 class AnalyzeJacobian(FileTester):
 

@@ -8,9 +8,9 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os
-from moosetools.moosetest.testers.RunApp import RunApp
-from moosetools.moosetest.XMLDiffer import XMLDiffer
-from moosetools.moosetest import util
+from moosetools.testharness.testers.RunApp import RunApp
+from moosetools.testharness.XMLDiffer import XMLDiffer
+from moosetools.testharness import util
 
 class XMLDiff(RunApp):
 

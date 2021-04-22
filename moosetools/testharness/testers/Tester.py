@@ -14,8 +14,8 @@ from signal import SIGTERM
 
 from moosetools import mooseutils
 from moosetools.base import MooseObject
-from moosetools.moosetest import util
-from moosetools.moosetest.StatusSystem import StatusSystem
+from moosetools.testharness import util
+from moosetools.testharness.StatusSystem import StatusSystem
 
 
 class Tester(MooseObject):
