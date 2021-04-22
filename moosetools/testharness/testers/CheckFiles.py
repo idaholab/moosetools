@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -11,14 +11,20 @@ from moosetools.testharness.testers.FileTester import FileTester
 from moosetools.testharness import util
 import os
 
-class CheckFiles(FileTester):
 
+class CheckFiles(FileTester):
     @staticmethod
     def validParams():
         params = FileTester.validParams()
         params.add('check_files', vtype=str, array=True, doc="A list of files that MUST exist.")
-        params.add('check_not_exists', vtype=str, array=True, doc="A list of files that must NOT exist.")
-        params.addParam('file_expect_out', "A regular expression that must occur in all of the check files in order for the test to be considered passing.")
+        params.add('check_not_exists',
+                   vtype=str,
+                   array=True,
+                   doc="A list of files that must NOT exist.")
+        params.addParam(
+            'file_expect_out',
+            "A regular expression that must occur in all of the check files in order for the test to be considered passing."
+        )
         return params
 
     def __init__(self, *args, **kwargs):
@@ -26,7 +32,8 @@ class CheckFiles(FileTester):
 
         # Make sure that either input or command is supplied
         if not (self.specs.isValid('check_files') or self.specs.isValid('check_not_exists')):
-            raise Exception('Either "check_files" or "check_not_exists" must be supplied for a CheckFiles test')
+            raise Exception(
+                'Either "check_files" or "check_not_exists" must be supplied for a CheckFiles test')
 
     def getOutputFiles(self):
         out = list()

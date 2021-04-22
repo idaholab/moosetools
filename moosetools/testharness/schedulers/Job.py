@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -13,6 +13,7 @@ from timeit import default_timer as clock
 from moosetools.testharness.StatusSystem import StatusSystem
 from moosetools.testharness.FileChecker import FileChecker
 
+
 class Timer(object):
     """
     A helper class for testers to track the time it takes to run.
@@ -22,23 +23,30 @@ class Timer(object):
     def __init__(self):
         self.starts = []
         self.ends = []
+
     def start(self):
         """ starts the timer clock """
         self.starts.append(clock())
+
     def stop(self):
         """ stop/pauses the timer clock """
         self.ends.append(clock())
+
     def cumulativeDur(self):
         """ returns the total/cumulative time taken by the timer """
         diffs = [end - start for start, end in zip(self.starts, self.ends)]
         return sum(diffs)
+
     def averageDur(self):
         return self.cumulativeDur() / len(self.starts)
+
     def nRuns(self):
         return len(self.starts)
+
     def reset(self):
         self.starts = []
         self.ends = []
+
 
 class Job(object):
     """
@@ -84,10 +92,7 @@ class Job(object):
         self.timeout = self.job_status.timeout
         self.finished = self.job_status.finished
 
-        self.__finished_statuses = [self.skip,
-                                    self.error,
-                                    self.timeout,
-                                    self.finished]
+        self.__finished_statuses = [self.skip, self.error, self.timeout, self.finished]
 
         # Initialize jobs with a holding status
         self.setStatus(self.hold)
@@ -232,7 +237,8 @@ class Job(object):
         if self.options.pedantic_checks and self.canParallel():
             # Check if the files we checked on earlier were modified.
             self.fileChecker.get_all_files(self, self.fileChecker.getNewTimes())
-            self.modifiedFiles = self.fileChecker.check_changes(self.fileChecker.getOriginalTimes(), self.fileChecker.getNewTimes())
+            self.modifiedFiles = self.fileChecker.check_changes(self.fileChecker.getOriginalTimes(),
+                                                                self.fileChecker.getNewTimes())
 
     def killProcess(self):
         """ Kill remaining process that may be running """
@@ -253,7 +259,7 @@ class Job(object):
     def setOutput(self, output):
         """ Method to allow schedulers to overwrite the output if certain conditions are met """
         if (not self.__tester.outfile is None and not self.__tester.outfile.closed
-           and not self.__tester.errfile is None and not self.__tester.errfile.closed):
+                and not self.__tester.errfile is None and not self.__tester.errfile.closed):
             return
 
         # Check for invalid unicode in output
@@ -262,7 +268,7 @@ class Job(object):
 
         except UnicodeDecodeError:
             # convert invalid output to something json can handle
-            output = output.decode('utf-8','replace').encode('ascii', 'replace')
+            output = output.decode('utf-8', 'replace').encode('ascii', 'replace')
 
             # Alert the user that output has invalid characters
             self.addCaveats('invalid characters in stdout')
@@ -336,30 +342,40 @@ class Job(object):
 
     def isHold(self):
         return self.getStatus() == self.hold
+
     def isQueued(self):
         _status = self.getStatus()
         return (_status == self.queued and self.isNoStatus()) \
             or (_status in self.__finished_statuses and self.__tester.isQueued())
+
     def isRunning(self):
         return self.getStatus() == self.running
+
     def isTimeout(self):
         return self.getStatus() == self.timeout
+
     def isFinished(self):
         return self.getStatus() in self.__finished_statuses
 
     # the following more tester related...
     def isSilent(self):
         return self.__tester.isSilent()
+
     def isNoStatus(self):
         return self.__tester.isNoStatus()
+
     def isSilent(self):
         return self.__tester.isSilent() or (not self.options.report_skipped and self.isSkip())
+
     def isPass(self):
         return self.__tester.isPass()
+
     def isFail(self):
         return self.__tester.isFail() or self.isError()
+
     def isDiff(self):
         return self.__tester.isDiff()
+
     def isDeleted(self):
         return self.__tester.isDeleted()
 
@@ -370,14 +386,10 @@ class Job(object):
         """
         # Job has failed, or tester has no status
         if self.isError() or self.isNoStatus():
-            return (self.getStatus().status,
-                    self.getStatusMessage(),
-                    self.getStatus().color,
+            return (self.getStatus().status, self.getStatusMessage(), self.getStatus().color,
                     self.getStatus().code)
 
         # Tester has a finished status of some sort
         else:
-            return (self.__tester.getStatus().status,
-                    self.__tester.getStatusMessage(),
-                    self.__tester.getStatus().color,
-                    self.__tester.getStatus().code)
+            return (self.__tester.getStatus().status, self.__tester.getStatusMessage(),
+                    self.__tester.getStatus().color, self.__tester.getStatus().code)

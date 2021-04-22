@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -26,14 +26,16 @@ except:
 
 from moosetools.testharness.testers.Tester import Tester
 
+
 def process_timeout(proc, timeout_sec):
-  kill_proc = lambda p: p.kill()
-  timer = threading.Timer(timeout_sec, kill_proc, [proc])
-  try:
-    timer.start()
-    proc.wait()
-  finally:
-    timer.cancel()
+    kill_proc = lambda p: p.kill()
+    timer = threading.Timer(timeout_sec, kill_proc, [proc])
+    try:
+        timer.start()
+        proc.wait()
+    finally:
+        timer.cancel()
+
 
 class Test:
     def __init__(self, executable, infile, rootdir='.', args=None, perflog=False):
@@ -43,7 +45,10 @@ class Test:
         self.args = args
         self.dur_secs = 0
         self.perflog = []
-        self.getpot_options = ['Outputs/console=false', 'Outputs/exodus=false', 'Outputs/csv=false', '--no-gdb-backtrace']
+        self.getpot_options = [
+            'Outputs/console=false', 'Outputs/exodus=false', 'Outputs/csv=false',
+            '--no-gdb-backtrace'
+        ]
         self.have_perflog = perflog
         if self.have_perflog:
             self.getpot_options.append('UserObjects/perflog/type=PerflogDumper')
@@ -76,7 +81,7 @@ class Test:
         self.reset()
         cmd = self._buildcmd()
 
-        tmpdir =  tempfile.mkdtemp()
+        tmpdir = tempfile.mkdtemp()
         shutil.rmtree(tmpdir, ignore_errors=True)
         os.makedirs(tmpdir)
 
@@ -103,7 +108,7 @@ class Test:
         if self.have_perflog:
             with open(os.path.join(tmpdir, 'perflog.csv'), 'r') as csvfile:
                 reader = csv.reader(csvfile)
-                skip = True # use to skip header line
+                skip = True  # use to skip header line
                 for row in reader:
                     if not skip:
                         self.perflog.append(row)
@@ -112,16 +117,17 @@ class Test:
 
         shutil.rmtree(tmpdir)
 
+
 class SpeedTest(Tester):
     @staticmethod
     def validParams():
         params = Tester.validParams()
-        params.addParam('input',              'The input file to use for this test.')
-        params.addParam('test_name',          'The name of the test - populated automatically')
+        params.addParam('input', 'The input file to use for this test.')
+        params.addParam('test_name', 'The name of the test - populated automatically')
         params.addParam('cumulative_dur', 60, 'cumulative time (secs) to run each benchmark')
-        params.addParam('min_runs', 40,       'minimum number of runs for each benchmark')
-        params.addParam('max_runs', 400,      'maximum number of runs for each benchmark')
-        params.addParam('perflog', False,     'true to enable perflog and store its output')
+        params.addParam('min_runs', 40, 'minimum number of runs for each benchmark')
+        params.addParam('max_runs', 400, 'maximum number of runs for each benchmark')
+        params.addParam('perflog', False, 'true to enable perflog and store its output')
         return params
 
     def __init__(self, *args, **kwargs):
@@ -157,14 +163,22 @@ class SpeedTest(Tester):
         p = self.specs
         if not self.check_only and options.method not in ['opt', 'oprof', 'dbg']:
             raise ValueError('cannot run benchmark with "' + options.method + '" build')
-        t = Test(p['executable'], p['input'], args=p['cli_args'], rootdir=p['test_dir'], perflog=p['perflog'])
+        t = Test(p['executable'],
+                 p['input'],
+                 args=p['cli_args'],
+                 rootdir=p['test_dir'],
+                 perflog=p['perflog'])
 
         if self.check_only:
             t.run(timer, timeout=p['max_time'])
             return
 
         name = p['test_name'].split('.')[-1]
-        self.benchmark = Bench(name, test=t, cum_dur=float(p['cumulative_dur']), min_runs=int(p['min_runs']), max_runs=int(p['max_runs']))
+        self.benchmark = Bench(name,
+                               test=t,
+                               cum_dur=float(p['cumulative_dur']),
+                               min_runs=int(p['min_runs']),
+                               max_runs=int(p['max_runs']))
         self.benchmark.run(timer, timeout=self.timeout)
         with DB(self.db) as db:
             db.store(self.benchmark)
@@ -173,6 +187,7 @@ class SpeedTest(Tester):
     def processResults(self, moose_dir, options, output):
         self.setStatus(self.success)
         return output
+
 
 class Bench:
     def __init__(self, name, realruns=None, test=None, cum_dur=60, min_runs=40, max_runs=400):
@@ -189,15 +204,18 @@ class Bench:
     def run(self, timer=None, timeout=3600):
         tot = 0.0
         start = time.time()
-        while (len(self.realruns) < self._min_runs or tot < self._cum_dur) and len(self.realruns) < self._max_runs:
+        while (len(self.realruns) < self._min_runs
+               or tot < self._cum_dur) and len(self.realruns) < self._max_runs:
             dt = time.time() - start
             if dt >= timeout:
-                raise RuntimeError('benchmark timed out after {} with {} runs'.format(dt, len(self.realruns)))
+                raise RuntimeError('benchmark timed out after {} with {} runs'.format(
+                    dt, len(self.realruns)))
 
             self.test.run(timer, timeout=timeout - dt)
             self.realruns.append(self.test.dur_secs)
             self.perflogruns.append(self.test.perflog)
             tot += self.test.dur_secs
+
 
 class BenchComp:
     def __init__(self, oldbench, newbench, psig=0.01):
@@ -217,8 +235,8 @@ class BenchComp:
             self.pvalue = 1.0
 
         self.u = result[0]
-        self.avg_old = float(sum(self.iqr_old))/len(self.iqr_old)
-        self.avg_new = float(sum(self.iqr_new))/len(self.iqr_new)
+        self.avg_old = float(sum(self.iqr_old)) / len(self.iqr_old)
+        self.avg_new = float(sum(self.iqr_new)) / len(self.iqr_new)
         self.speed_change = (self.avg_new - self.avg_old) / self.avg_old
 
     @classmethod
@@ -229,11 +247,12 @@ class BenchComp:
         if len(newstr) > 12:
             newstr = newstr[:12]
         revstr = ' {} to {} '.format(oldstr, newstr)
-        revstr = revstr.center(30,'-')
+        revstr = revstr.center(30, '-')
         return '' \
             + '--------------------------------{}--------------------------------'.format(revstr) \
             + '\n{:^30s}   {:^15s}   {:^15s}   {:5s}'.format('benchmark', 'old (sec/run)', 'new (sec/run)', 'speedup (pvalue, nsamples)') \
             + '\n----------------------------------------------------------------------------------------------'
+
     @classmethod
     def footer(cls):
         return '----------------------------------------------------------------------------------------------'
@@ -243,21 +262,26 @@ class BenchComp:
         if len(name) > 30:
             name = name[:27] + '...'
         if self.pvalue <= self.psig:
-            return '{:>30s}:   {:^15f}   {:^15f}   {:+5.1f}% (p={:.4f},n={}+{})'.format(name, self.avg_old, self.avg_new, self.speed_change*100, self.pvalue, len(self.iqr_old), len(self.iqr_new))
+            return '{:>30s}:   {:^15f}   {:^15f}   {:+5.1f}% (p={:.4f},n={}+{})'.format(
+                name, self.avg_old, self.avg_new, self.speed_change * 100, self.pvalue,
+                len(self.iqr_old), len(self.iqr_new))
         else:
-            return '{:>30s}:   {:^15f}   {:^15f}      ~   (p={:.4f},n={}+{})'.format(name, self.avg_old, self.avg_new, self.pvalue, len(self.iqr_old), len(self.iqr_new))
+            return '{:>30s}:   {:^15f}   {:^15f}      ~   (p={:.4f},n={}+{})'.format(
+                name, self.avg_old, self.avg_new, self.pvalue, len(self.iqr_old), len(self.iqr_new))
+
 
 def _iqr(a, frac=1000):
     """return elements of a within frac*iqr of the the interquartile range (inclusive)"""
     import numpy
-    qup, qlow = numpy.percentile(a, [75 ,25])
+    qup, qlow = numpy.percentile(a, [75, 25])
 
     iqr = qup - qlow
     clean = []
     for val in a:
-        if qlow - frac*iqr <= val and val <= qup + frac*iqr:
+        if qlow - frac * iqr <= val and val <= qup + frac * iqr:
             clean.append(val)
     return clean
+
 
 class DB:
     def __init__(self, fname):
@@ -312,7 +336,9 @@ class DB:
 
     def revisions(self, method='opt'):
         c = self.conn.cursor()
-        c.execute('SELECT revision,date FROM benchmarks WHERE executable_method=? GROUP BY revision ORDER BY date ASC', (method,))
+        c.execute(
+            'SELECT revision,date FROM benchmarks WHERE executable_method=? GROUP BY revision ORDER BY date ASC',
+            (method, ))
         rows = c.fetchall()
         revs = []
         times = []
@@ -323,7 +349,7 @@ class DB:
 
     def bench_names(self, method='opt'):
         c = self.conn.cursor()
-        c.execute('SELECT DISTINCT name FROM benchmarks WHERE executable_method=?', (method,))
+        c.execute('SELECT DISTINCT name FROM benchmarks WHERE executable_method=?', (method, ))
         rows = c.fetchall()
         names = []
         for r in rows:
@@ -333,15 +359,19 @@ class DB:
     def list(self, revision, benchmark='', method='opt'):
         c = self.conn.cursor()
         if benchmark == '':
-            c.execute('SELECT id,name,executable,input_file FROM benchmarks WHERE INSTR(revision,?) AND executable_method=? ORDER BY date ASC', (revision,method))
+            c.execute(
+                'SELECT id,name,executable,input_file FROM benchmarks WHERE INSTR(revision,?) AND executable_method=? ORDER BY date ASC',
+                (revision, method))
         else:
-            c.execute('SELECT id,name,executable,input_file FROM benchmarks WHERE INSTR(revision,?) AND name=? AND executable_method=? ORDER BY date ASC', (revision,benchmark,method))
+            c.execute(
+                'SELECT id,name,executable,input_file FROM benchmarks WHERE INSTR(revision,?) AND name=? AND executable_method=? ORDER BY date ASC',
+                (revision, benchmark, method))
         benchmarks = c.fetchall()
         return benchmarks
 
     def load_times(self, bench_id):
         c = self.conn.cursor()
-        c.execute('SELECT realtime_secs FROM timings WHERE benchmark_id=?', (bench_id,))
+        c.execute('SELECT realtime_secs FROM timings WHERE benchmark_id=?', (bench_id, ))
         ents = c.fetchall()
         real = []
         for ent in ents:
@@ -352,7 +382,8 @@ class DB:
         """loads and returns a Bench object for the given revision and benchmark name"""
         entries = self.list(revision, benchmark=bench_name, method=method)
         if len(entries) < 1:
-            raise RuntimeError('load: no benchamrk for revision="{}",bench_name="{}"'.format(revision, bench_name))
+            raise RuntimeError('load: no benchamrk for revision="{}",bench_name="{}"'.format(
+                revision, bench_name))
         b = entries[0]
         real = self.load_times(b[0])
         return Bench(b[1], test=Test(b[2], b[3]), realruns=real)
@@ -372,25 +403,29 @@ class DB:
         load = os.getloadavg()[0]
 
         c = self.conn.cursor()
-        c.execute('INSERT INTO benchmarks (name,executable,executable_name,executable_method,input_file,timestamp,revision,date,load) VALUES (?,?,?,?,?,?,?,?,?)',
-                (benchmark.name, ex, ex_name, ex_method, infile, timestamp, rev, date, load))
+        c.execute(
+            'INSERT INTO benchmarks (name,executable,executable_name,executable_method,input_file,timestamp,revision,date,load) VALUES (?,?,?,?,?,?,?,?,?)',
+            (benchmark.name, ex, ex_name, ex_method, infile, timestamp, rev, date, load))
         bench_id = c.lastrowid
         self.conn.commit()
 
         i = 0
         for real, perflog in zip(benchmark.realruns, benchmark.perflogruns):
-            c.execute('INSERT INTO timings (benchmark_id, run, realtime_secs) VALUES (?,?,?)', (bench_id, i, real))
+            c.execute('INSERT INTO timings (benchmark_id, run, realtime_secs) VALUES (?,?,?)',
+                      (bench_id, i, real))
             i += 1
             for entry in perflog:
                 cat, subcat, nruns, selftime, cumtime = entry
-                c.execute('INSERT INTO perflog (benchmark_id, run, field, subfield, exec_count, self_time_secs, cum_time_secs) VALUES (?,?,?,?,?,?,?)',
-                        (bench_id, i, cat, subcat, nruns, selftime, cumtime))
+                c.execute(
+                    'INSERT INTO perflog (benchmark_id, run, field, subfield, exec_count, self_time_secs, cum_time_secs) VALUES (?,?,?,?,?,?,?)',
+                    (bench_id, i, cat, subcat, nruns, selftime, cumtime))
 
         return bench_id
 
     def close(self):
         self.conn.commit()
         self.conn.close()
+
 
 def git_revision(dir='.'):
     # return hash and (unix secs since epoch) date

@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -13,23 +13,27 @@ import os
 from moosetools.testharness import util
 from moosetools.testharness.testers.RunApp import RunApp
 
+
 class PetscJacobianTester(RunApp):
     @staticmethod
     def validParams():
         params = RunApp.validParams()
         params.addParam('ratio_tol', 1e-8, "Relative tolerance to compare the ration against.")
-        params.addParam('difference_tol', 1e-8, "Relative tolerance to compare the difference against.")
-        params.addParam('state', 'user', "The state for which we want to compare against the "
-                                         "finite-differenced Jacobian ('user', 'const_positive', or "
-                                         "'const_negative'.")
-        params.addParam('run_sim', False, "Whether to actually run the simulation, testing the Jacobian "
-                                          "at every non-linear iteration of every time step. This is only "
-                                          "relevant for petsc versions >= 3.9.")
+        params.addParam('difference_tol', 1e-8,
+                        "Relative tolerance to compare the difference against.")
+        params.addParam(
+            'state', 'user', "The state for which we want to compare against the "
+            "finite-differenced Jacobian ('user', 'const_positive', or "
+            "'const_negative'.")
+        params.addParam(
+            'run_sim', False, "Whether to actually run the simulation, testing the Jacobian "
+            "at every non-linear iteration of every time step. This is only "
+            "relevant for petsc versions >= 3.9.")
         params.addParam('turn_off_exodus_output', True, "Whether to set exodus=false in Outputs")
 
         # override default values
         params.setDefault('valgrind', 'NONE')
-        params.setDefault('petsc_version', ('>=3.9.4',))
+        params.setDefault('petsc_version', ('>=3.9.4', ))
         params.setDefault('method', 'OPT')
 
         return params
@@ -44,9 +48,9 @@ class PetscJacobianTester(RunApp):
     def __init__(self, *args, **kwargs):
         RunApp.__init__(self, *args, **kwargs)
 
-        self.moose_dir = os.environ.get('MOOSE_DIR',
-                                        os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                                     '..')))
+        self.moose_dir = os.environ.get(
+            'MOOSE_DIR',
+            os.path.abspath(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')))
 
         if os.environ.get("LIBMESH_DIR"):
             self.libmesh_dir = os.environ['LIBMESH_DIR']
@@ -63,8 +67,10 @@ class PetscJacobianTester(RunApp):
             self.old_petsc = False
             self.specs['cli_args'].extend(['-snes_test_jacobian', '-snes_force_iteration'])
             if not self.specs['run_sim']:
-                self.specs['cli_args'].extend(['-snes_type', 'ksponly',
-                                  '-ksp_type', 'preonly', '-pc_type', 'none', '-snes_convergence_test', 'skip'])
+                self.specs['cli_args'].extend([
+                    '-snes_type', 'ksponly', '-ksp_type', 'preonly', '-pc_type', 'none',
+                    '-snes_convergence_test', 'skip'
+                ])
 
     def __strToFloat(self, str):
         """ Convert string to float """
@@ -97,14 +103,17 @@ class PetscJacobianTester(RunApp):
     def processResults(self, moose_dir, options, output):
         if self.old_petsc:
             if self.specs['state'].lower() == 'user':
-                m = re.search("Norm of matrix ratio (\S+?),? difference (\S+) \(user-defined state\)",
-                              output, re.MULTILINE | re.DOTALL);
+                m = re.search(
+                    "Norm of matrix ratio (\S+?),? difference (\S+) \(user-defined state\)", output,
+                    re.MULTILINE | re.DOTALL)
             elif self.specs['state'].lower() == 'const_positive':
-                m = re.search("Norm of matrix ratio (\S+?),? difference (\S+) \(constant state 1\.0\)",
-                              output, re.MULTILINE | re.DOTALL);
+                m = re.search(
+                    "Norm of matrix ratio (\S+?),? difference (\S+) \(constant state 1\.0\)",
+                    output, re.MULTILINE | re.DOTALL)
             elif self.specs['state'].lower() == 'const_negative':
-                m = re.search("Norm of matrix ratio (\S+?),? difference (\S+) \(constant state -1\.0\)",
-                              output, re.MULTILINE | re.DOTALL);
+                m = re.search(
+                    "Norm of matrix ratio (\S+?),? difference (\S+) \(constant state -1\.0\)",
+                    output, re.MULTILINE | re.DOTALL)
             else:
                 self.setStatus("state must be either 'user', const_positive', or 'const_negative'",
                                self.bucket_fail)
@@ -120,8 +129,9 @@ class PetscJacobianTester(RunApp):
                 reason = 'EXPECTED OUTPUT NOT FOUND'
 
         else:
-            matches = re.finditer("\|\|J - Jfd\|\|_F/\|\|J\|\|_F\s?=?\s?(\S+), \|\|J - Jfd\|\|_F\s?=?\s?(\S+)",
-                  output, re.MULTILINE | re.DOTALL)
+            matches = re.finditer(
+                "\|\|J - Jfd\|\|_F/\|\|J\|\|_F\s?=?\s?(\S+), \|\|J - Jfd\|\|_F\s?=?\s?(\S+)",
+                output, re.MULTILINE | re.DOTALL)
 
             reason = 'EXPECTED OUTPUT NOT FOUND'
             for match in matches:
@@ -131,7 +141,6 @@ class PetscJacobianTester(RunApp):
                 else:
                     reason = 'INCORRECT JACOBIAN'
                     break
-
 
         if reason != '':
             self.setStatus(self.fail, reason)

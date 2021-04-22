@@ -1,14 +1,15 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os, traceback
 import xml.etree.ElementTree as xml
+
 
 ##
 # Stores error information needed for printing diff messages
@@ -21,6 +22,7 @@ class XMLError(object):
     def __init__(self, err, msg):
         self.error = err
         self.message = msg
+
 
 ##
 # A class for finding difference between XML documents
@@ -69,11 +71,11 @@ class XMLDiffer(object):
         # Header
         output = []
         output.append('Running XMLDiffer.py')
-        output.append( '         File 1: ' + self._file[0])
-        output.append( '         File 2: ' + self._file[1])
-        output.append( '        rel_tol: ' + str(self._rtol))
-        output.append( '       abs_zero: ' + str(self._abs_zero))
-        output.append( '  No. of errors: ' + str(len(self._errors)))
+        output.append('         File 1: ' + self._file[0])
+        output.append('         File 2: ' + self._file[1])
+        output.append('        rel_tol: ' + str(self._rtol))
+        output.append('       abs_zero: ' + str(self._abs_zero))
+        output.append('  No. of errors: ' + str(len(self._errors)))
 
         # Errors
         cnt = 0
@@ -148,7 +150,7 @@ class XMLDiffer(object):
 
             # Initialize the result and error storage
             results = []
-            errors  = []
+            errors = []
 
             # Loop through all blocks in the second file with the current tag
             for elem1 in root[1].iter(elem0.tag):
@@ -181,7 +183,6 @@ class XMLDiffer(object):
                     for e in errors:
                         self._addError(e)
 
-
     ##
     # Compares XML blocks (private)
     # This function first compares the XML block attributes, if those match
@@ -197,7 +198,8 @@ class XMLDiffer(object):
         # Perform attribute comparison in both directions: ensure that
         # every attribute in the gold file is in the output file, and
         # vice-versa.
-        test_attrib = self._compareAttributes(elem0, elem1) and self._compareAttributes(elem1, elem0)
+        test_attrib = self._compareAttributes(elem0, elem1) and self._compareAttributes(
+            elem1, elem0)
 
         # If the attributes match, compare the text and return those results
         if test_attrib:
@@ -226,7 +228,7 @@ class XMLDiffer(object):
 
             # Attribute is missing from the secondary object, match fails
             if key0 not in elem1.attrib:
-                return  False
+                return False
 
             # If the secondary object has the same attribute, perform a comparison
             elif key0 in elem1.attrib:
@@ -283,7 +285,8 @@ class XMLDiffer(object):
             if not value:
                 err = 'An XML block with the tag "' + elem0.tag + '" and the following attributes has differing values on file 2.'
                 msg = self._getAttrib(elem0)
-                msg.append('Index ' + str(i) + ' : ' + text0[i] + ' ~ ' + text1[i] + ', rel diff: ' + '%e' % rel_diff)
+                msg.append('Index ' + str(i) + ' : ' + text0[i] + ' ~ ' + text1[i] +
+                           ', rel diff: ' + '%e' % rel_diff)
                 err = XMLError(err, msg)
                 return (False, err)
 
@@ -315,13 +318,12 @@ class XMLDiffer(object):
 
         # Check the relative error
         else:
-            rel_diff = abs( ( value0 - value1 ) / max( abs(value0), abs(value1) ) )
+            rel_diff = abs((value0 - value1) / max(abs(value0), abs(value1)))
             if rel_diff > self._rtol:
                 result = False
 
         # Return the comparison
         return result, rel_diff
-
 
     ##
     # Get the attributes (dict) as a string (private)
@@ -338,8 +340,10 @@ if __name__ == '__main__':
     # in the variable names file1 and file2 below, and then running:
     #
     # python $MOOSE_DIR/python/TestHarness/XMLDiffer.py
-    file1 = os.path.join(os.getenv('MOOSE_DIR'), 'test', 'tests', 'outputs', 'vtk', 'vtk_diff_serial_mesh_parallel_out_005.pvtu')
-    file2 = os.path.join(os.getenv('MOOSE_DIR'), 'test', 'tests', 'outputs', 'vtk', 'gold', 'vtk_diff_serial_mesh_parallel_out_005.pvtu')
+    file1 = os.path.join(os.getenv('MOOSE_DIR'), 'test', 'tests', 'outputs', 'vtk',
+                         'vtk_diff_serial_mesh_parallel_out_005.pvtu')
+    file2 = os.path.join(os.getenv('MOOSE_DIR'), 'test', 'tests', 'outputs', 'vtk', 'gold',
+                         'vtk_diff_serial_mesh_parallel_out_005.pvtu')
 
     d = XMLDiffer(file1, file2, ignored_attributes=['header_type'])
     if not d.fail():

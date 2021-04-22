@@ -1,14 +1,15 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 from moosetools.testharness.schedulers.Scheduler import Scheduler
 from moosetools.testharness import util
+
 
 class RunParallel(Scheduler):
     """
@@ -53,10 +54,12 @@ class RunParallel(Scheduler):
                 # If we asked for redirected output but none was found, we'll call that a failure
                 if redirected_output == '':
                     tester.setStatus(tester.fail, 'FILE TIMEOUT')
-                    output += '\n' + "#"*80 + '\nTester failed, reason: ' + tester.getStatusMessage() + '\n'
+                    output += '\n' + "#" * 80 + '\nTester failed, reason: ' + tester.getStatusMessage(
+                    ) + '\n'
 
         else:
-            output += '\n' + "#"*80 + '\nTester failed, reason: ' + tester.getStatusMessage() + '\n'
+            output += '\n' + "#" * 80 + '\nTester failed, reason: ' + tester.getStatusMessage(
+            ) + '\n'
 
         # Set testers output with modifications made above so it prints the way we want it
         job.setOutput(output)
@@ -79,7 +82,8 @@ class RunParallel(Scheduler):
         elif self.options.scaling and tester.specs['scale_refine']:
             message = 'SCALED'
 
-        elif self.options.enable_recover and tester.specs.isValid('skip_checks') and tester.specs['skip_checks']:
+        elif self.options.enable_recover and tester.specs.isValid(
+                'skip_checks') and tester.specs['skip_checks']:
             message = 'PART1'
 
         tester.setStatus(tester.success, message)

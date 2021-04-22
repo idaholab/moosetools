@@ -1,20 +1,23 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 from collections import namedtuple
 
+
 def initStatus():
     status = namedtuple('status', 'status color code')
     return status
 
+
 class StatusSystemError(Exception):
     pass
+
 
 class StatusSystem(object):
     """
@@ -63,45 +66,28 @@ class StatusSystem(object):
     fail = status(status='FAIL', color='RED', code=0x80)
     diff = status(status='DIFF', color='YELLOW', code=0x81)
     deleted = status(status='DELETED', color='RED', code=0x83)
-    error  = status(status='ERROR', color='RED', code=0x84)
+    error = status(status='ERROR', color='RED', code=0x84)
     race = status(status='RACE', color='RED', code=0x85)
-    timeout  = status(status='TIMEOUT', color='RED', code=0x1)
+    timeout = status(status='TIMEOUT', color='RED', code=0x1)
 
     # Pending statuses
-    hold  = status(status='HOLD', color='CYAN', code=0x0)
-    queued  = status(status='QUEUED', color='CYAN', code=0x0)
-    running  = status(status='RUNNING', color='CYAN', code=0x0)
+    hold = status(status='HOLD', color='CYAN', code=0x0)
+    queued = status(status='QUEUED', color='CYAN', code=0x0)
+    running = status(status='RUNNING', color='CYAN', code=0x0)
 
     # all-encompassing finished status
-    finished  = status(status='FINISHED', color='GREY', code=0x0)
+    finished = status(status='FINISHED', color='GREY', code=0x0)
 
-    __all_statuses = [no_status,
-                      success,
-                      skip,
-                      silent,
-                      fail,
-                      diff,
-                      deleted,
-                      error,
-                      timeout,
-                      hold,
-                      queued,
-                      running,
-                      finished]
+    __all_statuses = [
+        no_status, success, skip, silent, fail, diff, deleted, error, timeout, hold, queued,
+        running, finished
+    ]
 
-    __exit_nonzero_statuses = [fail,
-                               diff,
-                               deleted,
-                               error,
-                               timeout]
+    __exit_nonzero_statuses = [fail, diff, deleted, error, timeout]
 
-    __exit_zero_statuses = [success,
-                            skip,
-                            silent]
+    __exit_zero_statuses = [success, skip, silent]
 
-    __pending_statuses = [hold,
-                          queued,
-                          running]
+    __pending_statuses = [hold, queued, running]
 
     def __init__(self):
         self.__status = self.no_status

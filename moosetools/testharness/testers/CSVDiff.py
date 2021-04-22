@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -11,15 +11,22 @@ from moosetools.testharness.testers.FileTester import FileTester
 from moosetools.testharness import util
 import os
 
-class CSVDiff(FileTester):
 
+class CSVDiff(FileTester):
     @staticmethod
     def validParams():
         params = FileTester.validParams()
         params.add('csvdiff', vtype=str, array=True, doc="A list of files to run CSVDiff on.")
-        params.add('override_columns', array=True, vtype=str, doc="A list of variable names to customize the CSVDiff tolerances.")
-        params.add('override_rel_err',  array=True, doc="A list of customized relative error tolerances.")
-        params.add('override_abs_zero',  array=True, doc="A list of customized absolute zero tolerances.")
+        params.add('override_columns',
+                   array=True,
+                   vtype=str,
+                   doc="A list of variable names to customize the CSVDiff tolerances.")
+        params.add('override_rel_err',
+                   array=True,
+                   doc="A list of customized relative error tolerances.")
+        params.add('override_abs_zero',
+                   array=True,
+                   doc="A list of customized absolute zero tolerances.")
         params.addParam('comparison_file', "Use supplied custom comparison config file.")
         #params.addParam('rel_err', "A customized relative error tolerances.")
         #params.addParam('abs_zero', "A customized relative error tolerances.")
@@ -48,7 +55,9 @@ class CSVDiff(FileTester):
             csvdiff = [os.path.join(self.specs['moose_python_dir'], 'mooseutils', 'csvdiff.py')]
 
             # Due to required positional nargs with the ability to support custom positional args (--argument), we need to specify the required ones first
-            csvdiff.append(os.path.join(self.getTestDir(), self.specs['gold_dir'], file) + ' ' + os.path.join(self.getTestDir(), file))
+            csvdiff.append(
+                os.path.join(self.getTestDir(), self.specs['gold_dir'], file) + ' ' +
+                os.path.join(self.getTestDir(), file))
 
             if self.specs.isValid('rel_err'):
                 csvdiff.append('--relative-tolerance %s' % (self.specs['rel_err']))
@@ -90,7 +99,8 @@ class CSVDiff(FileTester):
         # Make sure that all of the Exodiff files are actually available
         for file in self.specs['csvdiff']:
             if not os.path.exists(os.path.join(self.getTestDir(), self.specs['gold_dir'], file)):
-                output += "File Not Found: " + os.path.join(self.getTestDir(), self.specs['gold_dir'], file)
+                output += "File Not Found: " + os.path.join(self.getTestDir(),
+                                                            self.specs['gold_dir'], file)
                 self.setStatus(self.fail, 'MISSING GOLD FILE')
                 break
 

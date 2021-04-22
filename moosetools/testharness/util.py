@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -17,174 +17,249 @@ TERM_COLS = int(os.getenv('MOOSE_TERM_COLS', '110'))
 TERM_FORMAT = os.getenv('MOOSE_TERM_FORMAT', 'njcst')
 
 MOOSE_OPTIONS = {
-    'ad_mode' :   { 're_option' : r'#define\s+MOOSE_SPARSE_AD\s+(\d+)',
-                    'default'   : 'NONSPARSE',
-                    'options'   :
-                    { 'SPARSE'    : '1',
-                      'NONSPARSE' : '0'
-                    }
-                  },
-
-    'ad_indexing_type' : { 're_option' : r'#define\s+MOOSE_GLOBAL_AD_INDEXING\s+(\d+)',
-                           'default'   : 'LOCAL',
-                           'options'   :
-                           { 'GLOBAL'  : '1',
-                             'LOCAL'   : '0'
-                           }
+    'ad_mode': {
+        're_option': r'#define\s+MOOSE_SPARSE_AD\s+(\d+)',
+        'default': 'NONSPARSE',
+        'options': {
+            'SPARSE': '1',
+            'NONSPARSE': '0'
+        }
     },
-
-    'ad_size' : { 're_option' : r'#define\s+MOOSE_AD_MAX_DOFS_PER_ELEM\s+(\d+)',
-                           'default'   : '50'
+    'ad_indexing_type': {
+        're_option': r'#define\s+MOOSE_GLOBAL_AD_INDEXING\s+(\d+)',
+        'default': 'LOCAL',
+        'options': {
+            'GLOBAL': '1',
+            'LOCAL': '0'
+        }
     },
-
-    'libpng' :    { 're_option' : r'#define\s+MOOSE_HAVE_LIBPNG\s+(\d+)',
-                    'default'   : 'FALSE',
-                    'options'   :
-                    { 'TRUE'    : '1',
-                      'FALSE'   : '0'
-                    }
-                  }
+    'ad_size': {
+        're_option': r'#define\s+MOOSE_AD_MAX_DOFS_PER_ELEM\s+(\d+)',
+        'default': '50'
+    },
+    'libpng': {
+        're_option': r'#define\s+MOOSE_HAVE_LIBPNG\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    }
 }
 
-
 LIBMESH_OPTIONS = {
-  'mesh_mode' :    { 're_option' : r'#define\s+LIBMESH_ENABLE_PARMESH\s+(\d+)',
-                     'default'   : 'REPLICATED',
-                     'options'   :
-                       {
-      'DISTRIBUTED' : '1',
-      'REPLICATED'  : '0'
-      }
-                     },
-  'unique_ids' :   { 're_option' : r'#define\s+LIBMESH_ENABLE_UNIQUE_ID\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   :
-                       {
-      'TRUE'  : '1',
-      'FALSE' : '0'
-      }
-                     },
-  'dtk' :          { 're_option' : r'#define\s+LIBMESH_TRILINOS_HAVE_DTK\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   :
-                       {
-      'TRUE'  : '1',
-      'FALSE' : '0'
-      }
-                     },
-  'boost' :        { 're_option' : r'#define\s+LIBMESH_HAVE_EXTERNAL_BOOST\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   :
-                       {
-      'TRUE'  : '1',
-      'FALSE' : '0'
-      }
-                     },
-  'vtk' :          { 're_option' : r'#define\s+LIBMESH_HAVE_VTK\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   :
-                       {
-      'TRUE'  : '1',
-      'FALSE' : '0'
-      }
-                     },
-  'tecplot' :      { 're_option' : r'#define\s+LIBMESH_HAVE_TECPLOT_API\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   :
-                       {
-      'TRUE'  : '1',
-      'FALSE' : '0'
-      }
-                     },
-  'petsc_major' :  { 're_option' : r'#define\s+LIBMESH_DETECTED_PETSC_VERSION_MAJOR\s+(\d+)',
-                     'default'   : '1'
-                   },
-  'petsc_minor' :  { 're_option' : r'#define\s+LIBMESH_DETECTED_PETSC_VERSION_MINOR\s+(\d+)',
-                     'default'   : '1'
-                   },
-  'petsc_subminor' :  { 're_option' : r'#define\s+LIBMESH_DETECTED_PETSC_VERSION_SUBMINOR\s+(\d+)',
-                     'default'   : '1'
-                   },
-  'petsc_version_release' :  { 're_option' : r'#define\s+LIBMESH_DETECTED_PETSC_VERSION_RELEASE\s+(\d+)',
-                     'default'   : 'TRUE',
-                     'options'   : {'TRUE'  : '1', 'FALSE' : '0'}
-                   },
-  'slepc_major' :  { 're_option' : r'#define\s+LIBMESH_DETECTED_SLEPC_VERSION_MAJOR\s+(\d+)',
-                     'default'   : '1'
-                   },
-  'slepc_minor' :  { 're_option' : r'#define\s+LIBMESH_DETECTED_SLEPC_VERSION_MINOR\s+(\d+)',
-                     'default'   : '1'
-                   },
-  'slepc_subminor' :  { 're_option' : r'#define\s+LIBMESH_DETECTED_SLEPC_VERSION_SUBMINOR\s+(\d+)',
-                     'default'   : '1'
-                   },
-  'dof_id_bytes' : { 're_option' : r'#define\s+LIBMESH_DOF_ID_BYTES\s+(\d+)',
-                     'default'   : '4'
-                   },
-  'petsc_debug'  : { 're_option' : r'#define\s+LIBMESH_PETSC_USE_DEBUG\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE'  : '1', 'FALSE' : '0'}
-                   },
-  'curl' :         { 're_option' : r'#define\s+LIBMESH_HAVE_CURL\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'threads' :      { 're_option' : r'#define\s+LIBMESH_USING_THREADS\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'tbb' :          { 're_option' : r'#define\s+LIBMESH_HAVE_TBB_API\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'openmp' :       { 're_option' : r'#define\s+LIBMESH_HAVE_OPENMP\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'superlu' :      { 're_option' : r'#define\s+LIBMESH_PETSC_HAVE_SUPERLU_DIST\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'mumps' :        { 're_option' : r'#define\s+LIBMESH_PETSC_HAVE_MUMPS\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'strumpack' :        { 're_option' : r'#define\s+LIBMESH_PETSC_HAVE_STRUMPACK\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'parmetis' :      { 're_option' : r'#define\s+LIBMESH_(?:PETSC_){0,1}HAVE_PARMETIS\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'chaco' :      { 're_option' : r'#define\s+LIBMESH_PETSC_HAVE_CHACO\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'party' :      { 're_option' : r'#define\s+LIBMESH_PETSC_HAVE_PARTY\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'ptscotch' :      { 're_option' : r'#define\s+LIBMESH_PETSC_HAVE_PTSCOTCH\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'slepc' :        { 're_option' : r'#define\s+LIBMESH_HAVE_SLEPC\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'cxx11' :        { 're_option' : r'#define\s+LIBMESH_HAVE_CXX11\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'unique_id' :    { 're_option' : r'#define\s+LIBMESH_ENABLE_UNIQUE_ID\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
-  'fparser_jit' :  { 're_option' : r'#define\s+LIBMESH_HAVE_FPARSER_JIT\s+(\d+)',
-                     'default'   : 'FALSE',
-                     'options'   : {'TRUE' : '1', 'FALSE' : '0'}
-                   },
+    'mesh_mode': {
+        're_option': r'#define\s+LIBMESH_ENABLE_PARMESH\s+(\d+)',
+        'default': 'REPLICATED',
+        'options': {
+            'DISTRIBUTED': '1',
+            'REPLICATED': '0'
+        }
+    },
+    'unique_ids': {
+        're_option': r'#define\s+LIBMESH_ENABLE_UNIQUE_ID\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'dtk': {
+        're_option': r'#define\s+LIBMESH_TRILINOS_HAVE_DTK\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'boost': {
+        're_option': r'#define\s+LIBMESH_HAVE_EXTERNAL_BOOST\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'vtk': {
+        're_option': r'#define\s+LIBMESH_HAVE_VTK\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'tecplot': {
+        're_option': r'#define\s+LIBMESH_HAVE_TECPLOT_API\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'petsc_major': {
+        're_option': r'#define\s+LIBMESH_DETECTED_PETSC_VERSION_MAJOR\s+(\d+)',
+        'default': '1'
+    },
+    'petsc_minor': {
+        're_option': r'#define\s+LIBMESH_DETECTED_PETSC_VERSION_MINOR\s+(\d+)',
+        'default': '1'
+    },
+    'petsc_subminor': {
+        're_option': r'#define\s+LIBMESH_DETECTED_PETSC_VERSION_SUBMINOR\s+(\d+)',
+        'default': '1'
+    },
+    'petsc_version_release': {
+        're_option': r'#define\s+LIBMESH_DETECTED_PETSC_VERSION_RELEASE\s+(\d+)',
+        'default': 'TRUE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'slepc_major': {
+        're_option': r'#define\s+LIBMESH_DETECTED_SLEPC_VERSION_MAJOR\s+(\d+)',
+        'default': '1'
+    },
+    'slepc_minor': {
+        're_option': r'#define\s+LIBMESH_DETECTED_SLEPC_VERSION_MINOR\s+(\d+)',
+        'default': '1'
+    },
+    'slepc_subminor': {
+        're_option': r'#define\s+LIBMESH_DETECTED_SLEPC_VERSION_SUBMINOR\s+(\d+)',
+        'default': '1'
+    },
+    'dof_id_bytes': {
+        're_option': r'#define\s+LIBMESH_DOF_ID_BYTES\s+(\d+)',
+        'default': '4'
+    },
+    'petsc_debug': {
+        're_option': r'#define\s+LIBMESH_PETSC_USE_DEBUG\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'curl': {
+        're_option': r'#define\s+LIBMESH_HAVE_CURL\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'threads': {
+        're_option': r'#define\s+LIBMESH_USING_THREADS\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'tbb': {
+        're_option': r'#define\s+LIBMESH_HAVE_TBB_API\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'openmp': {
+        're_option': r'#define\s+LIBMESH_HAVE_OPENMP\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'superlu': {
+        're_option': r'#define\s+LIBMESH_PETSC_HAVE_SUPERLU_DIST\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'mumps': {
+        're_option': r'#define\s+LIBMESH_PETSC_HAVE_MUMPS\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'strumpack': {
+        're_option': r'#define\s+LIBMESH_PETSC_HAVE_STRUMPACK\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'parmetis': {
+        're_option': r'#define\s+LIBMESH_(?:PETSC_){0,1}HAVE_PARMETIS\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'chaco': {
+        're_option': r'#define\s+LIBMESH_PETSC_HAVE_CHACO\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'party': {
+        're_option': r'#define\s+LIBMESH_PETSC_HAVE_PARTY\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'ptscotch': {
+        're_option': r'#define\s+LIBMESH_PETSC_HAVE_PTSCOTCH\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'slepc': {
+        're_option': r'#define\s+LIBMESH_HAVE_SLEPC\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'cxx11': {
+        're_option': r'#define\s+LIBMESH_HAVE_CXX11\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'unique_id': {
+        're_option': r'#define\s+LIBMESH_ENABLE_UNIQUE_ID\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
+    'fparser_jit': {
+        're_option': r'#define\s+LIBMESH_HAVE_FPARSER_JIT\s+(\d+)',
+        'default': 'FALSE',
+        'options': {
+            'TRUE': '1',
+            'FALSE': '0'
+        }
+    },
 }
 
 
@@ -192,7 +267,12 @@ LIBMESH_OPTIONS = {
 def runCommand(cmd, cwd=None):
     # On Windows it is not allowed to close fds while redirecting output
     should_close = platform.system() != "Windows"
-    p = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, close_fds=should_close, shell=True)
+    p = subprocess.Popen(cmd,
+                         cwd=cwd,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT,
+                         close_fds=should_close,
+                         shell=True)
     output = p.communicate()[0].decode('utf-8')
     if (p.returncode != 0):
         output = 'ERROR: ' + output
@@ -208,6 +288,7 @@ def resultCharacterCount(results_dict):
             printable_items.append(printable[0])
     return len(' '.join(printable_items))
 
+
 ## convert the incoming message tuple to the same case, as the case of format_key
 ## store this information to the same cased key in formatted_results dict.
 def formatCase(format_key, message, formatted_results):
@@ -215,6 +296,7 @@ def formatCase(format_key, message, formatted_results):
         formatted_results[format_key] = (message[0].upper(), message[1])
     elif message:
         formatted_results[format_key] = (message[0], message[1])
+
 
 def formatStatusMessage(job, status, message, options):
     # If there is no message, use status as message
@@ -233,6 +315,7 @@ def formatStatusMessage(job, status, message, options):
 
     return message
 
+
 ## print an optionally colorified test result
 #
 # The test will not be colored if
@@ -243,7 +326,7 @@ def formatResult(job, options, result='', color=True, **kwargs):
     terminal_format = list(OrderedDict.fromkeys(list(TERM_FORMAT)))
     status, message, message_color, exit_code = job.getJointStatus()
 
-    color_opts = {'code' : options.code, 'colored' : options.colored}
+    color_opts = {'code': options.code, 'colored': options.colored}
 
     # container for every printable item
     formatted_results = dict.fromkeys(terminal_format)
@@ -263,7 +346,7 @@ def formatResult(job, options, result='', color=True, **kwargs):
             justification_index = terminal_format[i]
 
         if str(f_key).lower() == 'p':
-            pre_result = ' '*(8-len(status)) + status
+            pre_result = ' ' * (8 - len(status)) + status
             formatCase(f_key, (pre_result, message_color), formatted_results)
 
         if str(f_key).lower() == 's':
@@ -284,7 +367,7 @@ def formatResult(job, options, result='', color=True, **kwargs):
         if str(f_key).lower() == 't' and options.timing:
             actual = float(job.getTiming())
             int_len = len(str(int(actual)))
-            precision = min(3, max(0,(4-int_len)))
+            precision = min(3, max(0, (4 - int_len)))
             f_time = '[' + '{0: <6}'.format('%0.*fs' % (precision, actual)) + ']'
             formatCase(f_key, (f_time, None), formatted_results)
 
@@ -316,7 +399,7 @@ def formatResult(job, options, result='', color=True, **kwargs):
         # +1 space created later by join
         character_count = resultCharacterCount(formatted_results) + 1
         if character_count < TERM_COLS:
-            j_dot = ('.'*max(0, (TERM_COLS - character_count)), 'GREY')
+            j_dot = ('.' * max(0, (TERM_COLS - character_count)), 'GREY')
         elif character_count == TERM_COLS:
             j_dot = ('', 'GREY')
 
@@ -326,7 +409,8 @@ def formatResult(job, options, result='', color=True, **kwargs):
     if color:
         for format_rule, printable in formatted_results.items():
             if printable and (printable[0] and printable[1]):
-                formatted_results[format_rule] = (colorText(printable[0], printable[1], **color_opts), printable[1])
+                formatted_results[format_rule] = (colorText(printable[0], printable[1],
+                                                            **color_opts), printable[1])
 
             # Do special coloring for first directory
             if format_rule == 'n' and options.color_first_directory:
@@ -334,13 +418,16 @@ def formatResult(job, options, result='', color=True, **kwargs):
                                          formatted_results[format_rule][0].replace(job.specs['first_directory'], '', 1), 'CYAN') # Strip out first occurence only
 
     # join printable results in the order in which the user asked
-    final_results = ' '.join([formatted_results[x][0] for x in terminal_format if formatted_results[x]])
+    final_results = ' '.join(
+        [formatted_results[x][0] for x in terminal_format if formatted_results[x]])
 
     return final_results
+
 
 ## Color the error messages if the options permit, also do not color in bitten scripts because
 # it messes up the trac output.
 # supports weirded html for more advanced coloring schemes. \verbatim<r>,<g>,<y>,<b>\endverbatim All colors are bolded.
+
 
 def getPlatforms():
     # We'll use uname to figure this out.  platform.uname() is available on all platforms
@@ -360,9 +447,10 @@ def getPlatforms():
         platforms.add(raw_uname[0].upper())
     return platforms
 
+
 def runExecutable(libmesh_dir, location, bin, args):
     # Installed location of libmesh executable
-    libmesh_installed   = libmesh_dir + '/' + location + '/' + bin
+    libmesh_installed = libmesh_dir + '/' + location + '/' + bin
 
     # Uninstalled location of libmesh executable
     libmesh_uninstalled = libmesh_dir + '/' + bin
@@ -414,9 +502,10 @@ def getCompilers(libmesh_dir):
 
     return compilers
 
+
 def getLibMeshThreadingModel(libmesh_dir):
     threading_models = set(['ALL'])
-    have_threads = 'TRUE' in getLibMeshConfigOption(libmesh_dir, 'threads');
+    have_threads = 'TRUE' in getLibMeshConfigOption(libmesh_dir, 'threads')
     if have_threads:
         have_tbb = 'TRUE' in getLibMeshConfigOption(libmesh_dir, 'tbb')
         have_openmp = 'TRUE' in getLibMeshConfigOption(libmesh_dir, 'openmp')
@@ -430,6 +519,7 @@ def getLibMeshThreadingModel(libmesh_dir):
         threading_models.add("NONE")
     return threading_models
 
+
 def getPetscVersion(libmesh_dir):
     major_version = getLibMeshConfigOption(libmesh_dir, 'petsc_major')
     minor_version = getLibMeshConfigOption(libmesh_dir, 'petsc_minor')
@@ -440,14 +530,16 @@ def getPetscVersion(libmesh_dir):
 
     return major_version.pop() + '.' + minor_version.pop() + '.' + subminor_version.pop()
 
+
 def getSlepcVersion(libmesh_dir):
     major_version = getLibMeshConfigOption(libmesh_dir, 'slepc_major')
     minor_version = getLibMeshConfigOption(libmesh_dir, 'slepc_minor')
     subminor_version = getLibMeshConfigOption(libmesh_dir, 'slepc_subminor')
     if len(major_version) != 1 or len(minor_version) != 1 or len(major_version) != 1:
-      return None
+        return None
 
     return major_version.pop() + '.' + minor_version.pop() + '.' + subminor_version.pop()
+
 
 def checkLogicVersionSingle(checks, iversion, package):
     logic, version = re.search(r'(.*?)(\d\S+)', iversion).groups()
@@ -458,16 +550,21 @@ def checkLogicVersionSingle(checks, iversion, package):
             return False
 
     # Logical match
-    if logic == '>' and list(map(int, checks[package].split("."))) > list(map(int, version.split("."))):
+    if logic == '>' and list(map(int, checks[package].split("."))) > list(
+            map(int, version.split("."))):
         return True
-    elif logic == '>=' and list(map(int, checks[package].split("."))) >= list(map(int, version.split("."))):
+    elif logic == '>=' and list(map(int, checks[package].split("."))) >= list(
+            map(int, version.split("."))):
         return True
-    elif logic == '<' and list(map(int, checks[package].split("."))) < list(map(int, version.split("."))):
+    elif logic == '<' and list(map(int, checks[package].split("."))) < list(
+            map(int, version.split("."))):
         return True
-    elif logic == '<=' and list(map(int, checks[package].split("."))) <= list(map(int, version.split("."))):
+    elif logic == '<=' and list(map(int, checks[package].split("."))) <= list(
+            map(int, version.split("."))):
         return True
 
     return False
+
 
 def checkVersion(checks, test, package):
     # This is a cheap tokenizer that will split apart the logic into logic groups separated by && and ||
@@ -488,6 +585,7 @@ def checkVersion(checks, test, package):
             else:
                 return result
 
+
 # Break down petsc version logic in a new define
 # TODO: find a way to eval() logic instead
 def checkPetscVersion(checks, test):
@@ -503,10 +601,10 @@ def checkPetscVersion(checks, test):
 def checkSlepcVersion(checks, test):
     # User does not require anything
     if len(test['slepc_version']) == 0:
-       return (False, None)
+        return (False, None)
     # SLEPc is not installed
     if checks['slepc_version'] == None:
-       return (False, None)
+        return (False, None)
     # If any version of SLEPc works, return true immediately
     if 'ALL' in set(test['slepc_version']):
         return (True, None)
@@ -514,13 +612,15 @@ def checkSlepcVersion(checks, test):
     version_string = ' '.join(test['slepc_version'])
     return (checkVersion(checks, version_string, 'slepc_version'), version_string)
 
+
 def getIfAsioExists(moose_dir):
     option_set = set(['ALL'])
-    if os.path.exists(moose_dir+"/framework/contrib/asio/include/asio.hpp"):
+    if os.path.exists(moose_dir + "/framework/contrib/asio/include/asio.hpp"):
         option_set.add('TRUE')
     else:
         option_set.add('FALSE')
     return option_set
+
 
 def getConfigOption(config_files, option, options):
     # Some tests work differently with parallel mesh enabled
@@ -561,22 +661,24 @@ def getConfigOption(config_files, option, options):
 
     return option_set
 
+
 def getMooseConfigOption(moose_dir, option):
     filenames = [
         moose_dir + '/framework/include/base/MooseConfig.h',
         moose_dir + '/include/moose/MooseConfig.h',
-        ];
+    ]
 
     return getConfigOption(filenames, option, MOOSE_OPTIONS)
 
 
 def getLibMeshConfigOption(libmesh_dir, option):
     filenames = [
-      libmesh_dir + '/include/base/libmesh_config.h',   # Old location
-      libmesh_dir + '/include/libmesh/libmesh_config.h' # New location
-      ];
+        libmesh_dir + '/include/base/libmesh_config.h',  # Old location
+        libmesh_dir + '/include/libmesh/libmesh_config.h'  # New location
+    ]
 
     return getConfigOption(filenames, option, LIBMESH_OPTIONS)
+
 
 def getSharedOption(libmesh_dir):
     # Some tests may only run properly with shared libraries on/off
@@ -612,6 +714,7 @@ def getSharedOption(libmesh_dir):
 
     return shared_option
 
+
 def getInitializedSubmodules(root_dir):
     """
     Gets a list of initialized submodules.
@@ -627,16 +730,18 @@ def getInitializedSubmodules(root_dir):
     # This ignores submodules that have a '-' at the beginning which means they are not initialized
     return re.findall(r'^[ +]\S+ (\S+)', output, flags=re.MULTILINE)
 
+
 def addObjectsFromBlock(objs, node, block_name):
     """
     Utility function that iterates over a dictionary and adds keys
     to the executable object name set.
     """
     data = node.get(block_name, {})
-    if data: # could be None so we can't just iterate over items
+    if data:  # could be None so we can't just iterate over items
         for name, block in data.items():
             objs.add(name)
             addObjectNames(objs, block)
+
 
 def addObjectNames(objs, node):
     """
@@ -653,6 +758,7 @@ def addObjectNames(objs, node):
     if star:
         addObjectNames(objs, star)
 
+
 def getExeJSON(exe):
     """
     Extracts the JSON from the dump
@@ -661,6 +767,7 @@ def getExeJSON(exe):
     output = output.split('**START JSON DATA**\n')[1]
     output = output.split('**END JSON DATA**\n')[0]
     return json.loads(output)
+
 
 def getExeObjects(exe):
     """
@@ -671,12 +778,14 @@ def getExeObjects(exe):
     addObjectsFromBlock(obj_names, data, "blocks")
     return obj_names
 
+
 def getExeRegisteredApps(exe):
     """
     Gets a list of registered applications
     """
     data = getExeJSON(exe)
     return data.get('global', {}).get('registered_apps', [])
+
 
 def checkOutputForPattern(output, re_pattern):
     """
@@ -687,6 +796,7 @@ def checkOutputForPattern(output, re_pattern):
     else:
         return True
 
+
 def checkOutputForLiteral(output, literal):
     """
     Returns boolean of literal match
@@ -695,6 +805,7 @@ def checkOutputForLiteral(output, literal):
         return False
     else:
         return True
+
 
 def deleteFilesAndFolders(test_dir, paths, delete_folders=True):
     """
@@ -732,6 +843,7 @@ def deleteFilesAndFolders(test_dir, paths, delete_folders=True):
                     # TL;DR; Just pass...
                     pass
 
+
 # Check if test has any redirected output, and if its ready to be read
 def checkOutputReady(tester, options):
     checked_files = []
@@ -740,6 +852,7 @@ def checkOutputReady(tester, options):
         if os.access(file_path, os.R_OK):
             checked_files.append(file_path)
     return checked_files
+
 
 # return concatenated output from tests with redirected output
 def getOutputFromFiles(tester, options):
@@ -750,6 +863,7 @@ def getOutputFromFiles(tester, options):
             file_output += "#"*80 + "\nOutput from " + file_path \
                            + "\n" + "#"*80 + "\n" + readOutput(f, None, tester)
     return file_output
+
 
 # Read stdout and stderr file objects, append error and return the string
 def readOutput(stdout, stderr, tester):
@@ -768,12 +882,13 @@ def readOutput(stdout, stderr, tester):
 
     return output
 
+
 # Trimming routines for job output
 def trimOutput(job, options):
     output = job.getOutput()
     if ((job.isFail() and options.no_trimmed_output_on_error)
-        or (job.specs.isValid('max_buffer_size') and job.specs['max_buffer_size'] == -1)
-        or options.no_trimmed_output):
+            or (job.specs.isValid('max_buffer_size') and job.specs['max_buffer_size'] == -1)
+            or options.no_trimmed_output):
         return output
     elif job.specs.isValid('max_buffer_size'):
         max_size = int(job.specs['max_buffer_size'])
@@ -783,9 +898,7 @@ def trimOutput(job, options):
     if len(output) <= max_size:
         return output
 
-    first_part = int(max_size*(2.0/3.0))
-    second_part = int(max_size*(1.0/3.0))
-    return "%s\n%s\n\nOutput trimmed\n\n%s\n%s" % (output[:first_part],
-                                                   "#"*80,
-                                                   "#"*80,
+    first_part = int(max_size * (2.0 / 3.0))
+    second_part = int(max_size * (1.0 / 3.0))
+    return "%s\n%s\n\nOutput trimmed\n\n%s\n%s" % (output[:first_part], "#" * 80, "#" * 80,
                                                    output[-second_part:])

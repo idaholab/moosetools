@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -10,12 +10,12 @@
 import sys, itertools
 from .StatusSystem import StatusSystem  # for proper error code
 
+
 class RaceChecker(object):
     """
     Class with methods to check if two jobs have modified a file with the same name
     while not having the proper dependencies to avoid race conditions.
     """
-
     def __init__(self, all_jobs):
         """ Create a RaceChecker object that has all the jobs"""
         self.all_jobs = all_jobs
@@ -71,14 +71,15 @@ class RaceChecker(object):
             output = "\nDiagnostic analysis shows that the members of the following unique sets exhibit race conditions:"
             for i, racers in enumerate(self.racer_lists):
                 job_list, file_matches = racers
-                output += "\n Set %d\n" % (i+1)
-                output += "- "*5 + "\n  --%s" % ('\n  --'.join([x.getTestName() for x in job_list]))
+                output += "\n Set %d\n" % (i + 1)
+                output += "- " * 5 + "\n  --%s" % ('\n  --'.join(
+                    [x.getTestName() for x in job_list]))
                 output += "\n\n   Each of the tests in this set create or modify each of the following files:"
                 output += "\n    -->%s" % ('\n    -->'.join(file_matches))
-                output += "\n" + "- "*5
+                output += "\n" + "- " * 5
             exit_code = status.race.code
         if output:
-            output += "\n\n\nA total of %d sets of tests with unique race conditions." % (i+1)
+            output += "\n\n\nA total of %d sets of tests with unique race conditions." % (i + 1)
             output += "\nPlease review the tests and either add any necessary prereqs, or create unique filenames for the outputs of each test."
             print(output)
         return exit_code

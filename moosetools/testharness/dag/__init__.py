@@ -1,3 +1,12 @@
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
+#*
+#* All rights reserved, see COPYRIGHT for full restrictions
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
+#*
+#* Licensed under LGPL 2.1, please see LICENSE for details
+#* https://www.gnu.org/licenses/lgpl-2.1.html
+
 from copy import copy, deepcopy
 from collections import deque
 
@@ -10,17 +19,19 @@ except:
 class DAGValidationError(Exception):
     pass
 
+
 # Added by the MOOSE group
 class DAGEdgeDepError(Exception):
     pass
+
 
 # Added by the MOOSE group
 class DAGEdgeIndError(Exception):
     pass
 
+
 class DAG(object):
     """ Directed acyclic graph implementation. """
-
     def __init__(self):
         """ Construct a new DAG with no nodes or edges. """
         self.__cached_graph = None

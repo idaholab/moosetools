@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -12,16 +12,26 @@ from moosetools.testharness.testers.RunApp import RunApp
 from moosetools.testharness.XMLDiffer import XMLDiffer
 from moosetools.testharness import util
 
-class XMLDiff(RunApp):
 
+class XMLDiff(RunApp):
     @staticmethod
     def validParams():
         params = RunApp.validParams()
-        params.add('xmldiff', vtype=str, array=True, required=True, doc="A list of XML files to compare.")
-        params.addParam('gold_dir',      'gold', "The directory where the \"golden standard\" files reside relative to the TEST_DIR: (default: ./gold/)")
-        params.addParam('abs_zero',       1e-10, "Absolute zero cutoff used in exodiff comparisons.")
-        params.addParam('rel_err',       5.5e-6, "Relative error value used in exodiff comparisons.")
-        params.addParam('ignored_attributes',  [], "Ignore e.g. type and/or version in sample XML block <VTKFile type=\"Foo\" version=\"0.1\">")
+        params.add('xmldiff',
+                   vtype=str,
+                   array=True,
+                   required=True,
+                   doc="A list of XML files to compare.")
+        params.addParam(
+            'gold_dir', 'gold',
+            "The directory where the \"golden standard\" files reside relative to the TEST_DIR: (default: ./gold/)"
+        )
+        params.addParam('abs_zero', 1e-10, "Absolute zero cutoff used in exodiff comparisons.")
+        params.addParam('rel_err', 5.5e-6, "Relative error value used in exodiff comparisons.")
+        params.addParam(
+            'ignored_attributes', [],
+            "Ignore e.g. type and/or version in sample XML block <VTKFile type=\"Foo\" version=\"0.1\">"
+        )
 
         return params
 
@@ -51,7 +61,8 @@ class XMLDiff(RunApp):
 
             # Error if gold file does not exist
             if not os.path.exists(os.path.join(self.getTestDir(), specs['gold_dir'], file)):
-                output += "File Not Found: " + os.path.join(self.getTestDir(), specs['gold_dir'], file)
+                output += "File Not Found: " + os.path.join(self.getTestDir(), specs['gold_dir'],
+                                                            file)
                 self.setStatus(self.fail, 'MISSING GOLD FILE')
                 break
 
@@ -66,7 +77,11 @@ class XMLDiff(RunApp):
                     # far as Paraview is concerned.
                     specs['ignored_attributes'].append('header_type')
 
-                    differ = XMLDiffer(gold, test, abs_zero=specs['abs_zero'], rel_tol=specs['rel_err'], ignored_attributes=specs['ignored_attributes'])
+                    differ = XMLDiffer(gold,
+                                       test,
+                                       abs_zero=specs['abs_zero'],
+                                       rel_tol=specs['rel_err'],
+                                       ignored_attributes=specs['ignored_attributes'])
 
                     # Print the results of the XMLDiff whether it passed or failed.
                     output += differ.message() + '\n'

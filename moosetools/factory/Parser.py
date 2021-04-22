@@ -179,7 +179,10 @@ class Parser(base.MooseObject):
         """
         assert isinstance(vtypes, tuple) and all(
             isinstance(v, type) for v in vtypes), "'vtypes' must be a tuple of types"
-        assert isinstance(str_value, str), "'str_value' must be a string, a type of {} provided in value {}".format(type, str_value, repr(str_value))
+        assert isinstance(
+            str_value,
+            str), "'str_value' must be a string, a type of {} provided in value {}".format(
+                type, str_value, repr(str_value))
         assert isinstance(array, bool), "'array' must be a bool"
 
         def convert(val, vtypes):

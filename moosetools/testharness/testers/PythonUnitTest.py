@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -10,14 +10,16 @@
 from moosetools.testharness.testers.RunApp import RunApp
 import os
 
+
 class PythonUnitTest(RunApp):
     @staticmethod
     def validParams():
         params = RunApp.validParams()
 
         # Input is optional in the base class. Make it required here
-       # params.addRequiredParam('input', "The python input file to use for this test.")
-        params.addParam('test_case', "The specific test case to run (Default: All test cases in the module)")
+        # params.addRequiredParam('input', "The python input file to use for this test.")
+        params.addParam('test_case',
+                        "The specific test case to run (Default: All test cases in the module)")
         params.addParam('buffer', False, "Equivalent to passing -b or --buffer to the unittest.")
         params.addParam('separate', False, "Run each test in the file in a separate subprocess")
         # We don't want to check for any errors on the screen with unit tests
@@ -42,8 +44,9 @@ class PythonUnitTest(RunApp):
             use_buffer = " -b "
 
         if self.specs["separate"]:
-            cmd = os.path.join(self.specs['moose_dir'], 'scripts', 'separate_unittests.py') + ' -f ' + test_case + use_buffer
+            cmd = os.path.join(self.specs['moose_dir'], 'scripts',
+                               'separate_unittests.py') + ' -f ' + test_case + use_buffer
         else:
             cmd = "python -m unittest" + use_buffer + "-v " + test_case
 
-        return cmd  + ' '.join(self.specs['cli_args'])
+        return cmd + ' '.join(self.specs['cli_args'])

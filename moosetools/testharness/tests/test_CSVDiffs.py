@@ -1,14 +1,15 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import subprocess
 from TestHarnessTestCase import TestHarnessTestCase
+
 
 class TestHarnessTester(TestHarnessTestCase):
     def testDiffs(self):
@@ -19,8 +20,11 @@ class TestHarnessTester(TestHarnessTestCase):
             self.runTests('-i', 'csvdiffs')
 
         e = cm.exception
-        self.assertRegex(e.output.decode('utf-8'), r'test_harness\.test_csvdiff.*?FAILED \(Override inputs not the same length\)')
-        self.assertRegex(e.output.decode('utf-8'), r'test_harness\.test_badfile.*?FAILED \(MISSING GOLD FILE\)')
+        self.assertRegex(
+            e.output.decode('utf-8'),
+            r'test_harness\.test_csvdiff.*?FAILED \(Override inputs not the same length\)')
+        self.assertRegex(e.output.decode('utf-8'),
+                         r'test_harness\.test_badfile.*?FAILED \(MISSING GOLD FILE\)')
         self.checkStatus(e.output.decode('utf-8'), failed=2)
 
     def testMissingComparison(self):
@@ -31,7 +35,10 @@ class TestHarnessTester(TestHarnessTestCase):
             self.runTests('-i', 'csvdiff_missing_comparison_file')
 
         e = cm.exception
-        self.assertRegex(e.output.decode('utf-8'), r'test_harness\.test_csvdiff_comparison_file_missing.*?FAILED \(MISSING COMPARISON FILE\)')
+        self.assertRegex(
+            e.output.decode('utf-8'),
+            r'test_harness\.test_csvdiff_comparison_file_missing.*?FAILED \(MISSING COMPARISON FILE\)'
+        )
         self.checkStatus(e.output.decode('utf-8'), failed=1)
 
     def testCSVDiffScript(self):

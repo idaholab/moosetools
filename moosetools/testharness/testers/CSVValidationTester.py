@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -15,6 +15,7 @@ import os
 import math
 import statistics
 
+
 def diff_files(gold_file, out_file, err_type='relative'):
     """
     Diff 2 CSV files and compute mean and std. deviation from all values
@@ -25,10 +26,7 @@ def diff_files(gold_file, out_file, err_type='relative'):
     found_column = {}
 
     csv = CSVTools()
-    (table1, table2) = csv.convertToTable([
-        open(gold_file, 'r'),
-        open(out_file, 'r')
-    ])
+    (table1, table2) = csv.convertToTable([open(gold_file, 'r'), open(out_file, 'r')])
 
     # Make sure header names are the same (also makes sure # cols is the same)
     # This way it reports what column is missing, not just # cols is different
@@ -93,7 +91,6 @@ class CSVValidationTester(FileTester):
 
     Computes mean and standard deviation from relative or absolute errors.
     """
-
     @staticmethod
     def validParams():
         params = FileTester.validParams()
@@ -122,7 +119,8 @@ class CSVValidationTester(FileTester):
         # Make sure that all of the Exodiff files are actually available
         for file in self.specs['csvdiff']:
             if not os.path.exists(os.path.join(self.getTestDir(), self.specs['gold_dir'], file)):
-                output += "File Not Found: " + os.path.join(self.getTestDir(), self.specs['gold_dir'], file)
+                output += "File Not Found: " + os.path.join(self.getTestDir(),
+                                                            self.specs['gold_dir'], file)
                 self.setStatus(self.fail, 'MISSING GOLD FILE')
                 break
 
@@ -144,16 +142,25 @@ class CSVValidationTester(FileTester):
                     ok = False
                 else:
                     clr = 'GREEN'
-                computed += colorText("{:.2f}".format(mean), clr, html=False, colored=options.colored, code=options.code)
+                computed += colorText("{:.2f}".format(mean),
+                                      clr,
+                                      html=False,
+                                      colored=options.colored,
+                                      code=options.code)
                 computed += " \u00B1 "
                 if std > self.specs['std_limit']:
                     clr = 'RED'
                     ok = False
                 else:
                     clr = 'GREEN'
-                computed += colorText("{:.2f}".format(std), clr, html=False, colored=options.colored, code=options.code)
+                computed += colorText("{:.2f}".format(std),
+                                      clr,
+                                      html=False,
+                                      colored=options.colored,
+                                      code=options.code)
 
-                requested = "{:.2f} \u00B1 {:.2f}".format(self.specs['mean_limit'], self.specs['std_limit'])
+                requested = "{:.2f} \u00B1 {:.2f}".format(self.specs['mean_limit'],
+                                                          self.specs['std_limit'])
 
                 if options.colored:
                     # need to account for the color characters in the second column

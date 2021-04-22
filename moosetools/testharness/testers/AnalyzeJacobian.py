@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -11,8 +11,8 @@ import os, sys
 from moosetools.testharness import util
 from moosetools.testharness.testers.FileTester import FileTester
 
-class AnalyzeJacobian(FileTester):
 
+class AnalyzeJacobian(FileTester):
     @staticmethod
     def validParams():
         params = FileTester.validParams()
@@ -21,7 +21,7 @@ class AnalyzeJacobian(FileTester):
         #params.addParam('expect_out',     "A regular expression that must occur in the input in order for the test to be considered passing.")
         params.addParam('resize_mesh', False, "Resize the input mesh")
         params.addParam('off_diagonal', True, "Also test the off-diagonal Jacobian entries")
-        params.addParam('mesh_size',   1, "Resize the input mesh")
+        params.addParam('mesh_size', 1, "Resize the input mesh")
 
         return params
 
@@ -40,12 +40,11 @@ class AnalyzeJacobian(FileTester):
     def checkRunnable(self, options):
         try:
             import numpy
-            assert numpy # silence pyflakes warning
+            assert numpy  # silence pyflakes warning
             return True
         except Exception:
             self.addCaveats('skipped (no numpy)')
             return False
-
 
     def getCommand(self, options):
         specs = self.specs
@@ -58,10 +57,10 @@ class AnalyzeJacobian(FileTester):
             sys.exit(1)
 
         mesh_options = ' -m %s' % options.method
-        if specs['resize_mesh'] :
+        if specs['resize_mesh']:
             mesh_options += ' -r -s %d' % specs['mesh_size']
 
-        if not specs['off_diagonal'] :
+        if not specs['off_diagonal']:
             mesh_options += ' -D'
 
         command += mesh_options + ' ' + specs['input'] + ' -e ' + specs['executable'] + ' '
@@ -69,7 +68,6 @@ class AnalyzeJacobian(FileTester):
             command += '--cli-args "' + (' '.join(specs['cli_args']) + '"')
 
         return command
-
 
     def processResults(self, moose_dir, options, output):
         reason = ''
@@ -81,7 +79,7 @@ class AnalyzeJacobian(FileTester):
             elif (not out_ok):
                 reason = 'NO EXPECTED OUT'
         if reason == '':
-            if self.exit_code != 0 :
+            if self.exit_code != 0:
                 reason = 'CRASH'
 
         if reason != '':

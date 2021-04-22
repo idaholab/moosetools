@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -10,14 +10,17 @@
 from moosetools.testharness import util
 from moosetools.testharness.testers.RunApp import RunApp
 
-class RunException(RunApp):
 
+class RunException(RunApp):
     @staticmethod
     def validParams():
         params = RunApp.validParams()
 
         #params.addParam('expect_err', "A regular expression or literal string that must occur in the output (see match_literal). (Test may terminate unexpectedly and be considered passing)")
-        params.addParam('expect_assert', "DEBUG MODE ONLY: A regular expression that must occur in the output. (Test may terminate unexpectedly and be considered passing)")
+        params.addParam(
+            'expect_assert',
+            "DEBUG MODE ONLY: A regular expression that must occur in the output. (Test may terminate unexpectedly and be considered passing)"
+        )
         #params.addParam('should_crash', True, "Inidicates that the test is expected to crash or otherwise terminate early")
         params.set('should_crash', True)
 
@@ -28,8 +31,10 @@ class RunException(RunApp):
 
     def __init__(self, *args, **kwargs):
         RunApp.__init__(self, *args, **kwargs)
-        if (self.specs.isValid("expect_err") == False and self.specs.isValid("expect_assert") == False):
-            raise RuntimeError('Either "expect_err" or "expect_assert" must be supplied in RunException')
+        if (self.specs.isValid("expect_err") == False
+                and self.specs.isValid("expect_assert") == False):
+            raise RuntimeError(
+                'Either "expect_err" or "expect_assert" must be supplied in RunException')
 
     def checkRunnable(self, options):
         if options.enable_recover:

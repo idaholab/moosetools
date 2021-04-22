@@ -1,23 +1,26 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os, re
 from moosetools.testharness.schedulers.QueueManager import QueueManager
-from moosetools.testharness import util # to execute qsub
-import math # to compute node requirement
+from moosetools.testharness import util  # to execute qsub
+import math  # to compute node requirement
+
 
 ## This Class is responsible for maintaining an interface to the PBS scheduling syntax
 class RunPBS(QueueManager):
     @staticmethod
     def validParams():
         params = QueueManager.validParams()
-        params.addParam('queue_template', os.path.join(os.path.abspath(os.path.dirname(__file__)), 'pbs_template'), "Location of the PBS template")
+        params.addParam('queue_template',
+                        os.path.join(os.path.abspath(os.path.dirname(__file__)), 'pbs_template'),
+                        "Location of the PBS template")
         return params
 
     def __init__(self, harness, params):
@@ -32,9 +35,8 @@ class RunPBS(QueueManager):
 
     def hasTimedOutOrFailed(self, job_data):
         """ use qstat and return bool on job failures outside of the TestHarness's control """
-        launch_id = job_data.json_data.get(job_data.job_dir,
-                                           {}).get(job_data.plugin,
-                                                   {}).get('ID', "").split('.')[0]
+        launch_id = job_data.json_data.get(job_data.job_dir, {}).get(job_data.plugin,
+                                                                     {}).get('ID', "").split('.')[0]
 
         # We shouldn't run into a null, but just in case, lets handle it
         if launch_id:
@@ -60,10 +62,13 @@ class RunPBS(QueueManager):
             elif qstat_job_result and qstat_job_result[0] != "0":
 
                 # Try and gather some useful output we can tack on to one of the job objects
-                output_file = job_data.json_data.get(job_data.job_dir, {}).get(job_data.plugin, {}).get('QSUB_OUTPUT', "")
+                output_file = job_data.json_data.get(job_data.job_dir,
+                                                     {}).get(job_data.plugin,
+                                                             {}).get('QSUB_OUTPUT', "")
                 if os.path.exists(output_file):
                     with open(output_file, 'r') as f:
-                        output_string = util.readOutput(f, None, job_data.jobs.getJobs()[0].getTester())
+                        output_string = util.readOutput(f, None,
+                                                        job_data.jobs.getJobs()[0].getTester())
                     job_data.jobs.getJobs()[0].setOutput(output_string)
 
                 # Add a caveat to each job, explaining that one of the jobs caused a TestHarness exception
@@ -76,14 +81,15 @@ class RunPBS(QueueManager):
         template = {}
 
         # Launch script location
-        template['launch_script'] = os.path.join(job.getTestDir(), os.path.basename(job.getTestNameShort()) + '.qsub')
+        template['launch_script'] = os.path.join(job.getTestDir(),
+                                                 os.path.basename(job.getTestNameShort()) + '.qsub')
 
         # NCPUS
         template['mpi_procs'] = job.getMetaData().get('QUEUEING_NCPUS', 1)
 
         # Compute node requirement
         if self.options.pbs_node_cpus and template['mpi_procs'] > self.options.pbs_node_cpus:
-            nodes = template['mpi_procs']/self.options.pbs_node_cpus
+            nodes = template['mpi_procs'] / self.options.pbs_node_cpus
             template['mpi_procs'] = self.options.pbs_node_cpus
         else:
             nodes = 1
@@ -109,7 +115,8 @@ class RunPBS(QueueManager):
 
         # Apply source command
         if self.options.queue_source_command and os.path.exists(self.options.queue_source_command):
-            template['pre_command'] = 'source %s || exit 1' % (os.path.abspath(self.options.queue_source_command))
+            template['pre_command'] = 'source %s || exit 1' % (os.path.abspath(
+                self.options.queue_source_command))
         else:
             template['pre_command'] = ''
 
@@ -135,8 +142,7 @@ class RunPBS(QueueManager):
         launch_results = util.runCommand(command, job.getTestDir())
 
         # List of files we need to clean up when we are done
-        dirty_files = [template['launch_script'],
-                       template['output']]
+        dirty_files = [template['launch_script'], template['output']]
 
         self.addDirtyFiles(job, dirty_files)
 
@@ -155,9 +161,12 @@ class RunPBS(QueueManager):
             job.setOutput(launch_results)
 
         else:
-            job.addMetaData(RunPBS={'ID' : launch_results,
-                                    'QSUB_COMMAND' : command,
-                                    'NCPUS' : template['mpi_procs'],
-                                    'WALLTIME' : template['walltime'],
-                                    'QSUB_OUTPUT' : template['output']})
+            job.addMetaData(
+                RunPBS={
+                    'ID': launch_results,
+                    'QSUB_COMMAND': command,
+                    'NCPUS': template['mpi_procs'],
+                    'WALLTIME': template['walltime'],
+                    'QSUB_OUTPUT': template['output']
+                })
             tester.setStatus(tester.queued, 'LAUNCHING')

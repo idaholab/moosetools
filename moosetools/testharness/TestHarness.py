@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -27,6 +27,7 @@ from .schedulers.Scheduler import Scheduler
 import argparse
 from timeit import default_timer as clock
 
+
 def readTestRoot(fname):
 
     root = pyhit.load(fname)
@@ -37,6 +38,7 @@ def readTestRoot(fname):
     # combined binary.
     return root['app_name'], args, root
 
+
 def findTestRoot(start=os.getcwd(), method=os.environ.get('METHOD', 'opt')):
     rootdir = os.path.abspath(start)
     while os.path.dirname(rootdir) != rootdir:
@@ -46,6 +48,7 @@ def findTestRoot(start=os.getcwd(), method=os.environ.get('METHOD', 'opt')):
             return rootdir, app_name, args, hit_node
         rootdir = os.path.dirname(rootdir)
     raise RuntimeError('test root directory not found in "{}"'.format(start))
+
 
 # This function finds a file in the herd trunk containing all the possible applications
 # thay may be built with an "up" target.  If passed the value ROOT it will simply
@@ -58,7 +61,10 @@ def findDepApps(dep_names, use_current_only=False):
     apps = []
 
     # First see if we are in a git repo
-    p = subprocess.Popen('git rev-parse --show-cdup', stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    p = subprocess.Popen('git rev-parse --show-cdup',
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         shell=True)
     p.wait()
     if p.returncode == 0:
         git_dir = p.communicate()[0].decode('utf-8')
@@ -117,21 +123,23 @@ def findDepApps(dep_names, use_current_only=False):
 
     # moose, elk and modules have special rules
     if dep_name == "moose":
-        dep_app_re=re.compile(r"\bmoose\.mk\b")
+        dep_app_re = re.compile(r"\bmoose\.mk\b")
     elif dep_name == "modules":
-        dep_app_re=re.compile(r"\bmodules\.mk\b")
+        dep_app_re = re.compile(r"\bmodules\.mk\b")
     elif dep_name == "elk":
-        dep_app_re=re.compile(r"\belk(?:_module)?\.mk\b")
+        dep_app_re = re.compile(r"\belk(?:_module)?\.mk\b")
     else:
-        dep_app_re=re.compile(r"^\s*APPLICATION_NAME\s*:=\s*"+dep_name,re.MULTILINE)
+        dep_app_re = re.compile(r"^\s*APPLICATION_NAME\s*:=\s*" + dep_name, re.MULTILINE)
 
-    ignores = ['.git', '.svn', '.libs', 'gold', 'src', 'include', 'contrib', 'tests', 'bak', 'tutorials']
+    ignores = [
+        '.git', '.svn', '.libs', 'gold', 'src', 'include', 'contrib', 'tests', 'bak', 'tutorials'
+    ]
 
     for dir in unique_dirs:
         startinglevel = dir.count(os.sep)
         for dirpath, dirnames, filenames in os.walk(dir, topdown=True):
             # Don't traverse too deep!
-            if dirpath.count(os.sep) - startinglevel >= 2: # 2 levels outta be enough for anybody
+            if dirpath.count(os.sep) - startinglevel >= 2:  # 2 levels outta be enough for anybody
                 dirnames[:] = []
 
             # Don't traverse into ignored directories
@@ -163,7 +171,9 @@ def findDepApps(dep_names, use_current_only=False):
                 # If we are in trunk, we will honor .build_apps.  If we aren't, then we'll add it
                 eligible_app = dirpath.split('/')[-1]
 
-                if dep_app_re.search(lines) and ((len(apps) == 0 or eligible_app in apps) or ('/moose/' in dirpath and eligible_app in moose_apps)):
+                if dep_app_re.search(lines) and (
+                    (len(apps) == 0 or eligible_app in apps) or
+                    ('/moose/' in dirpath and eligible_app in moose_apps)):
                     dep_apps.add(eligible_app)
                     dep_dirs.add(dirpath)
 
@@ -174,8 +184,8 @@ def findDepApps(dep_names, use_current_only=False):
     moose_dir = os.environ.get('MOOSE_DIR')
     return '\n'.join(dep_dirs)
 
-class TestHarness:
 
+class TestHarness:
     @staticmethod
     def buildAndRun(argv, app_name, moose_dir, moose_python=None):
         harness = TestHarness(argv, moose_dir, app_name=app_name, moose_python=moose_python)
@@ -199,7 +209,6 @@ class TestHarness:
         self._orig_cwd = os.getcwd()
         os.chdir(rootdir)
         argv = argv[:1] + args + argv[1:]
-
 
         self.app_name = app_name
 
@@ -251,8 +260,8 @@ class TestHarness:
         checks = {}
         checks['platform'] = util.getPlatforms()
         checks['submodules'] = util.getInitializedSubmodules(self.run_tests_dir)
-        checks['exe_objects'] = None # This gets calculated on demand
-        checks['registered_apps'] = None # This gets extracted on demand
+        checks['exe_objects'] = None  # This gets calculated on demand
+        checks['registered_apps'] = None  # This gets extracted on demand
 
         # The TestHarness doesn't strictly require the existence of libMesh in order to run. Here we allow the user
         # to select whether they want to probe for libMesh configuration options.
@@ -283,40 +292,42 @@ class TestHarness:
             checks['slepc'] = set(['ALL'])
             checks['unique_id'] = set(['ALL'])
             checks['cxx11'] = set(['ALL'])
-            checks['asio'] =  set(['ALL'])
+            checks['asio'] = set(['ALL'])
             checks['boost'] = set(['ALL'])
             checks['fparser_jit'] = set(['ALL'])
             checks['libpng'] = set(['ALL'])
         else:
             checks['compiler'] = util.getCompilers(self.libmesh_dir)
             checks['petsc_version'] = util.getPetscVersion(self.libmesh_dir)
-            checks['petsc_version_release'] = util.getLibMeshConfigOption(self.libmesh_dir, 'petsc_version_release')
+            checks['petsc_version_release'] = util.getLibMeshConfigOption(
+                self.libmesh_dir, 'petsc_version_release')
             checks['slepc_version'] = util.getSlepcVersion(self.libmesh_dir)
             checks['library_mode'] = util.getSharedOption(self.libmesh_dir)
             checks['mesh_mode'] = util.getLibMeshConfigOption(self.libmesh_dir, 'mesh_mode')
             checks['ad_mode'] = util.getMooseConfigOption(self.moose_dir, 'ad_mode')
-            checks['ad_indexing_type'] = util.getMooseConfigOption(self.moose_dir, 'ad_indexing_type')
-            checks['dtk'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'dtk')
+            checks['ad_indexing_type'] = util.getMooseConfigOption(self.moose_dir,
+                                                                   'ad_indexing_type')
+            checks['dtk'] = util.getLibMeshConfigOption(self.libmesh_dir, 'dtk')
             checks['unique_ids'] = util.getLibMeshConfigOption(self.libmesh_dir, 'unique_ids')
-            checks['vtk'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'vtk')
-            checks['tecplot'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'tecplot')
+            checks['vtk'] = util.getLibMeshConfigOption(self.libmesh_dir, 'vtk')
+            checks['tecplot'] = util.getLibMeshConfigOption(self.libmesh_dir, 'tecplot')
             checks['dof_id_bytes'] = util.getLibMeshConfigOption(self.libmesh_dir, 'dof_id_bytes')
             checks['petsc_debug'] = util.getLibMeshConfigOption(self.libmesh_dir, 'petsc_debug')
-            checks['curl'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'curl')
-            checks['threading'] =  util.getLibMeshThreadingModel(self.libmesh_dir)
-            checks['superlu'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'superlu')
-            checks['mumps'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'mumps')
-            checks['strumpack'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'strumpack')
-            checks['parmetis'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'parmetis')
-            checks['chaco'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'chaco')
-            checks['party'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'party')
-            checks['ptscotch'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'ptscotch')
-            checks['slepc'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'slepc')
-            checks['unique_id'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'unique_id')
-            checks['cxx11'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'cxx11')
-            checks['asio'] =  util.getIfAsioExists(self.moose_dir)
-            checks['boost'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'boost')
-            checks['fparser_jit'] =  util.getLibMeshConfigOption(self.libmesh_dir, 'fparser_jit')
+            checks['curl'] = util.getLibMeshConfigOption(self.libmesh_dir, 'curl')
+            checks['threading'] = util.getLibMeshThreadingModel(self.libmesh_dir)
+            checks['superlu'] = util.getLibMeshConfigOption(self.libmesh_dir, 'superlu')
+            checks['mumps'] = util.getLibMeshConfigOption(self.libmesh_dir, 'mumps')
+            checks['strumpack'] = util.getLibMeshConfigOption(self.libmesh_dir, 'strumpack')
+            checks['parmetis'] = util.getLibMeshConfigOption(self.libmesh_dir, 'parmetis')
+            checks['chaco'] = util.getLibMeshConfigOption(self.libmesh_dir, 'chaco')
+            checks['party'] = util.getLibMeshConfigOption(self.libmesh_dir, 'party')
+            checks['ptscotch'] = util.getLibMeshConfigOption(self.libmesh_dir, 'ptscotch')
+            checks['slepc'] = util.getLibMeshConfigOption(self.libmesh_dir, 'slepc')
+            checks['unique_id'] = util.getLibMeshConfigOption(self.libmesh_dir, 'unique_id')
+            checks['cxx11'] = util.getLibMeshConfigOption(self.libmesh_dir, 'cxx11')
+            checks['asio'] = util.getIfAsioExists(self.moose_dir)
+            checks['boost'] = util.getLibMeshConfigOption(self.libmesh_dir, 'boost')
+            checks['fparser_jit'] = util.getLibMeshConfigOption(self.libmesh_dir, 'fparser_jit')
             checks['libpng'] = util.getMooseConfigOption(self.moose_dir, 'libpng')
 
         # Override the MESH_MODE option if using the '--distributed-mesh'
@@ -345,6 +356,7 @@ class TestHarness:
     0x01-0x7F - Recoverable errors
     0x80-0xFF - Unrecoverable TestHarness errors
     """
+
     def findAndRunTests(self, find_only=False):
         self.error_code = 0x0
         self.preRun()
@@ -367,11 +379,13 @@ class TestHarness:
                 # Prune submdule paths when searching for tests
 
                 dir_name = os.path.basename(dirpath)
-                if (search_dir != dirpath and os.path.exists(os.path.join(dirpath, '.git'))) or dir_name in [".git", ".svn"]:
+                if (search_dir != dirpath and os.path.exists(os.path.join(
+                        dirpath, '.git'))) or dir_name in [".git", ".svn"]:
                     dirnames[:] = []
                     filenames[:] = []
 
-                if self.options.use_subdir_exe and testroot_params and not dirpath.startswith(testroot_params["testroot_dir"]):
+                if self.options.use_subdir_exe and testroot_params and not dirpath.startswith(
+                        testroot_params["testroot_dir"]):
                     # Reset the params when we go outside the current testroot base directory
                     testroot_params = {}
 
@@ -487,9 +501,8 @@ class TestHarness:
 
     def notMySpecFile(self, dirpath, filename):
         """ true if dirpath/filename does not match supplied --spec-file """
-        if (self.options.spec_file
-            and os.path.isfile(self.options.spec_file)
-            and os.path.join(dirpath, filename) != self.options.spec_file):
+        if (self.options.spec_file and os.path.isfile(self.options.spec_file)
+                and os.path.join(dirpath, filename) != self.options.spec_file):
             return True
 
     def augmentParameters(self, filename, tester, testroot_params={}):
@@ -502,33 +515,40 @@ class TestHarness:
         #          the leading part of the path
         test_dir = os.path.abspath(os.path.dirname(filename))
         relative_path = test_dir.replace(self.run_tests_dir, '')
-        first_directory = relative_path.split(os.path.sep)[1] # Get first directory
+        first_directory = relative_path.split(os.path.sep)[1]  # Get first directory
         for infile in self._infiles:
             if infile in relative_path:
                 relative_path = relative_path.replace('/' + infile + '/', ':')
                 break
         relative_path = re.sub('^[/:]*', '', relative_path)  # Trim slashes and colons
-        relative_hitpath = os.path.join(*params['_hit_path'].split(os.sep)[2:])  # Trim root node "[Tests]"
+        relative_hitpath = os.path.join(*params['_hit_path'].split(
+            os.sep)[2:])  # Trim root node "[Tests]"
         formatted_name = relative_path + '.' + relative_hitpath
 
         params.add('spec_file', default=filename, private=True)
         params.set('test_name', formatted_name)
         params.add('test_dir', default=test_dir, private=True)
         params.add('relative_path', default=relative_path, private=True)
-        params.add('executable', default=testroot_params.get("executable", self.executable), private=True)
+        params.add('executable',
+                   default=testroot_params.get("executable", self.executable),
+                   private=True)
         params.add('hostname', default=self.host_name, private=True)
         params.add('moose_dir', default=self.moose_dir, private=True)
         params.add('moose_python_dir', default=self.moose_python_dir, private=True)
         params.add('base_dir', default=self.base_dir, private=True)
         params.add('first_directory', default=first_directory, private=True)
-        params.add('root_params', default=testroot_params.get("root_params", self.root_params), private=True)
+        params.add('root_params',
+                   default=testroot_params.get("root_params", self.root_params),
+                   private=True)
 
         if params.isValid('prereq'):
             if type(params['prereq']) != list:
                 print(("Option 'prereq' needs to be of type list in " + params['test_name']))
                 sys.exit(1)
             elif (params['prereq'] != ['ALL']):
-                params['prereq'] = [relative_path.replace('/tests/', '') + '.' + item for item in params['prereq']]
+                params['prereq'] = [
+                    relative_path.replace('/tests/', '') + '.' + item for item in params['prereq']
+                ]
 
         # Double the alloted time for tests when running with the valgrind option
         tester.setValgrindMode(self.options.valgrind_mode)
@@ -568,7 +588,8 @@ class TestHarness:
                 part2_params = part2.parameters()
                 part2_params['prereq'].append(part1.parameters()['test_name'])
                 part2_params['delete_output_before_running'] = False
-                part2_params['cli_args'].append('--recover --recoversuffix ' + self.options.recoversuffix)
+                part2_params['cli_args'].append('--recover --recoversuffix ' +
+                                                self.options.recoversuffix)
                 part2.addCaveats('recover')
 
                 new_tests.append(part2)
@@ -590,13 +611,17 @@ class TestHarness:
         output = ''
         # Print what ever status the tester has at the time
         if self.options.verbose or (job.isFail() and not self.options.quiet):
-            output = 'Working Directory: ' + job.getTestDir() + '\nRunning command: ' + job.getCommand() + '\n'
+            output = 'Working Directory: ' + job.getTestDir(
+            ) + '\nRunning command: ' + job.getCommand() + '\n'
             output += util.trimOutput(job, self.options)
             output = output.replace('\r', '\n')  # replace the carriage returns with newlines
             lines = output.split('\n')
 
             if output != '':
-                test_name = util.colorText(job.getTestName()  + ": ", color, colored=self.options.colored, code=self.options.code)
+                test_name = util.colorText(job.getTestName() + ": ",
+                                           color,
+                                           colored=self.options.colored,
+                                           code=self.options.code)
                 output = test_name + ("\n" + test_name).join(lines)
                 print(output)
         return output
@@ -621,7 +646,7 @@ class TestHarness:
                 timing = job.getTiming()
 
                 # Save these results for 'Final Test Result' summary
-                self.test_table.append( (job, status_code, timing) )
+                self.test_table.append((job, status_code, timing))
 
                 self.postRun(job.specs, timing)
 
@@ -652,9 +677,14 @@ class TestHarness:
         if len(self.parse_errors) > 0:
             print(('\n\nParser Errors:\n' + ('-' * (util.TERM_COLS))))
             for err in self.parse_errors:
-                print((util.colorText(err, 'RED', html=True, colored=self.options.colored, code=self.options.code)))
+                print((util.colorText(err,
+                                      'RED',
+                                      html=True,
+                                      colored=self.options.colored,
+                                      code=self.options.code)))
 
-        if (self.options.verbose or (self.num_failed != 0 and not self.options.quiet)) and not self.options.dry_run:
+        if (self.options.verbose or
+            (self.num_failed != 0 and not self.options.quiet)) and not self.options.dry_run:
             print(('\n\nFinal Test Results:\n' + ('-' * (util.TERM_COLS))))
             for (job, status_code, timing) in sorted(self.test_table, key=lambda x: x[1]):
                 print((util.formatResult(job, self.options, caveats=True)))
@@ -675,7 +705,8 @@ class TestHarness:
 
         # Print a different footer when performing a dry run
         if self.options.dry_run:
-            print(('Processed %d tests in %.1f seconds.' % (self.num_passed+self.num_skipped, time)))
+            print(('Processed %d tests in %.1f seconds.' %
+                   (self.num_passed + self.num_skipped, time)))
             summary = '<b>%d would run</b>'
             summary += ', <b>%d would be skipped</b>'
             summary += fatal_error
@@ -683,14 +714,18 @@ class TestHarness:
                              colored=self.options.colored, code=self.options.code )))
 
         else:
-            num_nonzero_timing = sum(1 if float(tup[0].getTiming()) > 0 else 0 for tup in self.test_table)
+            num_nonzero_timing = sum(1 if float(tup[0].getTiming()) > 0 else 0
+                                     for tup in self.test_table)
             if num_nonzero_timing > 0:
                 timing_max = max(float(tup[0].getTiming()) for tup in self.test_table)
-                timing_avg = sum(float(tup[0].getTiming()) for tup in self.test_table) / num_nonzero_timing
+                timing_avg = sum(float(tup[0].getTiming())
+                                 for tup in self.test_table) / num_nonzero_timing
             else:
                 timing_max = 0
                 timing_avg = 0
-            print(('Ran %d tests in %.1f seconds. Average test time %.1f seconds, maximum test time %.1f seconds.' % (self.num_passed+self.num_failed, time, timing_avg, timing_max)))
+            print((
+                'Ran %d tests in %.1f seconds. Average test time %.1f seconds, maximum test time %.1f seconds.'
+                % (self.num_passed + self.num_failed, time, timing_avg, timing_max)))
 
             if self.num_passed:
                 summary = '<g>%d passed</g>'
@@ -716,7 +751,9 @@ class TestHarness:
 
             if self.options.longest_jobs:
                 # Sort all jobs by run time
-                sorted_tups = sorted(self.test_table, key=lambda tup: float(tup[0].getTiming()), reverse=True)
+                sorted_tups = sorted(self.test_table,
+                                     key=lambda tup: float(tup[0].getTiming()),
+                                     reverse=True)
 
                 print('\n%d longest running jobs:' % self.options.longest_jobs)
                 print(('-' * (util.TERM_COLS)))
@@ -740,7 +777,6 @@ class TestHarness:
         """ Don't update the results file when using the --failed-tests argument """
         if self.options.failed_tests:
             return
-
         """ write test results to disc in some fashion the user has requested """
         all_jobs = self.scheduler.retrieveJobs()
 
@@ -767,23 +803,27 @@ class TestHarness:
                 status, message, message_color, status_code = job.getJointStatus()
 
                 # Create empty key based on TestDir, or re-inialize with existing data so we can append to it
-                self.options.results_storage[job.getTestDir()] = self.options.results_storage.get(job.getTestDir(), {})
-                self.options.results_storage[job.getTestDir()][job.getTestName()] = {'NAME'           : job.getTestNameShort(),
-                                                                                     'LONG_NAME'      : job.getTestName(),
-                                                                                     'TIMING'         : job.getTiming(),
-                                                                                     'STATUS'         : status,
-                                                                                     'STATUS_MESSAGE' : message,
-                                                                                     'FAIL'           : job.isFail(),
-                                                                                     'COLOR'          : message_color,
-                                                                                     'CAVEATS'        : list(job.getCaveats()),
-                                                                                     'OUTPUT'         : job.getOutput(),
-                                                                                     'COMMAND'        : job.getCommand()}
+                self.options.results_storage[job.getTestDir()] = self.options.results_storage.get(
+                    job.getTestDir(), {})
+                self.options.results_storage[job.getTestDir()][job.getTestName()] = {
+                    'NAME': job.getTestNameShort(),
+                    'LONG_NAME': job.getTestName(),
+                    'TIMING': job.getTiming(),
+                    'STATUS': status,
+                    'STATUS_MESSAGE': message,
+                    'FAIL': job.isFail(),
+                    'COLOR': message_color,
+                    'CAVEATS': list(job.getCaveats()),
+                    'OUTPUT': job.getOutput(),
+                    'COMMAND': job.getCommand()
+                }
 
                 # Additional data to store (overwrites any previous matching keys)
                 self.options.results_storage[job.getTestDir()].update(job.getMetaData())
 
         if self.options.output_dir:
-            self.options.results_file = os.path.join(self.options.output_dir, self.options.results_file)
+            self.options.results_file = os.path.join(self.options.output_dir,
+                                                     self.options.results_file)
 
         if self.options.results_storage and self.options.results_file:
             try:
@@ -793,7 +833,7 @@ class TestHarness:
                 print('\nERROR: Unable to write results due to unicode decode/encode error')
 
                 # write to a plain file to aid in reproducing error
-                with open(self.options.results_file + '.unicode_error' , 'w') as f:
+                with open(self.options.results_file + '.unicode_error', 'w') as f:
                     f.write(self.options.results_storage)
 
                 sys.exit(1)
@@ -811,12 +851,15 @@ class TestHarness:
                             if job.isSilent():
                                 continue
 
-                            formated_results = util.formatResult( job, self.options, result=job.getOutput(), color=False)
+                            formated_results = util.formatResult(job,
+                                                                 self.options,
+                                                                 result=job.getOutput(),
+                                                                 color=False)
                             f.write(formated_results + '\n')
 
             # Write a separate file for each test with verbose information (--sep-files, --sep-files-ok, --sep-files-fail)
             if ((self.options.ok_files and self.num_passed)
-                or (self.options.fail_files and self.num_failed)):
+                    or (self.options.fail_files and self.num_failed)):
                 for job_group in all_jobs:
                     for job in job_group:
                         status, message, message_color, status_code = job.getJointStatus()
@@ -837,12 +880,16 @@ class TestHarness:
                         output += "\n\nTEST OUTPUT:" + job.getOutput()
 
                         # Yes, by design test dir will be apart of the output file name
-                        output_file = os.path.join(output_dir, '.'.join([os.path.basename(job.getTestDir()),
-                                                                         job.getTestNameShort().replace(os.sep, '.'),
-                                                                         status,
-                                                                         'txt']))
+                        output_file = os.path.join(
+                            output_dir, '.'.join([
+                                os.path.basename(job.getTestDir()),
+                                job.getTestNameShort().replace(os.sep, '.'), status, 'txt'
+                            ]))
 
-                        formated_results = util.formatResult(job, self.options, result=output, color=False)
+                        formated_results = util.formatResult(job,
+                                                             self.options,
+                                                             result=output,
+                                                             color=False)
 
                         if (self.options.ok_files and job.isPass()) or \
                            (self.options.fail_files and job.isFail()):
@@ -887,7 +934,8 @@ class TestHarness:
         #plugin_params.add('average_load', default=self.options.load)
 
         # Create the scheduler
-        self.scheduler = s_factory.create(scheduler_plugin, self,
+        self.scheduler = s_factory.create(scheduler_plugin,
+                                          self,
                                           max_processes=self.options.jobs,
                                           average_load=self.options.load)
 
@@ -915,7 +963,8 @@ class TestHarness:
                 self.executable = os.path.join(mydir, '../../../..', 'bin', self.executable)
 
         # Save the output dir since the current working directory changes during tests
-        self.output_dir = os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), self.options.output_dir)
+        self.output_dir = os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])),
+                                       self.options.output_dir)
 
         # Create the output dir if they ask for it. It is easier to ask for forgiveness than permission
         if self.options.output_dir:
@@ -936,102 +985,433 @@ class TestHarness:
                     _input_file_name = 'tests'
                     if self.options.input_file_name:
                         _input_file_name = self.options.input_file_name
-                    self.options.input_file_name = self.options.results_storage.get('INPUT_FILE_NAME', _input_file_name)
+                    self.options.input_file_name = self.options.results_storage.get(
+                        'INPUT_FILE_NAME', _input_file_name)
 
                 except ValueError:
                     # This is a hidden file, controled by the TestHarness. So we probably shouldn't error
                     # and exit. Perhaps a warning instead, and create a new file? Down the road, when
                     # we use this file for PBS etc, this should probably result in an exception.
-                    print(('INFO: Previous %s file is damaged. Creating a new one...' % (self.results_storage)))
+                    print(('INFO: Previous %s file is damaged. Creating a new one...' %
+                           (self.results_storage)))
 
     def useExistingStorage(self):
         """ reasons for returning bool if we should use a previous results_storage file """
         if (os.path.exists(self.options.results_file)
-            and (self.options.failed_tests or self.options.pbs)):
+                and (self.options.failed_tests or self.options.pbs)):
             return True
 
     ## Parse command line options and assign them to self.options
     def parseCLArgs(self, argv):
         parser = argparse.ArgumentParser(description='A tool used to test MOOSE based applications')
-        parser.add_argument('--opt', action='store_const', dest='method', const='opt', help='test the app_name-opt binary')
-        parser.add_argument('--dbg', action='store_const', dest='method', const='dbg', help='test the app_name-dbg binary')
-        parser.add_argument('--devel', action='store_const', dest='method', const='devel', help='test the app_name-devel binary')
-        parser.add_argument('--oprof', action='store_const', dest='method', const='oprof', help='test the app_name-oprof binary')
-        parser.add_argument('--pro', action='store_const', dest='method', const='pro', help='test the app_name-pro binary')
-        parser.add_argument('--run', type=str, default='', dest='run', help='only run tests of the specified of tag(s)')
-        parser.add_argument('--ignore', nargs='?', action='store', metavar='caveat', dest='ignored_caveats', const='all', type=str, help='ignore specified caveats when checking if a test should run: (--ignore "method compiler") Using --ignore with out a conditional will ignore all caveats')
-        parser.add_argument('-j', '--jobs', nargs='?', metavar='int', action='store', type=int, dest='jobs', const=1, help='run test binaries in parallel')
-        parser.add_argument('-e', action='store_true', dest='extra_info', help='Display "extra" information including all caveats and deleted tests')
-        parser.add_argument('-c', '--no-color', action='store_false', dest='colored', help='Do not show colored output')
-        parser.add_argument('--color-first-directory', action='store_true', dest='color_first_directory', help='Color first directory')
-        parser.add_argument('--heavy', action='store_true', dest='heavy_tests', help='Run tests marked with HEAVY : True')
-        parser.add_argument('--all-tests', action='store_true', dest='all_tests', help='Run normal tests and tests marked with HEAVY : True')
-        parser.add_argument('-g', '--group', action='store', type=str, dest='group', default='ALL', help='Run only tests in the named group')
-        parser.add_argument('--not_group', action='store', type=str, dest='not_group', help='Run only tests NOT in the named group')
-        parser.add_argument('--dbfile', nargs='?', action='store', dest='dbFile', help='Location to timings data base file. If not set, assumes $HOME/timingDB/timing.sqlite')
-        parser.add_argument('-l', '--load-average', action='store', type=float, dest='load', help='Do not run additional tests if the load average is at least LOAD')
-        parser.add_argument('-t', '--timing', action='store_true', dest='timing', help='Report Timing information for passing tests')
-        parser.add_argument('--longest-jobs', action='store', dest='longest_jobs', type=int, default=0, help='Print the longest running jobs upon completion')
-        parser.add_argument('-s', '--scale', action='store_true', dest='scaling', help='Scale problems that have SCALE_REFINE set')
-        parser.add_argument('-i', nargs=1, action='store', type=str, dest='input_file_name', default='', help='The test specification file to look for')
-        parser.add_argument('--libmesh_dir', nargs=1, action='store', type=str, dest='libmesh_dir', help='Currently only needed for bitten code coverage')
-        parser.add_argument('--skip-config-checks', action='store_true', dest='skip_config_checks', help='Skip configuration checks (all tests will run regardless of restrictions)')
-        parser.add_argument('--parallel', '-p', nargs='?', action='store', type=int, dest='parallel', const=1, help='Number of processors to use when running mpiexec')
-        parser.add_argument('--n-threads', nargs=1, action='store', type=int, dest='nthreads', default=1, help='Number of threads to use when running mpiexec')
-        parser.add_argument('--recover', action='store_true', dest='enable_recover', help='Run a test in recover mode')
-        parser.add_argument('--recoversuffix', action='store', type=str, default='cpr', dest='recoversuffix', help='Set the file suffix for recover mode')
-        parser.add_argument('--valgrind', action='store_const', dest='valgrind_mode', const='NORMAL', help='Run normal valgrind tests')
-        parser.add_argument('--valgrind-heavy', action='store_const', dest='valgrind_mode', const='HEAVY', help='Run heavy valgrind tests')
-        parser.add_argument('--valgrind-max-fails', nargs=1, type=int, dest='valgrind_max_fails', default=5, help='The number of valgrind tests allowed to fail before any additional valgrind tests will run')
-        parser.add_argument('--max-fails', nargs=1, type=int, dest='max_fails', default=50, help='The number of tests allowed to fail before any additional tests will run')
-        parser.add_argument('--re', action='store', type=str, dest='reg_exp', help='Run tests that match --re=regular_expression')
-        parser.add_argument('--failed-tests', action='store_true', dest='failed_tests', help='Run tests that previously failed')
-        parser.add_argument('--check-input', action='store_true', dest='check_input', help='Run check_input (syntax) tests only')
-        parser.add_argument('--no-check-input', action='store_true', dest='no_check_input', help='Do not run check_input (syntax) tests')
-        parser.add_argument('--spec-file', action='store', type=str, dest='spec_file', help='Supply a path to the tests spec file to run the tests found therein. Or supply a path to a directory in which the TestHarness will search for tests. You can further alter which tests spec files are found through the use of -i and --re')
-        parser.add_argument('-d', '--pedantic-checks', action='store_true', dest='pedantic_checks', help="Run pedantic checks of the Testers' file writes looking for race conditions.")
+        parser.add_argument('--opt',
+                            action='store_const',
+                            dest='method',
+                            const='opt',
+                            help='test the app_name-opt binary')
+        parser.add_argument('--dbg',
+                            action='store_const',
+                            dest='method',
+                            const='dbg',
+                            help='test the app_name-dbg binary')
+        parser.add_argument('--devel',
+                            action='store_const',
+                            dest='method',
+                            const='devel',
+                            help='test the app_name-devel binary')
+        parser.add_argument('--oprof',
+                            action='store_const',
+                            dest='method',
+                            const='oprof',
+                            help='test the app_name-oprof binary')
+        parser.add_argument('--pro',
+                            action='store_const',
+                            dest='method',
+                            const='pro',
+                            help='test the app_name-pro binary')
+        parser.add_argument('--run',
+                            type=str,
+                            default='',
+                            dest='run',
+                            help='only run tests of the specified of tag(s)')
+        parser.add_argument(
+            '--ignore',
+            nargs='?',
+            action='store',
+            metavar='caveat',
+            dest='ignored_caveats',
+            const='all',
+            type=str,
+            help=
+            'ignore specified caveats when checking if a test should run: (--ignore "method compiler") Using --ignore with out a conditional will ignore all caveats'
+        )
+        parser.add_argument('-j',
+                            '--jobs',
+                            nargs='?',
+                            metavar='int',
+                            action='store',
+                            type=int,
+                            dest='jobs',
+                            const=1,
+                            help='run test binaries in parallel')
+        parser.add_argument(
+            '-e',
+            action='store_true',
+            dest='extra_info',
+            help='Display "extra" information including all caveats and deleted tests')
+        parser.add_argument('-c',
+                            '--no-color',
+                            action='store_false',
+                            dest='colored',
+                            help='Do not show colored output')
+        parser.add_argument('--color-first-directory',
+                            action='store_true',
+                            dest='color_first_directory',
+                            help='Color first directory')
+        parser.add_argument('--heavy',
+                            action='store_true',
+                            dest='heavy_tests',
+                            help='Run tests marked with HEAVY : True')
+        parser.add_argument('--all-tests',
+                            action='store_true',
+                            dest='all_tests',
+                            help='Run normal tests and tests marked with HEAVY : True')
+        parser.add_argument('-g',
+                            '--group',
+                            action='store',
+                            type=str,
+                            dest='group',
+                            default='ALL',
+                            help='Run only tests in the named group')
+        parser.add_argument('--not_group',
+                            action='store',
+                            type=str,
+                            dest='not_group',
+                            help='Run only tests NOT in the named group')
+        parser.add_argument(
+            '--dbfile',
+            nargs='?',
+            action='store',
+            dest='dbFile',
+            help=
+            'Location to timings data base file. If not set, assumes $HOME/timingDB/timing.sqlite')
+        parser.add_argument('-l',
+                            '--load-average',
+                            action='store',
+                            type=float,
+                            dest='load',
+                            help='Do not run additional tests if the load average is at least LOAD')
+        parser.add_argument('-t',
+                            '--timing',
+                            action='store_true',
+                            dest='timing',
+                            help='Report Timing information for passing tests')
+        parser.add_argument('--longest-jobs',
+                            action='store',
+                            dest='longest_jobs',
+                            type=int,
+                            default=0,
+                            help='Print the longest running jobs upon completion')
+        parser.add_argument('-s',
+                            '--scale',
+                            action='store_true',
+                            dest='scaling',
+                            help='Scale problems that have SCALE_REFINE set')
+        parser.add_argument('-i',
+                            nargs=1,
+                            action='store',
+                            type=str,
+                            dest='input_file_name',
+                            default='',
+                            help='The test specification file to look for')
+        parser.add_argument('--libmesh_dir',
+                            nargs=1,
+                            action='store',
+                            type=str,
+                            dest='libmesh_dir',
+                            help='Currently only needed for bitten code coverage')
+        parser.add_argument(
+            '--skip-config-checks',
+            action='store_true',
+            dest='skip_config_checks',
+            help='Skip configuration checks (all tests will run regardless of restrictions)')
+        parser.add_argument('--parallel',
+                            '-p',
+                            nargs='?',
+                            action='store',
+                            type=int,
+                            dest='parallel',
+                            const=1,
+                            help='Number of processors to use when running mpiexec')
+        parser.add_argument('--n-threads',
+                            nargs=1,
+                            action='store',
+                            type=int,
+                            dest='nthreads',
+                            default=1,
+                            help='Number of threads to use when running mpiexec')
+        parser.add_argument('--recover',
+                            action='store_true',
+                            dest='enable_recover',
+                            help='Run a test in recover mode')
+        parser.add_argument('--recoversuffix',
+                            action='store',
+                            type=str,
+                            default='cpr',
+                            dest='recoversuffix',
+                            help='Set the file suffix for recover mode')
+        parser.add_argument('--valgrind',
+                            action='store_const',
+                            dest='valgrind_mode',
+                            const='NORMAL',
+                            help='Run normal valgrind tests')
+        parser.add_argument('--valgrind-heavy',
+                            action='store_const',
+                            dest='valgrind_mode',
+                            const='HEAVY',
+                            help='Run heavy valgrind tests')
+        parser.add_argument(
+            '--valgrind-max-fails',
+            nargs=1,
+            type=int,
+            dest='valgrind_max_fails',
+            default=5,
+            help=
+            'The number of valgrind tests allowed to fail before any additional valgrind tests will run'
+        )
+        parser.add_argument(
+            '--max-fails',
+            nargs=1,
+            type=int,
+            dest='max_fails',
+            default=50,
+            help='The number of tests allowed to fail before any additional tests will run')
+        parser.add_argument('--re',
+                            action='store',
+                            type=str,
+                            dest='reg_exp',
+                            help='Run tests that match --re=regular_expression')
+        parser.add_argument('--failed-tests',
+                            action='store_true',
+                            dest='failed_tests',
+                            help='Run tests that previously failed')
+        parser.add_argument('--check-input',
+                            action='store_true',
+                            dest='check_input',
+                            help='Run check_input (syntax) tests only')
+        parser.add_argument('--no-check-input',
+                            action='store_true',
+                            dest='no_check_input',
+                            help='Do not run check_input (syntax) tests')
+        parser.add_argument(
+            '--spec-file',
+            action='store',
+            type=str,
+            dest='spec_file',
+            help=
+            'Supply a path to the tests spec file to run the tests found therein. Or supply a path to a directory in which the TestHarness will search for tests. You can further alter which tests spec files are found through the use of -i and --re'
+        )
+        parser.add_argument(
+            '-d',
+            '--pedantic-checks',
+            action='store_true',
+            dest='pedantic_checks',
+            help="Run pedantic checks of the Testers' file writes looking for race conditions.")
 
         # Options that pass straight through to the executable
-        parser.add_argument('--parallel-mesh', action='store_true', dest='parallel_mesh', help='Deprecated, use --distributed-mesh instead')
-        parser.add_argument('--distributed-mesh', action='store_true', dest='distributed_mesh', help='Pass "--distributed-mesh" to executable')
-        parser.add_argument('--error', action='store_true', help='Run the tests with warnings as errors (Pass "--error" to executable)')
-        parser.add_argument('--error-unused', action='store_true', help='Run the tests with errors on unused parameters (Pass "--error-unused" to executable)')
-        parser.add_argument('--error-deprecated', action='store_true', help='Run the tests with errors on deprecations')
+        parser.add_argument('--parallel-mesh',
+                            action='store_true',
+                            dest='parallel_mesh',
+                            help='Deprecated, use --distributed-mesh instead')
+        parser.add_argument('--distributed-mesh',
+                            action='store_true',
+                            dest='distributed_mesh',
+                            help='Pass "--distributed-mesh" to executable')
+        parser.add_argument(
+            '--error',
+            action='store_true',
+            help='Run the tests with warnings as errors (Pass "--error" to executable)')
+        parser.add_argument(
+            '--error-unused',
+            action='store_true',
+            help=
+            'Run the tests with errors on unused parameters (Pass "--error-unused" to executable)')
+        parser.add_argument('--error-deprecated',
+                            action='store_true',
+                            help='Run the tests with errors on deprecations')
 
         # Option to use for passing unwrapped options to the executable
-        parser.add_argument('--cli-args', nargs='?', type=str, dest='cli_args', help='Append the following list of arguments to the command line (Encapsulate the command in quotes)')
+        parser.add_argument(
+            '--cli-args',
+            nargs='?',
+            type=str,
+            dest='cli_args',
+            help=
+            'Append the following list of arguments to the command line (Encapsulate the command in quotes)'
+        )
 
-        parser.add_argument('--dry-run', action='store_true', dest='dry_run', help="Pass --dry-run to print commands to run, but don't actually run them")
-        parser.add_argument('--use-subdir-exe', action="store_true", help='If there are sub directories that contain a new testroot, use that for running tests under that directory.')
+        parser.add_argument(
+            '--dry-run',
+            action='store_true',
+            dest='dry_run',
+            help="Pass --dry-run to print commands to run, but don't actually run them")
+        parser.add_argument(
+            '--use-subdir-exe',
+            action="store_true",
+            help=
+            'If there are sub directories that contain a new testroot, use that for running tests under that directory.'
+        )
 
-        outputgroup = parser.add_argument_group('Output Options', 'These options control the output of the test harness. The sep-files options write output to files named test_name.TEST_RESULT.txt. All file output will overwrite old files')
-        outputgroup.add_argument('-v', '--verbose', action='store_true', dest='verbose', help='show the output of every test')
-        outputgroup.add_argument('-q', '--quiet', action='store_true', dest='quiet', help='only show the result of every test, don\'t show test output even if it fails')
-        outputgroup.add_argument('--no-report', action='store_false', dest='report_skipped', help='do not report skipped tests')
-        outputgroup.add_argument('--show-directory', action='store_true', dest='show_directory', help='Print test directory path in out messages')
-        outputgroup.add_argument('-o', '--output-dir', nargs=1, metavar='directory', dest='output_dir', default='', help='Save all output files in the directory, and create it if necessary')
-        outputgroup.add_argument('-f', '--file', nargs=1, action='store', dest='file', help='Write verbose output of each test to FILE and quiet output to terminal')
-        outputgroup.add_argument('-x', '--sep-files', action='store_true', dest='sep_files', help='Write the output of each test to a separate file. Only quiet output to terminal. This is equivalant to \'--sep-files-fail --sep-files-ok\'')
-        outputgroup.add_argument('--sep-files-ok', action='store_true', dest='ok_files', help='Write the output of each passed test to a separate file')
-        outputgroup.add_argument('-a', '--sep-files-fail', action='store_true', dest='fail_files', help='Write the output of each FAILED test to a separate file. Only quiet output to terminal.')
-        outputgroup.add_argument('--include-input-file', action='store_true', dest='include_input', help='Include the contents of the input file when writing the results of a test to a file')
-        outputgroup.add_argument("--testharness-unittest", action="store_true", help="Run the TestHarness unittests that test the TestHarness.")
-        outputgroup.add_argument("--yaml", action="store_true", dest="yaml", help="Dump the parameters for the testers in Yaml Format")
-        outputgroup.add_argument("--dump", action="store_true", dest="dump", help="Dump the parameters for the testers in GetPot Format")
-        outputgroup.add_argument("--no-trimmed-output", action="store_true", dest="no_trimmed_output", help="Do not trim the output")
-        outputgroup.add_argument("--no-trimmed-output-on-error", action="store_true", dest="no_trimmed_output_on_error", help="Do not trim output for tests which cause an error")
-        outputgroup.add_argument("--results-file", nargs=1, default='.previous_test_results.json', help="Save run_tests results to an alternative json file (default: %(default)s)")
+        outputgroup = parser.add_argument_group(
+            'Output Options',
+            'These options control the output of the test harness. The sep-files options write output to files named test_name.TEST_RESULT.txt. All file output will overwrite old files'
+        )
+        outputgroup.add_argument('-v',
+                                 '--verbose',
+                                 action='store_true',
+                                 dest='verbose',
+                                 help='show the output of every test')
+        outputgroup.add_argument(
+            '-q',
+            '--quiet',
+            action='store_true',
+            dest='quiet',
+            help='only show the result of every test, don\'t show test output even if it fails')
+        outputgroup.add_argument('--no-report',
+                                 action='store_false',
+                                 dest='report_skipped',
+                                 help='do not report skipped tests')
+        outputgroup.add_argument('--show-directory',
+                                 action='store_true',
+                                 dest='show_directory',
+                                 help='Print test directory path in out messages')
+        outputgroup.add_argument(
+            '-o',
+            '--output-dir',
+            nargs=1,
+            metavar='directory',
+            dest='output_dir',
+            default='',
+            help='Save all output files in the directory, and create it if necessary')
+        outputgroup.add_argument(
+            '-f',
+            '--file',
+            nargs=1,
+            action='store',
+            dest='file',
+            help='Write verbose output of each test to FILE and quiet output to terminal')
+        outputgroup.add_argument(
+            '-x',
+            '--sep-files',
+            action='store_true',
+            dest='sep_files',
+            help=
+            'Write the output of each test to a separate file. Only quiet output to terminal. This is equivalant to \'--sep-files-fail --sep-files-ok\''
+        )
+        outputgroup.add_argument('--sep-files-ok',
+                                 action='store_true',
+                                 dest='ok_files',
+                                 help='Write the output of each passed test to a separate file')
+        outputgroup.add_argument(
+            '-a',
+            '--sep-files-fail',
+            action='store_true',
+            dest='fail_files',
+            help=
+            'Write the output of each FAILED test to a separate file. Only quiet output to terminal.'
+        )
+        outputgroup.add_argument(
+            '--include-input-file',
+            action='store_true',
+            dest='include_input',
+            help=
+            'Include the contents of the input file when writing the results of a test to a file')
+        outputgroup.add_argument("--testharness-unittest",
+                                 action="store_true",
+                                 help="Run the TestHarness unittests that test the TestHarness.")
+        outputgroup.add_argument("--yaml",
+                                 action="store_true",
+                                 dest="yaml",
+                                 help="Dump the parameters for the testers in Yaml Format")
+        outputgroup.add_argument("--dump",
+                                 action="store_true",
+                                 dest="dump",
+                                 help="Dump the parameters for the testers in GetPot Format")
+        outputgroup.add_argument("--no-trimmed-output",
+                                 action="store_true",
+                                 dest="no_trimmed_output",
+                                 help="Do not trim the output")
+        outputgroup.add_argument("--no-trimmed-output-on-error",
+                                 action="store_true",
+                                 dest="no_trimmed_output_on_error",
+                                 help="Do not trim output for tests which cause an error")
+        outputgroup.add_argument(
+            "--results-file",
+            nargs=1,
+            default='.previous_test_results.json',
+            help="Save run_tests results to an alternative json file (default: %(default)s)")
 
-        queuegroup = parser.add_argument_group('Queue Options', 'Options controlling which queue manager to use')
-        queuegroup.add_argument('--pbs', nargs=1, action='store', metavar='name', help='Launch tests using PBS as your scheduler. You must supply a name to identify this session with')
-        queuegroup.add_argument('--pbs-pre-source', nargs=1, action="store", dest='queue_source_command', metavar='', help='Source specified file before launching tests')
-        queuegroup.add_argument('--pbs-project', nargs=1, action='store', dest='queue_project', type=str, default='moose', metavar='', help='Identify your job(s) with this project (default:  %(default)s)')
-        queuegroup.add_argument('--pbs-queue', nargs=1, action='store', dest='queue_queue', type=str, metavar='', help='Submit jobs to the specified queue')
-        queuegroup.add_argument('--pbs-node-cpus', nargs=1, action='store', type=int, default=None, metavar='', help='CPUS Per Node. The default (no setting), will always use only one node')
-        queuegroup.add_argument('--pbs-cleanup', nargs=1, action="store", metavar='name', help='Clean up files generated by supplied --pbs name')
-        queuegroup.add_argument('--queue-project', nargs=1, action='store', type=str, default='moose', metavar='', help='Deprecated. Use --pbs-project')
-        queuegroup.add_argument('--queue-queue', nargs=1, action='store', type=str, metavar='', help='Deprecated. Use --pbs-queue')
-        queuegroup.add_argument('--queue-cleanup', action="store_true", help='Deprecated. Use --pbs-cleanup')
+        queuegroup = parser.add_argument_group('Queue Options',
+                                               'Options controlling which queue manager to use')
+        queuegroup.add_argument(
+            '--pbs',
+            nargs=1,
+            action='store',
+            metavar='name',
+            help=
+            'Launch tests using PBS as your scheduler. You must supply a name to identify this session with'
+        )
+        queuegroup.add_argument('--pbs-pre-source',
+                                nargs=1,
+                                action="store",
+                                dest='queue_source_command',
+                                metavar='',
+                                help='Source specified file before launching tests')
+        queuegroup.add_argument(
+            '--pbs-project',
+            nargs=1,
+            action='store',
+            dest='queue_project',
+            type=str,
+            default='moose',
+            metavar='',
+            help='Identify your job(s) with this project (default:  %(default)s)')
+        queuegroup.add_argument('--pbs-queue',
+                                nargs=1,
+                                action='store',
+                                dest='queue_queue',
+                                type=str,
+                                metavar='',
+                                help='Submit jobs to the specified queue')
+        queuegroup.add_argument(
+            '--pbs-node-cpus',
+            nargs=1,
+            action='store',
+            type=int,
+            default=None,
+            metavar='',
+            help='CPUS Per Node. The default (no setting), will always use only one node')
+        queuegroup.add_argument('--pbs-cleanup',
+                                nargs=1,
+                                action="store",
+                                metavar='name',
+                                help='Clean up files generated by supplied --pbs name')
+        queuegroup.add_argument('--queue-project',
+                                nargs=1,
+                                action='store',
+                                type=str,
+                                default='moose',
+                                metavar='',
+                                help='Deprecated. Use --pbs-project')
+        queuegroup.add_argument('--queue-queue',
+                                nargs=1,
+                                action='store',
+                                type=str,
+                                metavar='',
+                                help='Deprecated. Use --pbs-queue')
+        queuegroup.add_argument('--queue-cleanup',
+                                action="store_true",
+                                help='Deprecated. Use --pbs-cleanup')
 
         code = True
         if self.code.decode() in argv:
@@ -1058,8 +1438,11 @@ class TestHarness:
             self.options.queue_cleanup = True
 
         opts = self.options
-        if opts.output_dir and not (opts.file or opts.sep_files or opts.fail_files or opts.ok_files):
-            print('WARNING: --output-dir is specified but no output files will be saved, use -f or a --sep-files option')
+        if opts.output_dir and not (opts.file or opts.sep_files or opts.fail_files
+                                    or opts.ok_files):
+            print(
+                'WARNING: --output-dir is specified but no output files will be saved, use -f or a --sep-files option'
+            )
         if opts.group == opts.not_group:
             print('ERROR: The group and not_group options cannot specify the same group')
             sys.exit(1)

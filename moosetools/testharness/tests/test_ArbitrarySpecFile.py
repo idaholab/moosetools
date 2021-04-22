@@ -1,13 +1,14 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 from TestHarnessTestCase import TestHarnessTestCase
+
 
 class TestHarnessTester(TestHarnessTestCase):
     def testArbitrarySpecFile(self):
@@ -20,11 +21,13 @@ class TestHarnessTester(TestHarnessTestCase):
         self.assertNotIn('tests/test_harness/arbitrary_directory.always_ok', output)
 
         # Test that we do find additional tests with recursion
-        output = self.runTests('--spec-file', 'tests/test_harness', '-i', 'arbitrary_test').decode('utf-8')
+        output = self.runTests('--spec-file', 'tests/test_harness', '-i',
+                               'arbitrary_test').decode('utf-8')
         self.assertIn('tests/test_harness.always_ok', output)
         self.assertIn('tests/test_harness/arbitrary_directory.always_ok', output)
 
         # Test that we are not recursively finding our way backwards
-        output = self.runTests('--spec-file', 'tests/test_harness/arbitrary_directory', '-i', 'arbitrary_test').decode('utf-8')
+        output = self.runTests('--spec-file', 'tests/test_harness/arbitrary_directory', '-i',
+                               'arbitrary_test').decode('utf-8')
         self.assertIn('tests/test_harness/arbitrary_directory.always_ok', output)
         self.assertNotIn('tests/test_harness.always_ok', output)

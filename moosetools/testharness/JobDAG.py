@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -11,6 +11,7 @@ from .schedulers.Job import Job
 from . import dag
 from moosetools import pyhit
 import os
+
 
 class JobDAG(object):
     """ Class which builds a Job DAG for use by the Scheduler """
@@ -128,7 +129,9 @@ class JobDAG(object):
                 for a_job in self.__job_dag.topological_sort():
                     if a_job != job and not a_job.isSkip():
                         if '.ALL' in a_job.getTestName():
-                            a_job.setStatus(a_job.error, 'Test named ALL when "prereq = ALL" elsewhere in test spec file!')
+                            a_job.setStatus(
+                                a_job.error,
+                                'Test named ALL when "prereq = ALL" elsewhere in test spec file!')
                         self._addEdge(a_job, job)
         self._doSkippedDependencies()
 
@@ -234,16 +237,16 @@ class JobDAG(object):
             # all of these jobs will be serialized
             elif len(job_list) > 1 and self._setParallel():
                 for job in job_list:
-                    job.setOutput('Output file will over write pre-existing output file:\n\t%s\n' % (outfile))
+                    job.setOutput('Output file will over write pre-existing output file:\n\t%s\n' %
+                                  (outfile))
                     job.setStatus(job.error, 'OUTFILE RACE CONDITION')
 
     def _skipPrereqs(self):
         """
         Method to return boolean to skip dependency prerequisites checks.
         """
-        if (self.options.ignored_caveats
-            and ('all' in self.options.ignored_caveats
-                 or 'prereq' in self.options.ignored_caveats)):
+        if (self.options.ignored_caveats and
+            ('all' in self.options.ignored_caveats or 'prereq' in self.options.ignored_caveats)):
             return True
 
     def _printDownstreams(self, job):
@@ -255,7 +258,7 @@ class JobDAG(object):
         downstreams = self.__job_dag.all_downstreams(job)
         cyclic_path = []
         for d_job in downstreams:
-            cyclic_path.append('%s -->'% (d_job.getTestNameShort()))
+            cyclic_path.append('%s -->' % (d_job.getTestNameShort()))
         return ' '.join(cyclic_path)
 
     def printDAG(self):

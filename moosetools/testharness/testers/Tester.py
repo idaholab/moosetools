@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -28,88 +28,226 @@ class Tester(MooseObject):
 
         # Common Options
         #params.addRequiredParam('type', "The type of test of Tester to create for this test.")
-        params.addParam('max_time',   int(os.getenv('MOOSE_TEST_MAX_TIME', 300)), "The maximum in seconds that the test will be allowed to run.")
-        params.addParam('skip',     "Provide a reason this test will be skipped.")
-        params.addParam('deleted',         "Tests that only show up when using the '-e' option (Permanently skipped or not implemented).")
+        params.addParam('max_time', int(os.getenv('MOOSE_TEST_MAX_TIME', 300)),
+                        "The maximum in seconds that the test will be allowed to run.")
+        params.addParam('skip', "Provide a reason this test will be skipped.")
+        params.addParam(
+            'deleted',
+            "Tests that only show up when using the '-e' option (Permanently skipped or not implemented)."
+        )
         params.addParam('unique_test_id', "The unique hash given to a test")
 
-        params.addParam('heavy',    False, "Set to True if this test should only be run when the '--heavy' option is used.")
-        params.add('group', vtype=str, array=True, doc="A list of groups for which this test belongs.")
-        params.addParam('prereq', "", "A list of prereq tests that need to run successfully before launching this test. When 'prereq = ALL', TestHarness will run this test last. Multiple 'prereq = ALL' tests, or tests that depend on a 'prereq = ALL' test will result in cyclic errors. Naming a test 'ALL' when using 'prereq = ALL' will also result in an error.")
-        params.addParam('skip_checks', False, "Tells the TestHarness to skip additional checks (This parameter is set automatically by the TestHarness during recovery tests)")
-        params.addParam('scale_refine',    0, "The number of refinements to do when scaling")
+        params.addParam(
+            'heavy', False,
+            "Set to True if this test should only be run when the '--heavy' option is used.")
+        params.add('group',
+                   vtype=str,
+                   array=True,
+                   doc="A list of groups for which this test belongs.")
+        params.addParam(
+            'prereq', "",
+            "A list of prereq tests that need to run successfully before launching this test. When 'prereq = ALL', TestHarness will run this test last. Multiple 'prereq = ALL' tests, or tests that depend on a 'prereq = ALL' test will result in cyclic errors. Naming a test 'ALL' when using 'prereq = ALL' will also result in an error."
+        )
+        params.addParam(
+            'skip_checks', False,
+            "Tells the TestHarness to skip additional checks (This parameter is set automatically by the TestHarness during recovery tests)"
+        )
+        params.addParam('scale_refine', 0, "The number of refinements to do when scaling")
         params.addParam('success_message', 'OK', "The successful message")
-        params.addParam('redirect_output',  False, "Redirect stdout to files. Neccessary when expecting an error when using parallel options")
+        params.addParam(
+            'redirect_output', False,
+            "Redirect stdout to files. Neccessary when expecting an error when using parallel options"
+        )
 
         params.addParam('cli_args', "", "Additional arguments to be passed to the test.")
-        params.addParam('allow_test_objects', False, "Allow the use of test objects by adding --allow-test-objects to the command line.")
+        params.addParam(
+            'allow_test_objects', False,
+            "Allow the use of test objects by adding --allow-test-objects to the command line.")
 
-        params.addParam('valgrind', 'NONE', "Set to (NONE, NORMAL, HEAVY) to determine which configurations where valgrind will run.")
-        params.addParam('tags',      [], "A list of strings")
-        params.addParam('max_buffer_size', None, "Bytes allowed in stdout/stderr before it is subjected to being trimmed. Set to -1 to ignore output size restrictions. "
-                                                 "If 'max_buffer_size' is not set, the default value of 'None' triggers a reasonable value (e.g. 100 kB)")
-        params.addParam('parallel_scheduling', False, "Allow all tests in test spec file to run in parallel (adheres to prereq rules).")
+        params.addParam(
+            'valgrind', 'NONE',
+            "Set to (NONE, NORMAL, HEAVY) to determine which configurations where valgrind will run."
+        )
+        params.addParam('tags', [], "A list of strings")
+        params.addParam(
+            'max_buffer_size', None,
+            "Bytes allowed in stdout/stderr before it is subjected to being trimmed. Set to -1 to ignore output size restrictions. "
+            "If 'max_buffer_size' is not set, the default value of 'None' triggers a reasonable value (e.g. 100 kB)"
+        )
+        params.addParam(
+            'parallel_scheduling', False,
+            "Allow all tests in test spec file to run in parallel (adheres to prereq rules).")
 
         # Test Filters
-        params.addParam('platform',      ['ALL'], "A list of platforms for which this test will run on. ('ALL', 'DARWIN', 'LINUX', 'SL', 'LION', 'ML')")
-        params.addParam('compiler',      ['ALL'], "A list of compilers for which this test is valid on. ('ALL', 'GCC', 'INTEL', 'CLANG')")
-        params.add('petsc_version', vtype=str, array=True, default=('ALL',), doc="A list of petsc versions for which this test will run on, supports normal comparison operators ('<', '>', etc...)")
-        params.addParam('petsc_version_release', ['ALL'], "A test that runs against PETSc master if FALSE ('ALL', 'TRUE', 'FALSE')")
-        params.add('slepc_version', vtype=str, array=True, default=('ALL',), doc= "A list of slepc versions for which this test will run on, supports normal comparison operators ('<', '>', etc...)")
-        params.addParam('mesh_mode',     ['ALL'], "A list of mesh modes for which this test will run ('DISTRIBUTED', 'REPLICATED')")
-        params.addParam('min_ad_size',   None, "A minimum AD size for which this test will run")
-        params.addParam('ad_mode',       ['ALL'], "A list of AD modes for which this test will run ('SPARSE', 'NONSPARSE')")
-        params.addParam('ad_indexing_type', ['ALL'], "A list of AD indexing types for which this test will run ('LOCAL', 'GLOBAL')")
-        params.addParam('method',        ['ALL'], "A test that runs under certain executable configurations ('ALL', 'OPT', 'DBG', 'DEVEL', 'OPROF', 'PRO')")
-        params.addParam('library_mode',  ['ALL'], "A test that only runs when libraries are built under certain configurations ('ALL', 'STATIC', 'DYNAMIC')")
-        params.addParam('dtk',           ['ALL'], "A test that runs only if DTK is detected ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('unique_ids',    ['ALL'], "Deprecated. Use unique_id instead.")
-        params.addParam('recover',       True,    "A test that runs with '--recover' mode enabled")
-        params.addParam('vtk',           ['ALL'], "A test that runs only if VTK is detected ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('tecplot',       ['ALL'], "A test that runs only if Tecplot is detected ('ALL', 'TRUE', 'FALSE')")
-        params.add('dof_id_bytes',  vtype=str, array=True, default=('ALL',), doc="A test that runs only if libmesh is configured --with-dof-id-bytes = a specific number, e.g. '4', '8'")
-        params.addParam('petsc_debug',   ['ALL'], "{False,True} -> test only runs when PETSc is configured with --with-debugging={0,1}, otherwise test always runs.")
-        params.addParam('curl',          ['ALL'], "A test that runs only if CURL is detected ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('threading',     ['ALL'], "A list of threading models ths tests runs with ('ALL', 'TBB', 'OPENMP', 'PTHREADS', 'NONE')")
-        params.addParam('superlu',       ['ALL'], "A test that runs only if SuperLU is available via PETSc ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('mumps',         ['ALL'], "A test that runs only if MUMPS is available via PETSc ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('strumpack',     ['ALL'], "A test that runs only if STRUMPACK is available via PETSc ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('chaco',         ['ALL'], "A test that runs only if Chaco (partitioner) is available via PETSc ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('parmetis',      ['ALL'], "A test that runs only if Parmetis (partitioner) is available via PETSc ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('party',         ['ALL'], "A test that runs only if Party (partitioner) is available via PETSc ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('ptscotch',      ['ALL'], "A test that runs only if PTScotch (partitioner) is available via PETSc ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('slepc',         ['ALL'], "A test that runs only if SLEPc is available ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('unique_id',     ['ALL'], "A test that runs only if libmesh is configured with --enable-unique-id ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('cxx11',         ['ALL'], "A test that runs only if CXX11 is available ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('asio',          ['ALL'], "A test that runs only if ASIO is available ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('fparser_jit',   ['ALL'], "A test that runs only if FParser JIT is available ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('libpng',        ['ALL'], "A test that runs only if libpng is available ('ALL', 'TRUE', 'FALSE')")
+        params.addParam(
+            'platform', ['ALL'],
+            "A list of platforms for which this test will run on. ('ALL', 'DARWIN', 'LINUX', 'SL', 'LION', 'ML')"
+        )
+        params.addParam(
+            'compiler', ['ALL'],
+            "A list of compilers for which this test is valid on. ('ALL', 'GCC', 'INTEL', 'CLANG')")
+        params.add(
+            'petsc_version',
+            vtype=str,
+            array=True,
+            default=('ALL', ),
+            doc=
+            "A list of petsc versions for which this test will run on, supports normal comparison operators ('<', '>', etc...)"
+        )
+        params.addParam('petsc_version_release', ['ALL'],
+                        "A test that runs against PETSc master if FALSE ('ALL', 'TRUE', 'FALSE')")
+        params.add(
+            'slepc_version',
+            vtype=str,
+            array=True,
+            default=('ALL', ),
+            doc=
+            "A list of slepc versions for which this test will run on, supports normal comparison operators ('<', '>', etc...)"
+        )
+        params.addParam(
+            'mesh_mode', ['ALL'],
+            "A list of mesh modes for which this test will run ('DISTRIBUTED', 'REPLICATED')")
+        params.addParam('min_ad_size', None, "A minimum AD size for which this test will run")
+        params.addParam('ad_mode', ['ALL'],
+                        "A list of AD modes for which this test will run ('SPARSE', 'NONSPARSE')")
+        params.addParam(
+            'ad_indexing_type', ['ALL'],
+            "A list of AD indexing types for which this test will run ('LOCAL', 'GLOBAL')")
+        params.addParam(
+            'method', ['ALL'],
+            "A test that runs under certain executable configurations ('ALL', 'OPT', 'DBG', 'DEVEL', 'OPROF', 'PRO')"
+        )
+        params.addParam(
+            'library_mode', ['ALL'],
+            "A test that only runs when libraries are built under certain configurations ('ALL', 'STATIC', 'DYNAMIC')"
+        )
+        params.addParam('dtk', ['ALL'],
+                        "A test that runs only if DTK is detected ('ALL', 'TRUE', 'FALSE')")
+        params.addParam('unique_ids', ['ALL'], "Deprecated. Use unique_id instead.")
+        params.addParam('recover', True, "A test that runs with '--recover' mode enabled")
+        params.addParam('vtk', ['ALL'],
+                        "A test that runs only if VTK is detected ('ALL', 'TRUE', 'FALSE')")
+        params.addParam('tecplot', ['ALL'],
+                        "A test that runs only if Tecplot is detected ('ALL', 'TRUE', 'FALSE')")
+        params.add(
+            'dof_id_bytes',
+            vtype=str,
+            array=True,
+            default=('ALL', ),
+            doc=
+            "A test that runs only if libmesh is configured --with-dof-id-bytes = a specific number, e.g. '4', '8'"
+        )
+        params.addParam(
+            'petsc_debug', ['ALL'],
+            "{False,True} -> test only runs when PETSc is configured with --with-debugging={0,1}, otherwise test always runs."
+        )
+        params.addParam('curl', ['ALL'],
+                        "A test that runs only if CURL is detected ('ALL', 'TRUE', 'FALSE')")
+        params.addParam(
+            'threading', ['ALL'],
+            "A list of threading models ths tests runs with ('ALL', 'TBB', 'OPENMP', 'PTHREADS', 'NONE')"
+        )
+        params.addParam(
+            'superlu', ['ALL'],
+            "A test that runs only if SuperLU is available via PETSc ('ALL', 'TRUE', 'FALSE')")
+        params.addParam(
+            'mumps', ['ALL'],
+            "A test that runs only if MUMPS is available via PETSc ('ALL', 'TRUE', 'FALSE')")
+        params.addParam(
+            'strumpack', ['ALL'],
+            "A test that runs only if STRUMPACK is available via PETSc ('ALL', 'TRUE', 'FALSE')")
+        params.addParam(
+            'chaco', ['ALL'],
+            "A test that runs only if Chaco (partitioner) is available via PETSc ('ALL', 'TRUE', 'FALSE')"
+        )
+        params.addParam(
+            'parmetis', ['ALL'],
+            "A test that runs only if Parmetis (partitioner) is available via PETSc ('ALL', 'TRUE', 'FALSE')"
+        )
+        params.addParam(
+            'party', ['ALL'],
+            "A test that runs only if Party (partitioner) is available via PETSc ('ALL', 'TRUE', 'FALSE')"
+        )
+        params.addParam(
+            'ptscotch', ['ALL'],
+            "A test that runs only if PTScotch (partitioner) is available via PETSc ('ALL', 'TRUE', 'FALSE')"
+        )
+        params.addParam('slepc', ['ALL'],
+                        "A test that runs only if SLEPc is available ('ALL', 'TRUE', 'FALSE')")
+        params.addParam(
+            'unique_id', ['ALL'],
+            "A test that runs only if libmesh is configured with --enable-unique-id ('ALL', 'TRUE', 'FALSE')"
+        )
+        params.addParam('cxx11', ['ALL'],
+                        "A test that runs only if CXX11 is available ('ALL', 'TRUE', 'FALSE')")
+        params.addParam('asio', ['ALL'],
+                        "A test that runs only if ASIO is available ('ALL', 'TRUE', 'FALSE')")
+        params.addParam(
+            'fparser_jit', ['ALL'],
+            "A test that runs only if FParser JIT is available ('ALL', 'TRUE', 'FALSE')")
+        params.addParam('libpng', ['ALL'],
+                        "A test that runs only if libpng is available ('ALL', 'TRUE', 'FALSE')")
 
-        params.addParam('depend_files',  [], "A test that only runs if all depend files exist (files listed are expected to be relative to the base directory, not the test directory")
-        params.addParam('env_vars',      [], "A test that only runs if all the environment variables listed exist")
-        params.addParam('should_execute', True, 'Whether or not the executable needs to be run.  Use this to chain together multiple tests based off of one executeable invocation')
-        params.addParam('required_submodule', [], "A list of initialized submodules for which this test requires.")
-        params.addParam('required_objects', [], "A list of required objects that are in the executable.")
-        params.addParam('required_applications', [], "A list of required registered applications that are in the executable.")
-        params.addParam('check_input',    False, "Check for correct input file syntax")
-        params.addParam('display_required', False, "The test requires and active display for rendering (i.e., ImageDiff tests).")
-        params.addParam('timing',         True, "If True, the test will be allowed to run with the timing flag (i.e. Manually turning on performance logging).")
-        params.addParam('boost',         ['ALL'], "A test that runs only if BOOST is detected ('ALL', 'TRUE', 'FALSE')")
-        params.addParam('python',        None, "Restrict the test to s specific version of python (e.g., 3.6 or 3.7.1).")
-        params.addParam('required_python_packages', None, "Test will only run if the supplied python packages exist.")
-        params.addParam('requires', None, "A list of programs required for the test to operate, as tested with shutil.which.")
-        params.addParam("working_directory", None, "When set, TestHarness will enter this directory before running test")
+        params.addParam(
+            'depend_files', [],
+            "A test that only runs if all depend files exist (files listed are expected to be relative to the base directory, not the test directory"
+        )
+        params.addParam('env_vars', [],
+                        "A test that only runs if all the environment variables listed exist")
+        params.addParam(
+            'should_execute', True,
+            'Whether or not the executable needs to be run.  Use this to chain together multiple tests based off of one executeable invocation'
+        )
+        params.addParam('required_submodule', [],
+                        "A list of initialized submodules for which this test requires.")
+        params.addParam('required_objects', [],
+                        "A list of required objects that are in the executable.")
+        params.addParam('required_applications', [],
+                        "A list of required registered applications that are in the executable.")
+        params.addParam('check_input', False, "Check for correct input file syntax")
+        params.addParam(
+            'display_required', False,
+            "The test requires and active display for rendering (i.e., ImageDiff tests).")
+        params.addParam(
+            'timing', True,
+            "If True, the test will be allowed to run with the timing flag (i.e. Manually turning on performance logging)."
+        )
+        params.addParam('boost', ['ALL'],
+                        "A test that runs only if BOOST is detected ('ALL', 'TRUE', 'FALSE')")
+        params.addParam('python', None,
+                        "Restrict the test to s specific version of python (e.g., 3.6 or 3.7.1).")
+        params.addParam('required_python_packages', None,
+                        "Test will only run if the supplied python packages exist.")
+        params.addParam(
+            'requires', None,
+            "A list of programs required for the test to operate, as tested with shutil.which.")
+        params.addParam("working_directory", None,
+                        "When set, TestHarness will enter this directory before running test")
 
         # SQA
-        params.addParam("requirement", None, "The SQA requirement that this test satisfies (e.g., 'The Marker system shall provide means to mark elements for refinement within a box region.')")
-        params.addParam("design", [], "The list of markdown files that contain the design(s) associated with this test (e.g., '/Markers/index.md /BoxMarker.md').")
-        params.addParam("issues", [], "The list of github issues associated with this test (e.g., '#1234 #4321')")
+        params.addParam(
+            "requirement", None,
+            "The SQA requirement that this test satisfies (e.g., 'The Marker system shall provide means to mark elements for refinement within a box region.')"
+        )
+        params.addParam(
+            "design", [],
+            "The list of markdown files that contain the design(s) associated with this test (e.g., '/Markers/index.md /BoxMarker.md')."
+        )
+        params.addParam(
+            "issues", [],
+            "The list of github issues associated with this test (e.g., '#1234 #4321')")
         params.addParam("detail", None, "Details of SQA requirement for use within sub-blocks.")
         params.addParam("validation", False, "Set to True to mark test as a validation problem.")
-        params.addParam("verification", False, "Set to True to mark test as a verification problem.")
-        params.addParam("deprecated", False, "When True the test is no longer considered part SQA process and as such does not include the need for a requirement definition.")
-        params.addParam("collections", [], "A means for defining a collection of tests for SQA process.")
-        params.addParam("classification", 'functional', "A means for defining a requirement classification for SQA process.")
+        params.addParam("verification", False,
+                        "Set to True to mark test as a verification problem.")
+        params.addParam(
+            "deprecated", False,
+            "When True the test is no longer considered part SQA process and as such does not include the need for a requirement definition."
+        )
+        params.addParam("collections", [],
+                        "A means for defining a collection of tests for SQA process.")
+        params.addParam("classification", 'functional',
+                        "A means for defining a requirement classification for SQA process.")
         return params
 
     # This is what will be checked for when we look for valid testers
@@ -178,8 +316,7 @@ class Tester(MooseObject):
         status = (self.test_status.createStatus(), '', '')
         if status_exists:
             status = (self.test_status.createStatus(str(status_exists['STATUS'])),
-                      str(status_exists['STATUS_MESSAGE']),
-                      status_exists['CAVEATS'])
+                      str(status_exists['STATUS_MESSAGE']), status_exists['CAVEATS'])
         return (status)
 
     def getStatusMessage(self):
@@ -188,18 +325,25 @@ class Tester(MooseObject):
     # Return a boolean based on current status
     def isNoStatus(self):
         return self.getStatus() == self.no_status
+
     def isSkip(self):
         return self.getStatus() in self.__skipped_statuses
+
     def isQueued(self):
         return self.getStatus() == self.queued
+
     def isSilent(self):
         return self.getStatus() == self.silent
+
     def isPass(self):
         return self.getStatus() == self.success
+
     def isFail(self):
         return self.getStatus() in self.__failed_statuses
+
     def isDiff(self):
         return self.getStatus() == self.diff
+
     def isDeleted(self):
         return self.getStatus() == self.deleted
 
@@ -322,17 +466,27 @@ class Tester(MooseObject):
 
         self.process = None
         try:
-            f = SpooledTemporaryFile(max_size=1000000) # 1M character buffer
+            f = SpooledTemporaryFile(max_size=1000000)  # 1M character buffer
             e = SpooledTemporaryFile(max_size=100000)  # 100K character buffer
 
             # On Windows, there is an issue with path translation when the command is passed in
             # as a list.
             if platform.system() == "Windows":
-                process = subprocess.Popen(cmd, stdout=f, stderr=e, close_fds=False,
-                                           shell=True, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP, cwd=cwd)
+                process = subprocess.Popen(cmd,
+                                           stdout=f,
+                                           stderr=e,
+                                           close_fds=False,
+                                           shell=True,
+                                           creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                                           cwd=cwd)
             else:
-                process = subprocess.Popen(cmd, stdout=f, stderr=e, close_fds=False,
-                                           shell=True, preexec_fn=os.setsid, cwd=cwd)
+                process = subprocess.Popen(cmd,
+                                           stdout=f,
+                                           stderr=e,
+                                           close_fds=False,
+                                           shell=True,
+                                           preexec_fn=os.setsid,
+                                           cwd=cwd)
         except:
             print("Error in launching a new task", cmd)
             raise
@@ -369,7 +523,7 @@ class Tester(MooseObject):
                 else:
                     pgid = os.getpgid(self.process.pid)
                     os.killpg(pgid, SIGTERM)
-            except OSError: # Process already terminated
+            except OSError:  # Process already terminated
                 pass
 
     def run(self, timer, options):
@@ -396,11 +550,16 @@ class Tester(MooseObject):
 
     def hasRedirectedOutput(self, options):
         """ return bool on tester having redirected output """
-        return (self.specs.isValid('redirect_output') and self.specs['redirect_output'] == True and self.getProcs(options) > 1)
+        return (self.specs.isValid('redirect_output') and self.specs['redirect_output'] == True
+                and self.getProcs(options) > 1)
 
     def getRedirectedOutputFiles(self, options):
         """ return a list of redirected output """
-        return [os.path.join(self.getTestDir(), self.name() + '.processor.{}'.format(p)) for p in range(self.getProcs(options))]
+        return [
+            os.path.join(self.getTestDir(),
+                         self.name() + '.processor.{}'.format(p))
+            for p in range(self.getProcs(options))
+        ]
 
     def addCaveats(self, *kwargs):
         """ Add caveat(s) which will be displayed with the final test status """
@@ -500,7 +659,8 @@ class Tester(MooseObject):
             tmp_reason = ''
             if self.specs['valgrind'].upper() == 'NONE':
                 tmp_reason = 'Valgrind==NONE'
-            elif self.specs['valgrind'].upper() == 'HEAVY' and options.valgrind_mode.upper() == 'NORMAL':
+            elif self.specs['valgrind'].upper() == 'HEAVY' and options.valgrind_mode.upper(
+            ) == 'NORMAL':
                 tmp_reason = 'Valgrind==HEAVY'
             elif int(self.specs['min_threads']) > 1:
                 tmp_reason = 'Valgrind requires non-threaded'
@@ -516,25 +676,32 @@ class Tester(MooseObject):
         ad_size = int(util.getMooseConfigOption(self.specs['moose_dir'], 'ad_size').pop())
         min_ad_size = self.specs['min_ad_size']
         if min_ad_size is not None and int(min_ad_size) > ad_size:
-            reasons['min_ad_size'] = "Minimum AD size %d needed, but MOOSE is configured with %d" % (int(min_ad_size), ad_size)
+            reasons[
+                'min_ad_size'] = "Minimum AD size %d needed, but MOOSE is configured with %d" % (
+                    int(min_ad_size), ad_size)
 
         # Check for PETSc versions
         (petsc_status, petsc_version) = util.checkPetscVersion(checks, self.specs)
         if not petsc_status:
-            reasons['petsc_version'] = 'using PETSc ' + str(checks['petsc_version']) + ' REQ: ' + petsc_version
+            reasons['petsc_version'] = 'using PETSc ' + str(
+                checks['petsc_version']) + ' REQ: ' + petsc_version
 
         # Check for SLEPc versions
         (slepc_status, slepc_version) = util.checkSlepcVersion(checks, self.specs)
         if not slepc_status and len(self.specs['slepc_version']) != 0:
             if slepc_version != None:
-                reasons['slepc_version'] = 'using SLEPc ' + str(checks['slepc_version']) + ' REQ: ' + slepc_version
+                reasons['slepc_version'] = 'using SLEPc ' + str(
+                    checks['slepc_version']) + ' REQ: ' + slepc_version
             elif slepc_version == None:
                 reasons['slepc_version'] = 'SLEPc is not installed'
 
         # PETSc and SLEPc is being explicitly checked above
-        local_checks = ['platform', 'compiler', 'mesh_mode', 'ad_mode', 'ad_indexing_type', 'method', 'library_mode', 'dtk', 'unique_ids', 'vtk', 'tecplot',
-                        'petsc_debug', 'curl', 'superlu', 'mumps', 'strumpack', 'cxx11', 'asio', 'unique_id', 'slepc', 'petsc_version_release', 'boost', 'fparser_jit',
-                        'parmetis', 'chaco', 'party', 'ptscotch', 'threading', 'libpng']
+        local_checks = [
+            'platform', 'compiler', 'mesh_mode', 'ad_mode', 'ad_indexing_type', 'method',
+            'library_mode', 'dtk', 'unique_ids', 'vtk', 'tecplot', 'petsc_debug', 'curl', 'superlu',
+            'mumps', 'strumpack', 'cxx11', 'asio', 'unique_id', 'slepc', 'petsc_version_release',
+            'boost', 'fparser_jit', 'parmetis', 'chaco', 'party', 'ptscotch', 'threading', 'libpng'
+        ]
         for check in local_checks:
             test_platforms = set()
             operator_display = '!='
@@ -547,7 +714,7 @@ class Tester(MooseObject):
                         reasons[check] = 'Multiple Negation Unsupported'
                     inverse_set = True
                     operator_display = '=='
-                    x = x[1:] # Strip off the !
+                    x = x[1:]  # Strip off the !
                 x_upper = x.upper()
                 if x_upper in test_platforms:
                     reasons[x_upper] = 'Duplicate Entry or Negative of Existing Entry'
@@ -557,7 +724,8 @@ class Tester(MooseObject):
             # Either we didn't find the match when we were using normal "include" logic
             # or we did find the match when we wanted to exclude it
             if inverse_set == match_found:
-                reasons[check] = re.sub(r'\[|\]', '', check).upper() + operator_display + ', '.join(test_platforms)
+                reasons[check] = re.sub(
+                    r'\[|\]', '', check).upper() + operator_display + ', '.join(test_platforms)
 
         # Check for heavy tests
         if options.all_tests or options.heavy_tests:
@@ -615,7 +783,9 @@ class Tester(MooseObject):
         if (py_version is not None):
             if isinstance(py_version, int) and (py_version != sys.version_info[0]):
                 reasons['python'] = 'PYTHON != {}'.format(py_version)
-            elif isinstance(py_version, float) and (py_version != float('{}.{}'.format(*sys.version_info[0:2]))):
+            elif isinstance(
+                    py_version,
+                    float) and (py_version != float('{}.{}'.format(*sys.version_info[0:2]))):
                 reasons['python'] = 'PYTHON != {}'.format(py_version)
             elif isinstance(py_version, str):
                 ver = py_version.split('.')
@@ -627,7 +797,8 @@ class Tester(MooseObject):
         if py_packages is not None:
             missing = mooseutils.check_configuration(py_packages.split(), message=False)
             if missing:
-                reasons['python_packages_required'] = ', '.join(['no {}'.format(p) for p in missing])
+                reasons['python_packages_required'] = ', '.join(
+                    ['no {}'.format(p) for p in missing])
 
         # Check for programs
         programs = self.specs['requires']

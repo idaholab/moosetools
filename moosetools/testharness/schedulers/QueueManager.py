@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -11,6 +11,7 @@ import sys, os, json, shutil
 from collections import namedtuple
 from moosetools.testharness.schedulers.Scheduler import Scheduler
 from moosetools.testharness.StatusSystem import StatusSystem
+
 
 class QueueManager(Scheduler):
     """
@@ -159,13 +160,16 @@ class QueueManager(Scheduler):
                 current_args.extend(arg.split('='))
 
             # Note: we are removing cli-args/ignore because we need to re-encapsulate them below
-            bad_keyword_args.extend(['--spec-file', '-i', '--cli-args', '-j', '-l', '-o', '--output-dir', '--ignore', '--re'])
+            bad_keyword_args.extend([
+                '--spec-file', '-i', '--cli-args', '-j', '-l', '-o', '--output-dir', '--ignore',
+                '--re'
+            ])
 
             # remove the key=value pair argument
             for arg in bad_keyword_args:
                 if arg in current_args:
                     key = current_args.index(arg)
-                    del current_args[key:key+2]
+                    del current_args[key:key + 2]
 
             # Special: re-encapsulate --cli-args
             if self.options.cli_args:
@@ -188,15 +192,20 @@ class QueueManager(Scheduler):
         """ return the command necessary to launch the TestHarness within the third party scheduler """
 
         # Build ['/path/to/run_tests', '-j', '#']
-        command = [os.path.join(self.harness.run_tests_dir, 'run_tests'),
-                   '-j', str(job.getMetaData().get('QUEUEING_NCPUS', 1) )]
+        command = [
+            os.path.join(self.harness.run_tests_dir, 'run_tests'), '-j',
+            str(job.getMetaData().get('QUEUEING_NCPUS', 1))
+        ]
 
         # get current sys.args we are allowed to include when we launch run_tests
         args = list(self.cleanAndModifyArgs())
 
         # Build [<args>, '--spec-file' ,/path/to/tests', '-o', '/path/to']
-        args.extend(['--spec-file', os.path.join(job.getTestDir(), self.options.input_file_name),
-                     '-o', job.getTestDir()])
+        args.extend([
+            '--spec-file',
+            os.path.join(job.getTestDir(), self.options.input_file_name), '-o',
+            job.getTestDir()
+        ])
 
         # Build [<command>, <args>]
         command.extend(args)
@@ -242,7 +251,8 @@ class QueueManager(Scheduler):
             else:
                 for job in job_data.jobs.getJobs():
                     tester = job.getTester()
-                    status, message, caveats = job.previousTesterStatus(self.options, job_data.json_data)
+                    status, message, caveats = job.previousTesterStatus(
+                        self.options, job_data.json_data)
                     tester.setStatus(status, message)
                     if caveats:
                         tester.addCaveats(caveats)
@@ -258,7 +268,8 @@ class QueueManager(Scheduler):
         else:
             for job in job_data.jobs.getJobs():
                 tester = job.getTester()
-                status, message, caveats = job.previousTesterStatus(self.options, job_data.json_data)
+                status, message, caveats = job.previousTesterStatus(self.options,
+                                                                    job_data.json_data)
                 tester.setStatus(status, message)
                 if caveats:
                     tester.addCaveats(caveats)
@@ -332,7 +343,9 @@ class QueueManager(Scheduler):
             group_results = results[job_data.job_dir]
 
             # Continue to store previous third-party queueing data
-            job_list[0].addMetaData(**{job_data.plugin : self.options.results_storage[job_data.job_dir][job_data.plugin]})
+            job_list[0].addMetaData(
+                **
+                {job_data.plugin: self.options.results_storage[job_data.job_dir][job_data.plugin]})
 
             for job in job_list:
                 job.setStatus(job.finished)

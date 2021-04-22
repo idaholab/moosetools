@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -12,12 +12,12 @@ import unittest
 import subprocess
 import re
 
+
 @unittest.skip("deprecated")
 class TestHarnessTestCase(unittest.TestCase):
     """
     TestCase class for running TestHarness commands.
     """
-
     def runExceptionTests(self, *args):
         os.environ['MOOSE_TERM_FORMAT'] = 'njCst'
         cmd = ['./run_tests'] + list(args)

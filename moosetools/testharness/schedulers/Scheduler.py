@@ -1,11 +1,12 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
+
 import sys
 from moosetools.testharness.JobDAG import JobDAG
 from moosetools.base import MooseObject
@@ -13,10 +14,12 @@ import os, traceback
 from time import sleep
 from timeit import default_timer as clock
 from multiprocessing.pool import ThreadPool
-import threading # for thread locking and thread timers
+import threading  # for thread locking and thread timers
+
 
 class SchedulerError(Exception):
     pass
+
 
 class Scheduler(MooseObject):
     """
@@ -33,13 +36,14 @@ class Scheduler(MooseObject):
     Once all jobs have been scheduled, call .waitFinish() to wait until all jobs have
     finished.
     """
-
     @staticmethod
     def validParams():
         params = MooseObject.validParams()
-        params.addParam('average_load',  64.0, "Average load to allow")
+        params.addParam('average_load', 64.0, "Average load to allow")
         params.addParam('max_processes', None, "Hard limit of maxium processes to use")
-        params.addParam('min_reported_time', 10, "The minimum time elapsed before a job is reported as taking to long to run.")
+        params.addParam(
+            'min_reported_time', 10,
+            "The minimum time elapsed before a job is reported as taking to long to run.")
         return params
 
     # This is what will be checked for when we look for valid schedulers
@@ -61,7 +65,7 @@ class Scheduler(MooseObject):
             self.available_slots = 1
             self.soft_limit = True
         else:
-            self.available_slots = self.getParam('max_processes') # hard limit
+            self.available_slots = self.getParam('max_processes')  # hard limit
             self.soft_limit = False
 
         self.average_load = self.getParam('average_load')
@@ -179,15 +183,18 @@ class Scheduler(MooseObject):
                     break
 
                 with self.__status_pool_lock:
-                    waiting_on_status_pool = sum(1 for x in self.__status_pool_jobs if not x.ready())
+                    waiting_on_status_pool = sum(1 for x in self.__status_pool_jobs
+                                                 if not x.ready())
                 with self.__runner_pool_lock:
-                    waiting_on_runner_pool = sum(1 for x in self.__runner_pool_jobs if not x.ready())
+                    waiting_on_runner_pool = sum(1 for x in self.__runner_pool_jobs
+                                                 if not x.ready())
 
                 sleep(0.1)
 
             # Completed all jobs sanity check
             if not self.__error_state and self.__job_bank:
-                raise SchedulerError('Scheduler exiting with different amount of work than what was tasked!')
+                raise SchedulerError(
+                    'Scheduler exiting with different amount of work than what was tasked!')
 
             if not self.__error_state:
                 self.run_pool.close()
@@ -227,7 +234,9 @@ class Scheduler(MooseObject):
 
         # job-count to tester-count sanity check
         if j_dag.size() != len(testers):
-            raise SchedulerError('Scheduler was going to run a different amount of testers than what was received (something bad happened)!')
+            raise SchedulerError(
+                'Scheduler was going to run a different amount of testers than what was received (something bad happened)!'
+            )
 
         # Store all jobs in the global job bank. As jobs finish, they will be removed from
         # this set. This will function as our final sanity check on 100% job completion
@@ -256,13 +265,15 @@ class Scheduler(MooseObject):
                 if job.isFinished():
                     if not state:
                         with self.__status_pool_lock:
-                            self.__status_pool_jobs.add(self.status_pool.apply_async(self.jobStatus, (job, Jobs, j_lock)))
+                            self.__status_pool_jobs.add(
+                                self.status_pool.apply_async(self.jobStatus, (job, Jobs, j_lock)))
 
                 elif job.isHold():
                     if not state:
                         with self.__runner_pool_lock:
                             job.setStatus(job.queued)
-                            self.__runner_pool_jobs.add(self.run_pool.apply_async(self.runJob, (job, Jobs, j_lock)))
+                            self.__runner_pool_jobs.add(
+                                self.run_pool.apply_async(self.runJob, (job, Jobs, j_lock)))
 
     def getLoad(self):
         """ Method to return current load average """
@@ -270,7 +281,7 @@ class Scheduler(MooseObject):
         try:
             loadAverage = os.getloadavg()[0]
         except AttributeError:
-            pass      # getloadavg() not available in this implementation of os
+            pass  # getloadavg() not available in this implementation of os
         return loadAverage
 
     def satisfyLoad(self):
@@ -317,7 +328,8 @@ class Scheduler(MooseObject):
     def handleLongRunningJob(self, job, Jobs, j_lock):
         """ Handle jobs that have not reported in the alotted time """
         with self.__status_pool_lock:
-            self.__status_pool_jobs.add(self.status_pool.apply_async(self.jobStatus, (job, Jobs, j_lock)))
+            self.__status_pool_jobs.add(
+                self.status_pool.apply_async(self.jobStatus, (job, Jobs, j_lock)))
 
     def jobStatus(self, job, Jobs, j_lock):
         """
@@ -355,10 +367,15 @@ class Scheduler(MooseObject):
                     # TestHarness has not yet been inactive long enough to warrant a report
                     else:
                         # adjust the next report time based on delta of last report time
-                        adjusted_interval = max(1, self.min_report_time - max(1, clock() - self.last_reported_time))
+                        adjusted_interval = max(
+                            1, self.min_report_time - max(1,
+                                                          clock() - self.last_reported_time))
                         job.report_timer = threading.Timer(adjusted_interval,
-                                                           self.handleLongRunningJob,
-                                                           (job, Jobs, j_lock,))
+                                                           self.handleLongRunningJob, (
+                                                               job,
+                                                               Jobs,
+                                                               j_lock,
+                                                           ))
                         job.report_timer.start()
                         return
 
@@ -376,7 +393,8 @@ class Scheduler(MooseObject):
                     if job in self.__job_bank:
                         self.__job_bank.remove(job)
                     else:
-                        raise SchedulerError('job accountability failure while working with: %s' % (job.getTestName()))
+                        raise SchedulerError('job accountability failure while working with: %s' %
+                                             (job.getTestName()))
 
             # Max failure threshold reached, begin shutdown
             if self.maxFailures():
@@ -405,17 +423,21 @@ class Scheduler(MooseObject):
                 with self.activity_lock:
                     self.__active_jobs.add(job)
 
-                timeout_timer = threading.Timer(float(job.getMaxTime()),
-                                                self.handleTimeoutJob,
-                                                (job, j_lock,))
+                timeout_timer = threading.Timer(float(job.getMaxTime()), self.handleTimeoutJob, (
+                    job,
+                    j_lock,
+                ))
 
-                job.report_timer = threading.Timer(self.min_report_time,
-                                                   self.handleLongRunningJob,
-                                                   (job, Jobs, j_lock,))
+                job.report_timer = threading.Timer(self.min_report_time, self.handleLongRunningJob,
+                                                   (
+                                                       job,
+                                                       Jobs,
+                                                       j_lock,
+                                                   ))
 
                 job.report_timer.start()
                 timeout_timer.start()
-                self.run(job) # Hand execution over to derived scheduler
+                self.run(job)  # Hand execution over to derived scheduler
                 timeout_timer.cancel()
 
                 # Recover worker count before attempting to queue more jobs

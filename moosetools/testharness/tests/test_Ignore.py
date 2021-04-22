@@ -1,13 +1,14 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 from TestHarnessTestCase import TestHarnessTestCase
+
 
 class TestHarnessTester(TestHarnessTestCase):
     def testIgnoreSkip(self):
@@ -51,7 +52,8 @@ class TestHarnessTester(TestHarnessTestCase):
         """
         # Run a skipped prereq test
         output = self.runTests('--no-color', '-i', 'ignore_prereq', '--ignore', 'prereq')
-        self.assertRegex(output.decode('utf-8'), 'test_harness\.always_skipped.*? \[ALWAYS SKIPPED\] SKIP')
+        self.assertRegex(output.decode('utf-8'),
+                         'test_harness\.always_skipped.*? \[ALWAYS SKIPPED\] SKIP')
         self.assertRegex(output.decode('utf-8'), 'test_harness\.ignore_skipped_dependency.*?OK')
 
         # Check that a dependency test runs when its prereq test is skipped
@@ -83,8 +85,10 @@ class TestHarnessTester(TestHarnessTestCase):
         test skipped (platform not ignored)
         """
         # Skip a multiple caveat test by not supplying enough caveats to ignore
-        output = self.runTests('--no-color', '-i', 'ignore_multiple', '--ignore', 'skip heavy compiler')
-        self.assertRegex(output.decode('utf-8'), 'test_harness\.ignore_multiple.*? \[PLATFORM!=NON_EXISTENT\] SKIP')
+        output = self.runTests('--no-color', '-i', 'ignore_multiple', '--ignore',
+                               'skip heavy compiler')
+        self.assertRegex(output.decode('utf-8'),
+                         'test_harness\.ignore_multiple.*? \[PLATFORM!=NON_EXISTENT\] SKIP')
 
     def testIgnoreMultiplePreReq(self):
         """
@@ -94,26 +98,39 @@ class TestHarnessTester(TestHarnessTestCase):
         # Run a multiple caveat prereq test using built in default 'all'
         output = self.runTests('-i', 'ignore_multiple_prereq', '--ignore')
         self.assertRegex(output.decode('utf-8'), 'test_harness\.always_skipped.*?OK')
-        self.assertRegex(output.decode('utf-8'), 'test_harness\.ignore_multi_prereq_dependency.*?OK')
+        self.assertRegex(output.decode('utf-8'),
+                         'test_harness\.ignore_multi_prereq_dependency.*?OK')
 
         # Run a multiple caveat prereq test by manually supplying each caveat
-        output = self.runTests('-i', 'ignore_multiple_prereq', '--ignore', 'prereq skip heavy compiler platform')
+        output = self.runTests('-i', 'ignore_multiple_prereq', '--ignore',
+                               'prereq skip heavy compiler platform')
         self.assertRegex(output.decode('utf-8'), 'test_harness\.always_skipped.*?OK')
-        self.assertRegex(output.decode('utf-8'), 'test_harness\.ignore_multi_prereq_dependency.*?OK')
+        self.assertRegex(output.decode('utf-8'),
+                         'test_harness\.ignore_multi_prereq_dependency.*?OK')
 
         # Skip a multiple caveat prereq test by not supplying enough caveats to ignore
-        output = self.runTests('--no-color', '-i', 'ignore_multiple_prereq', '--ignore', 'prereq skip heavy compiler')
+        output = self.runTests('--no-color', '-i', 'ignore_multiple_prereq', '--ignore',
+                               'prereq skip heavy compiler')
         self.assertRegex(output.decode('utf-8'), 'test_harness\.always_skipped.*?OK')
-        self.assertRegex(output.decode('utf-8'), 'test_harness\.ignore_multi_prereq_dependency.*? \[PLATFORM!=NON_EXISTENT\] SKIP')
+        self.assertRegex(
+            output.decode('utf-8'),
+            'test_harness\.ignore_multi_prereq_dependency.*? \[PLATFORM!=NON_EXISTENT\] SKIP')
 
         # Check that a multiple caveat dependency test runs when its prereq test is skipped
         # This test may seem redundant, but `prereq` is handled differently than the other caveats
-        output = self.runTests('--no-color', '-i', 'ignore_multiple_prereq', '--ignore', 'prereq heavy compiler platform')
-        self.assertRegex(output.decode('utf-8'), 'test_harness\.always_skipped.*? \[ALWAYS SKIPPED\] SKIP')
-        self.assertRegex(output.decode('utf-8'), 'test_harness\.ignore_multi_prereq_dependency.*?OK')
+        output = self.runTests('--no-color', '-i', 'ignore_multiple_prereq', '--ignore',
+                               'prereq heavy compiler platform')
+        self.assertRegex(output.decode('utf-8'),
+                         'test_harness\.always_skipped.*? \[ALWAYS SKIPPED\] SKIP')
+        self.assertRegex(output.decode('utf-8'),
+                         'test_harness\.ignore_multi_prereq_dependency.*?OK')
 
         # Check that by supplying a very specific set of ignored paramaters, we
         # can properly trigger a skipped dependency scenario
-        output = self.runTests('--no-color', '-i', 'ignore_multiple_prereq', '--ignore', 'heavy compiler platform')
-        self.assertRegex(output.decode('utf-8'), 'test_harness\.always_skipped.*? \[ALWAYS SKIPPED\] SKIP')
-        self.assertRegex(output.decode('utf-8'), 'test_harness\.ignore_multi_prereq_dependency.*? \[SKIPPED DEPENDENCY\] SKIP')
+        output = self.runTests('--no-color', '-i', 'ignore_multiple_prereq', '--ignore',
+                               'heavy compiler platform')
+        self.assertRegex(output.decode('utf-8'),
+                         'test_harness\.always_skipped.*? \[ALWAYS SKIPPED\] SKIP')
+        self.assertRegex(
+            output.decode('utf-8'),
+            'test_harness\.ignore_multi_prereq_dependency.*? \[SKIPPED DEPENDENCY\] SKIP')

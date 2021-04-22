@@ -51,7 +51,8 @@ class Test(unittest.TestCase):
     @unittest.skipIf(not mooseutils.is_git_repo(), "Not a Git repository")
     def testGitRootDir(self):
         root = mooseutils.git_root_dir()
-        self.assertEqual(root, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
+        self.assertEqual(root,
+                         os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
     @unittest.skipIf(not mooseutils.is_git_repo(), "Not a Git repository")
     def testGitSubmoduleStatus(self):

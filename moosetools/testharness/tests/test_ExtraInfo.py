@@ -1,14 +1,15 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 from TestHarnessTestCase import TestHarnessTestCase
 import re
+
 
 class TestHarnessTester(TestHarnessTestCase):
     def testExtraInfo(self):
@@ -27,13 +28,12 @@ class TestHarnessTester(TestHarnessTestCase):
 
         # All the caveats we will verify that should exist in the
         # output
-        caveats = ['ASIO', 'DTK', 'UNIQUE_IDS', 'CXX11', 'SUPERLU',
-                   'DOF_ID_BYTES', 'TECPLOT', 'PETSC_VERSION_RELEASE',
-                   'SLEPC_VERSION', 'MESH_MODE', 'METHOD', 'BOOST',
-                   'PETSC_DEBUG', 'LIBRARY_MODE', 'PETSC_VERSION',
-                   'CURL', 'THREADING', 'SLEPC', 'VTK', 'UNIQUE_ID',
-                   'COMPILER', 'FPARSER_JIT', 'PARMETIS', 'CHACO',
-                   'PARTY', 'PTSCOTCH']
+        caveats = [
+            'ASIO', 'DTK', 'UNIQUE_IDS', 'CXX11', 'SUPERLU', 'DOF_ID_BYTES', 'TECPLOT',
+            'PETSC_VERSION_RELEASE', 'SLEPC_VERSION', 'MESH_MODE', 'METHOD', 'BOOST', 'PETSC_DEBUG',
+            'LIBRARY_MODE', 'PETSC_VERSION', 'CURL', 'THREADING', 'SLEPC', 'VTK', 'UNIQUE_ID',
+            'COMPILER', 'FPARSER_JIT', 'PARMETIS', 'CHACO', 'PARTY', 'PTSCOTCH'
+        ]
 
         # Verify all special TestHarness 'checks' are printed. We
         # will use the --ignore feature to force the test to run

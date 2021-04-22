@@ -1,8 +1,8 @@
-#* This file is part of the MOOSE framework
-#* https://www.mooseframework.org
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
 #*
 #* All rights reserved, see COPYRIGHT for full restrictions
-#* https://github.com/idaholab/moose/blob/master/COPYRIGHT
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
@@ -12,13 +12,20 @@ from moosetools.testharness import util
 import os
 from moosetools.mooseutils import JSONDiffer
 
-class JSONDiff(RunApp):
 
+class JSONDiff(RunApp):
     @staticmethod
     def validParams():
         params = RunApp.validParams()
-        params.add('jsondiff', vtype=str, array=True, required=True, doc="A list of XML files to compare.")
-        params.addParam('gold_dir',      'gold', "The directory where the \"golden standard\" files reside relative to the TEST_DIR: (default: ./gold/)")
+        params.add('jsondiff',
+                   vtype=str,
+                   array=True,
+                   required=True,
+                   doc="A list of XML files to compare.")
+        params.addParam(
+            'gold_dir', 'gold',
+            "The directory where the \"golden standard\" files reside relative to the TEST_DIR: (default: ./gold/)"
+        )
         params.addParam('skip_keys', [], "A list of keys to skip in the JSON comparison")
         return params
 
@@ -48,7 +55,8 @@ class JSONDiff(RunApp):
 
             # Error if gold file does not exist
             if not os.path.exists(os.path.join(self.getTestDir(), specs['gold_dir'], file)):
-                output += "File Not Found: " + os.path.join(self.getTestDir(), specs['gold_dir'], file)
+                output += "File Not Found: " + os.path.join(self.getTestDir(), specs['gold_dir'],
+                                                            file)
                 self.setStatus(self.fail, 'MISSING GOLD FILE')
                 break
 
