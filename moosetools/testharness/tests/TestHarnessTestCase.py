@@ -12,7 +12,6 @@ import unittest
 import subprocess
 import re
 
-@unittest.skip("WIP")
 class TestHarnessTestCase(unittest.TestCase):
     """
     TestCase class for running TestHarness commands.

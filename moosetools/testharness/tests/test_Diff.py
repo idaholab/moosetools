@@ -27,3 +27,7 @@ class TestHarnessTester(TestHarnessTestCase):
 
         # Verify return code is DIFF related (0x81)
         self.assertIs(0x81, e.returncode)
+
+if __name__ == '__main__':
+    import unittest
+    unittest.main(verbosity=2)
