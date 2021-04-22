@@ -1,6 +1,6 @@
 import enum
 import math
-from ..base import Differ
+from moosetools.moosetest.base import Differ
 
 class ShortenMode(enum.Enum):
     BEGIN = 0

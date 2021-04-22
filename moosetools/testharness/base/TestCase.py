@@ -121,7 +121,7 @@ class TestCase(MooseObject):
 
 
 
-        self._controller = self.getParam('controller') or MooseTestController()
+        #self._controller = self.getParam('controller') or MooseTestController()
         self._runner = self.getParam('runner')
         self.parameters().set('name', self._runner.name())
         self._differs = self.getParam('differs')
@@ -146,6 +146,7 @@ class TestCase(MooseObject):
 
     def execute(self):
         self.setProgress(TestCase.Progress.RUNNING)
+        print('here')
 
         results = dict()
 

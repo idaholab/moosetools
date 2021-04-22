@@ -6,8 +6,9 @@ from moosetools import parameters
 from moosetools import moosetree
 from moosetools import pyhit
 from moosetools import factory
-from moosetools.moosetest.base import MooseTest, Controller
+from moosetools.moosetest.base import Controller
 from moosetools.moosetest.controllers import EnvironmentController
+from moosetools.moosetest import discover
 
 
 # TODO:
@@ -29,6 +30,9 @@ def valid_params():
                        "Supplied plugin directories must exist."),
                doc="List of directories to search for plugins, the location should be relative to the configure file.")
 
+    params.add('n_threads', default=os.cpu_count(), vtype=int,
+               doc="The number of threads to utilize when running tests.")
+
     params.add('spec_file_names', vtype=str, array=True, default=('tests',),
                doc="List of file names (e.g., 'tests') that contain test specifications to run.")
     params.add('spec_file_blocks', vtype=str, array=True, default=('Tests',),
@@ -44,15 +48,22 @@ def cli_args():
                         help="The configuration file or directory. If a directory is provided a " \
                              "'.moosetest' file is searched up the directory tree beginning at " \
                              "the supplied location (default: %(default)s).")
-    #parser.add_argument('--level', default='INFO', choices=list(logging._nameToLevel.keys()),
-    #                    help='Set the logging level (default: %(default)s).')
+
+    # TODO: Add valid_params to this and then apply cli_args to valid_params via the Parser?
+    # This would probably be overkill, the --help should probably just refer to the ability to
+    # configure things with .moosetest file. The _locate_and_load_config should just accept the
+    # complete argparse and update what is needed.
 
     return parser.parse_args()
+
 
 def main():
     """
 
     Give some notes about mockable/testable functions and avoiding classes
+
+    discover: should be able to operate without any need for config stuff
+    run: should be able to operate without any need for HIT files
 
     """
     # Extract command-line arguments
@@ -77,7 +88,12 @@ def main():
     controllers = _create_controllers(filename, config, params.get('plugin_dirs') or tuple())
 
 
-    # testcase_groups = discover(...)
+    testcase_groups = discover(os.getcwd(),
+                               params.get('spec_file_names'),
+                               params.get('spec_file_blocks'),
+                               params.get('plugin_dirs'),
+                               controllers,
+                               params.get('n_threads'))
 
     # run(testcase_groups)
     # - remove execute functions from TestCase
@@ -90,19 +106,24 @@ def _create_main_parameters(filename, config):
     ...
     """
     # Update the parameters with the key/value pairs in the [Main] block
-    parameters = valid_params()
+    params = valid_params()
     m_mode = moosetree.find(config, func=lambda n: n.name == 'Main')
     if m_mode is not None:
         factory.Parser.setParameters(params, filename, m_mode)
 
-    # Update the paths
+    # Update the paths of supplied plugin directories to be relative to the config file
+    plugin_dirs = set()
     if params.isValid('plugin_dirs'):
-        plugin_dirs = set()
         root_dir_name = os.path.dirname(filename) if os.path.isfile(filename) else filename
         for p_dir in params.get('plugin_dirs'):
             plugin_dirs.add(os.path.join(root_dir_name, p_dir))
-        params.set('plugin_dirs', tuple(plugin_dirs))
 
+    # Add directories in the moosetest package itself
+    plugin_dirs.add(os.path.abspath(os.path.join(os.path.dirname(__file__), 'runners')))
+    plugin_dirs.add(os.path.abspath(os.path.join(os.path.dirname(__file__), 'differs')))
+    plugin_dirs.add(os.path.abspath(os.path.join(os.path.dirname(__file__), 'controllers')))
+
+    params.set('plugin_dirs', tuple(plugin_dirs))
     return params
 
 
@@ -138,7 +159,6 @@ def _locate_and_load_config(location=os.getcwd()):
     if filename is None:
         logging.debug('Using default configuration.')
         config = pyhit.Node(None)
-        config.append('Main', type='MooseTest')
         controllers = config.append('Controllers')
         controllers.append('env', type='EnvironmentController')
     else:
@@ -158,16 +178,15 @@ def _create_controllers(filename, config, plugin_dirs):
 
     # Get `Controllers` node
     cnode = moosetree.find(config, func=lambda n: n.name == 'Controllers')
-    print(cnode)
 
     # Load `Controller` plugins
-    f = factory.Factory(plugin_dirs=plugin_dirs, plugin_type=Controller)
+    f = factory.Factory(plugin_dirs=plugin_dirs, plugin_types=(Controller,))
     f.load()
 
     w = list()
     p = factory.Parser(f, w)
     p.parse(filename, cnode)
-    return w
+    return tuple(w)
 
 
 if __name__ == '__main__':

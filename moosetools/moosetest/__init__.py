@@ -10,3 +10,4 @@ from . import base
 from . import controllers
 from . import runners
 from . import differs
+from .discover import discover

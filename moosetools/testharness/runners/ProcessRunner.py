@@ -2,7 +2,7 @@ import os
 import threading
 import multiprocessing
 import subprocess
-from ..base import Runner
+from moosetools.moosetest.base import Runner
 
 class ProcessRunner(Runner):
     @staticmethod

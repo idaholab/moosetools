@@ -1,4 +1,8 @@
 from moosetools.moosetest.base import Controller
 
 class TestController(Controller):
-    pass
+    @staticmethod
+    def validParams():
+        params = Controller.validParams()
+        params.set('prefix', 'test')
+        return params

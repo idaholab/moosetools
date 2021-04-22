@@ -34,7 +34,8 @@ def run_testcases(testcases, controllers, comm):
 
 
 
-def run(groups, n_threads=None):
+def run(groups, controllers, n_threads=None):
+
     if n_threads is None: n_threads = os.cpu_count()
 
     comm = queue.Queue()
@@ -43,10 +44,10 @@ def run(groups, n_threads=None):
     jobs = dict()
     futures = list()
     for testcases in groups:
+        print(testcases)
         futures.append(pool.submit(run_testcases, testcases, comm))
         for tc in testcases:
             jobs[tc.getParam('_unique_id')] = tc
-
 
     while any(not f.done() for f in futures) or (not comm.empty()):
         while not comm.empty():
@@ -80,7 +81,7 @@ if __name__ == '__main__':
             runner = ProcessRunner(name='{}/{}.rand_{}'.format(i, j, t), command=('sleep', str(t)))
             differs = (TextDiff(name=runner.name() + '.text', text_in='sleep'),
                        TextDiff(name=runner.name() + '.text2', text_in='sleep 2'))
-            local.append(TestCase(controller=None, runner=runner, differs=differs))
+            local.append(TestCase(runner=runner, differs=differs))
         groups.append(local)
 
-    sys.exit(run(groups, n_threads=1))
+    sys.exit(run(groups, None, n_threads=1))

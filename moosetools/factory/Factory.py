@@ -35,8 +35,9 @@ class Factory(MooseObject):
                    verify=(lambda dirs: all(os.path.isdir(d) for d in dirs),
                            "Supplied plugin directories must exist."),
                    doc="List of directories to search for plugins.")
-        params.add('plugin_type',
-                   default=MooseObject,
+        params.add('plugin_types',
+                   array=True,
+                   default=(MooseObject,),
                    doc="The python type of the plugins to load.")
         return params
 
@@ -105,9 +106,7 @@ class Factory(MooseObject):
         self.reset()
 
         plugin_dirs = self.getParam('plugin_dirs')
-        plugin_type = self.getParam('plugin_type')
-
-        print(plugin_dirs, plugin_type)
+        plugin_types = self.getParam('plugin_types')
 
         for info in pkgutil.iter_modules(plugin_dirs):
             loader = info.module_finder.find_module(info.name)
@@ -119,8 +118,7 @@ class Factory(MooseObject):
                 continue
 
             for name, otype in inspect.getmembers(module):
-                if inspect.isclass(otype) and (plugin_type in inspect.getmro(otype)) and (
-                        name not in self._registered_types):
+                if inspect.isclass(otype) and (name not in self._registered_types) and any(p in inspect.getmro(otype) for p in plugin_types):
                     self.register(name, otype)
 
         return self.status()

@@ -1,6 +1,7 @@
 import io
 import platform
 import logging
+from moosetools.parameters import InputParameters
 from moosetools.base import MooseObject
 
 class Controller(MooseObject):
@@ -26,6 +27,11 @@ class Controller(MooseObject):
         params = MooseObject.validParams()
         params.add('prefix', vtype=str, required=True, mutable=False,
                    doc="Set the sub-parameters prefix of the controller.")
+        return params
+
+    @staticmethod
+    def validObjectParams():
+        params = InputParameters()
         return params
 
     def __init__(self, *args, **kwargs):
