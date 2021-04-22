@@ -540,7 +540,7 @@ class TestHarness:
         params.add('root_params',
                    default=testroot_params.get("root_params", self.root_params),
                    private=True)
-
+        params.validate()
         if params.isValid('prereq'):
             if type(params['prereq']) != list:
                 print(("Option 'prereq' needs to be of type list in " + params['test_name']))

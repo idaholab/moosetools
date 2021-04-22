@@ -31,7 +31,8 @@ class Parameter(object):
 
     Inputs:
         name[str]: The name of the option.
-        default[]: The default value, if "vtype" is set the type must match.
+        default[]: The default value, if "vtype" is set the type must match and is not applied until
+                   the validate() method ics called.
         doc[str]: A documentation string, which is used in the option dump.
         vtype[type]: The python type that this option is to be restricted.
         allow[tuple]: A tuple of allowed values, if vtype is set the types within must match.
@@ -145,12 +146,6 @@ class Parameter(object):
         elif self.__size is not None:
             self.__array = True
 
-        if default is not None:
-            retcode, error = self.setDefault(default)
-            if retcode > 0:
-                raise TypeError(error)
-            self.__set_by_user = False  # override self.setDefault setting of this
-
     @property
     def name(self):
         """Returns the option name."""
@@ -159,11 +154,17 @@ class Parameter(object):
     @property
     def value(self):
         """Returns the option value."""
+        retcode, err = self.validate()
+        if retcode > 0:
+            raise TypeError(err)
         return self.__value
 
     @property
     def default(self):
         """Returns the default value for the option."""
+        retcode, err = self.validate()
+        if retcode > 0:
+            raise TypeError(err)
         return self.__default
 
     @property
@@ -209,6 +210,9 @@ class Parameter(object):
     @property
     def is_set_by_user(self):
         """Return True if the value has been set after construction."""
+        retcode, err = self.validate()
+        if retcode > 0:
+            raise TypeError(err)
         return self.__set_by_user
 
     def setDefault(self, val):
@@ -219,6 +223,7 @@ class Parameter(object):
         values are are detailed in `setValue` method. If the value has not been assigned (i.e.,
         it is None) this method will also set the value.
         """
+        self.validate()
         retcode, error = self.__check(val)
         if retcode == 0:
             self.__default = val
@@ -246,6 +251,16 @@ class Parameter(object):
             self.__set_by_user = True
         return retcode, error
 
+    def isInstance(self, types):
+        """
+        Returns True if the value of the parameters is in the supplied *types*.
+        """
+        if self.__value is not None:
+            return isinstance(self.__value, types)
+        elif self.__default is not None:
+            return isinstance(self.__default, types)
+        return False
+
     def validate(self):
         """
         Validate that the Parameter is in the correct state.
@@ -255,16 +270,29 @@ class Parameter(object):
         This method returns a code and error message (if any) in the same fashion as done by the
         `setValue` method.
         """
+        if self.__validated:
+            return 0, None
+
         self.__validated = True
+        if (self.value is None) and (self.__default is not None):
+            set_by_user = self.__set_by_user
+            retcode, error = self.setDefault(self.__default)
+            if not set_by_user:
+                self.__set_by_user = False
+            if retcode > 0:
+                return retcode, error
+
         if self.__required and (self.value is None):
             msg = "The Parameter '{}' is marked as required, but no value is assigned."
             return 1, msg.format(self.name)
+
         return 0, None
 
     def toString(self, prefix='', level=0):
         """Create a string of Parameter information."""
+        self.validate()
         from .InputParameters import InputParameters
-        is_sub_option = isinstance(self.__value, InputParameters)
+        is_sub_option = self.isInstance(InputParameters)
 
         out = [self.__name]
         if prefix is not None:

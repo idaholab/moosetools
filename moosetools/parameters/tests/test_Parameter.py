@@ -52,7 +52,8 @@ class TestParameter(unittest.TestCase):
         self.assertIn("'bar' must be of type (<class 'int'>,) but <class 'str'> provided.", err)
 
         with self.assertRaises(TypeError) as e:
-            Parameter('bar', default='wrong', vtype=int)
+            p = Parameter('bar', default='wrong', vtype=int)
+            p.value
         self.assertIn("'bar' must be of type (<class 'int'>,) but <class 'str'> provided.",
                       str(e.exception))
 
