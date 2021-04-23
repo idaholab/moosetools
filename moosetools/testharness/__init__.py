@@ -6,7 +6,6 @@
 #*
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
-<<<<<<< HEAD:moosetools/testharness/__init__.py
 
 import sys
 if sys.version_info < (3, 6):
@@ -18,14 +17,3 @@ from .TestHarness import TestHarness
 from .TestHarness import findDepApps
 
 __all__ = ['TestHarness', 'findDepApps']
-=======
-#import logging
-#logger = logging.getLogger(__module__)
-#handler = logging.StreamHandler()
-#logger.addHandler(handler)
-
-import logging
-logging.getLogger('')
-
-from . import runners
->>>>>>> 9d5a0c12c2 (WIP: Design new testing system):moosetools/moosetest/__init__.py
