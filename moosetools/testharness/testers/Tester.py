@@ -223,6 +223,9 @@ class Tester(MooseObject):
             "A list of programs required for the test to operate, as tested with shutil.which.")
         params.addParam("working_directory", None,
                         "When set, TestHarness will enter this directory before running test")
+        params.addParam(
+            "moosetools", True,
+            "When False the test will not when using the moosetools version of Tester.")
 
         # SQA
         params.addParam(
@@ -816,6 +819,9 @@ class Tester(MooseObject):
                 self.setStatus(self.fail, 'ABSOLUTE PATH DETECTED')
             elif not os.path.exists(self.getTestDir()):
                 self.setStatus(self.fail, 'WORKING DIRECTORY NOT FOUND')
+
+        if not self.specs['moosetools']:
+            reasons['moosetools'] = 'INCOMPATIBLE WITH MOOSETOOLS'
 
         ##### The below must be performed last to register all above caveats #####
         # Remove any matching user supplied caveats from accumulated checkRunnable caveats that

@@ -8,8 +8,8 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os, sys
-from moosetools.testharness import util
 from moosetools.testharness.testers.FileTester import FileTester
+from moosetools.testharness import util
 
 
 class AnalyzeJacobian(FileTester):
@@ -49,7 +49,8 @@ class AnalyzeJacobian(FileTester):
     def getCommand(self, options):
         specs = self.specs
         # Create the command line string to run
-        command = os.path.join(self.getMoosePythonDir(), 'jacobiandebug', 'analyzejacobian.py')
+        command = os.path.join(os.path.dirname(__file__), '..', '..', 'mooseutils',
+                               'analyzejacobian.py')
 
         # Check for built application
         if not options.dry_run and not os.path.exists(command):
