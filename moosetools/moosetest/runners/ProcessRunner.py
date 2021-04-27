@@ -15,7 +15,7 @@ class ProcessRunner(Runner):
 
     def execute(self):
         kwargs = dict()
-        kwargs['capture_output'] = False # store stdout/stderr
+        kwargs['capture_output'] = False # use sys.stdout/sys.stderr, which is captured by TestCase
         kwargs['text'] = True # encode output to UTF-8
         kwargs['check'] = self.getParam('allow_exception')
         kwargs['timeout'] = self.getParam('timeout')

@@ -54,7 +54,8 @@ def create_testcases(filename, spec_file_blocks, obj_factory):
         for child in node:
             parser.parse(filename, child)
 
-        testcases.append(TestCase(runner=runner, differs=tuple(differs)))
+        runner.parameters().set('differs', tuple(differs))
+        testcases.append(TestCase(runner=runner))
 
     return testcases
 

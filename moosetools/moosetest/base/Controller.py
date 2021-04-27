@@ -44,7 +44,7 @@ class Controller(MooseObject):
 
     def skip(self, *args, **kwargs):
         self.__runnable = False
-        self.warning(*args, **kwargs)
+        self.info(*args, **kwargs)
 
     def execute(self, obj):
         raise NotImplementedError()

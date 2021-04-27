@@ -299,7 +299,7 @@ class Parameter(object):
                 return retcode, error
 
         if self.__required and (self.value is None):
-            msg = "The Parameter '{}' is marked as required, but no value is assigned."
+            msg = "The parameter '{}' is marked as required, but no value is assigned."
             return 1, msg.format(self.name)
 
         self.__validated = True

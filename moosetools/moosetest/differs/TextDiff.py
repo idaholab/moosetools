@@ -25,23 +25,37 @@ class TextDiff(Differ):
     @staticmethod
     def validParams():
         params = Differ.validParams()
-        params.add('text_in', vtype=str, doc="Checks that the supplied text exists in the output.")
-        params.add('text_not_in', vtype=str, doc="Checks that the supplied text does not exist in the output.")
+        params.add('text_in_stdout', vtype=str, doc="Checks that the supplied text exists in sys.stdout.")
+        params.add('text_not_in_stdout', vtype=str, doc="Checks that the supplied text does not exist in sys.stdout.")
+        params.add('text_in_stderr', vtype=str, doc="Checks that the supplied text exists in sys.stderr.")
+        params.add('text_not_in_stderr', vtype=str, doc="Checks that the supplied text does not exist in sys.stderr.")
+
         params.add('max_lines', default=5, vtype=int, doc="Maximum number of output lines to show in error messages.")
         return params
 
     def __init__(self, *args, **kwargs):
         Differ.__init__(self, *args, **kwargs)
 
-    def execute(self, returncode, output):
-        quote = shorten_text(output, self.getParam('max_lines'))
+    def execute(self, rcode, stdout, stderr):
+        quote_stdout = shorten_text(stdout, self.getParam('max_lines'))
+        quote_stderr = shorten_text(stderr, self.getParam('max_lines'))
 
-        text_in = self.getParam('text_in')
-        if (text_in is not None) and (text_in not in output):
-            msg = "The content of 'text_in' parameter, '{}', was not located in the output:\n{}"
-            self.error(msg, text_in, quote)
+        text_in = self.getParam('text_in_stdout')
+        if (text_in is not None) and (text_in not in stdout):
+            msg = "The content of 'text_in_stdout' parameter, '{}', was not located in the output:\n{}"
+            self.error(msg, text_in, quote_stdout)
 
-        text_not_in = self.getParam('text_not_in')
-        if (text_not_in is not None) and (text_not_ion in output):
-            msg = "The content of 'text_not_in' parameter, '{}', was located in the output:"
-            self.error(msg, text_in)
+        text_not_in = self.getParam('text_not_in_stdout')
+        if (text_not_in is not None) and (text_not_in in stdout):
+            msg = "The content of 'text_not_in_stdout' parameter, '{}', was located in the output:\n{}"
+            self.error(msg, text_in, quote_stdout)
+
+        text_in = self.getParam('text_in_stderr')
+        if (text_in is not None) and (text_in not in stderr):
+            msg = "The content of 'text_in_stderr' parameter, '{}', was not located in the output:\n{}"
+            self.error(msg, text_in, quote_stderr)
+
+        text_not_in = self.getParam('text_not_in_stderr')
+        if (text_not_in is not None) and (text_not_in in stderr):
+            msg = "The content of 'text_not_in_stderr' parameter, '{}', was located in the output:\n{}"
+            self.error(msg, text_in, quote_stderr)

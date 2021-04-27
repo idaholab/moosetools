@@ -12,10 +12,11 @@ class Differ(MooseObject):
     def validParams():
         params = MooseObject.validParams()
         params.setRequired('name', True)
+        params.add('_runner_name', vtype=str, private=True)
         return params
 
     def __init__(self, *args, **kwargs):
         MooseObject.__init__(self, *args, **kwargs)
 
-    def execute(self, returncode, output):
+    def execute(self, rcode, stdout, stderr):
         raise NotImplementedError()

@@ -2,26 +2,26 @@
 import io
 import logging
 import unittest
+from moosetools.base import MooseException
 from moosetools import moosetest
 
 class TestRunner(unittest.TestCase):
     def testDefault(self):
 
+        # name is required
+        with self.assertRaises(MooseException) as ex:
+            runner = moosetest.base.Runner()
+        self.assertIn("The parameter 'name' is marked as required", str(ex.exception))
 
-        runner = moosetest.runners.Runner(name='foo/bar.baz', log_level=logging.DEBUG)
-        self.assertEqual(runner.getParam('platform'), None)
+        runner = moosetest.base.Runner(name='name')
+        self.assertIsNotNone(runner.getParam('_unique_id'))
+        self.assertIsNone(runner.getParam('differs'))
 
-        #print(stream.getvalue())
-        runner.init()
-        print(runner.getStream())
-        self.assertFalse(True)
+        with self.assertRaises(NotImplementedError) as ex:
+            runner.execute()
+        self.assertIn("The 'execute' method must be overridden.", str(ex.exception))
 
 
 
 if __name__ == '__main__':
-
     unittest.main(module=__name__, verbosity=2)
-    #logging.basicConfig()
-    #runner = moosetest.runners.Runner(log_level=logging.DEBUG, name='foo/bar.baz')
-    #runner.init()
-    #print(runner.stream())

@@ -10,8 +10,14 @@ class Formatter(MooseObject):
     def __init__(self, *args, **kwargs):
         MooseObject.__init__(self, *args, **kwargs)
 
-    def formatState(self, obj, state, tcinfo):
+    def formatRunnerState(self, obj, state, **kwargs):
         raise NotImplementedError()
 
-    def formatResult(self, obj, state, rcode, out, err, tcinfo):
+    def formatRunnerResult(self, obj, state, rcode, out, err, **kwargs):
+        raise NotImplementedError()
+
+    def formatDifferState(self, obj, state, **kwargs):
+        raise NotImplementedError()
+
+    def formatDifferResult(self, obj, state, rcode, out, err, **kwargs):
         raise NotImplementedError()
