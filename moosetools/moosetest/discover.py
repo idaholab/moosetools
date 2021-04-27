@@ -6,7 +6,9 @@ from moosetools import factory
 from moosetools.moosetest.base import Controller, TestCase
 
 
-# TODO: Perform factory.status() checks() and make sure error messages are usable
+# TODO:
+# - Perform factory.status() checks() and make sure error messages are usable
+# - Name objects using _hit_path
 
 
 

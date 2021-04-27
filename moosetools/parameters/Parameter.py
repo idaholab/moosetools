@@ -154,7 +154,7 @@ class Parameter(object):
     @property
     def value(self):
         """Returns the option value."""
-        retcode, err = self.validate()
+        retcode, err = 0, None#self.validate()
         if retcode > 0:
             raise TypeError(err)
         return self.__value
@@ -162,7 +162,7 @@ class Parameter(object):
     @property
     def default(self):
         """Returns the default value for the option."""
-        retcode, err = self.validate()
+        retcode, err = 0, None#self.validate()
         if retcode > 0:
             raise TypeError(err)
         return self.__default
@@ -210,7 +210,7 @@ class Parameter(object):
     @property
     def is_set_by_user(self):
         """Return True if the value has been set after construction."""
-        retcode, err = self.validate()
+        retcode, err = 0, None#self.validate()
         if retcode > 0:
             raise TypeError(err)
         return self.__set_by_user
@@ -240,7 +240,7 @@ class Parameter(object):
         values are are detailed in `setValue` method. If the value has not been assigned (i.e.,
         it is None) this method will also set the value.
         """
-        self.validate()
+        #self.validate()
         retcode, error = self.__check(val)
         if retcode == 0:
             self.__default = val
@@ -290,8 +290,7 @@ class Parameter(object):
         if self.__validated:
             return 0, None
 
-        self.__validated = True
-        if (self.value is None) and (self.__default is not None):
+        if (self.__value is None) and (self.__default is not None):
             set_by_user = self.__set_by_user
             retcode, error = self.setDefault(self.__default)
             if not set_by_user:
@@ -303,6 +302,7 @@ class Parameter(object):
             msg = "The Parameter '{}' is marked as required, but no value is assigned."
             return 1, msg.format(self.name)
 
+        self.__validated = True
         return 0, None
 
     def toString(self, prefix='', level=0):
