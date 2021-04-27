@@ -11,6 +11,7 @@ from moosetools.moosetest.base import State, TestCase
 #from moosetools.moosetest.base import Runner
 from moosetools.moosetest.runners import ProcessRunner
 from moosetools.moosetest.differs import TextDiff
+from moosetools.moosetest.formatters import FStringFormatter
 
 def execute_testcases(testcases, controllers, comm):
     # TODO: document that this should not throw, but if it does...catch it as above
@@ -33,14 +34,20 @@ def execute_testcases(testcases, controllers, comm):
         comm.put((unique_id, TestCase.Progress.FINISHED, state, results))
 
 
-def run(groups, controllers, n_threads=None):
+def run(groups, controllers, formatter, n_threads=None, progress_interval=None):
+
+    tc_kwargs = dict()
+    tc_kwargs['progress_interval'] = progress_interval
+    tc_kwargs['formatter'] = formatter
 
     comm = queue.SimpleQueue()
     pool = concurrent.futures.ThreadPoolExecutor(max_workers=n_threads)
 
     futures = list() # Future object returned from `pool.submit`
     testcase_map = dict() # unique_id to Runner object
-    for testcases in groups:
+    for runners in groups:
+        testcases = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
+
         futures.append(pool.submit(execute_testcases, testcases, None, comm))
         for tc in testcases:
             testcase_map[tc.getParam('_unique_id')] = tc
@@ -57,7 +64,8 @@ def run(groups, controllers, n_threads=None):
 
             else:
                 tc = testcase_map.pop(unique_id)
-                tc.setResult(state, results)
+                tc.setState(state)
+                tc.setResult(results)
                 tc.reportResult()
 
         except queue.Empty:
@@ -109,10 +117,11 @@ if __name__ == '__main__':
     # TODO: Create TestCases inside of run command
 
     logging.basicConfig()
-    groups = [[TestCase(runner=ProcessRunner(name='first', command=('sleep', '4')))],
-              [TestCase(runner=ProcessRunner(name='second', command=('sleep', '3')))]]
+    groups = [[ProcessRunner(name='test.1', command=('sleep', '4'))],
+              [ProcessRunner(name='test.2', command=('sleep', '3'))],
+              [ProcessRunner(name='test.3', command=('sleep', '13'))]]
 
     #groups = [[TestCase(runner=ProcessRunner(name='first', command=('sleep', '4')))]]
 
     #print(groups)
-    sys.exit(run(groups, None, n_threads=2))
+    sys.exit(run(groups, None, FStringFormatter(), n_threads=2))

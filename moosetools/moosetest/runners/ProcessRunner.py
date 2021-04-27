@@ -24,4 +24,4 @@ class ProcessRunner(Runner):
         str_cmd = ' '.join(cmd)
         self.info('RUNNING COMMAND:\n{0}\n{1}\n{0}'.format('-'*len(str_cmd) , str_cmd))
         out = subprocess.run(self.getParam('command'), **kwargs)
-        return outr#.returncode
+        return out.returncode

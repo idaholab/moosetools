@@ -14,6 +14,7 @@ from moosetools.base import MooseObject
 #from .MooseTestController import MooseTestController
 from .Runner import Runner
 from .Differ import Differ
+from .Formatter import Formatter
 
 
 
@@ -115,12 +116,14 @@ class TestCase(MooseObject):
     def validParams():
         params = MooseObject.validParams()
 
-        params.add('runner', vtype=Runner, required=True,
+        params.add('runner', vtype=Runner, required=True, mutable=False,
                    doc="The 'Runner' object to execute.")
-        #params.add('differs', vtype=Differ, array=True,
-        #           doc="The 'Differ' object(s) to execute.")
+        params.add('formatter', vtype=Formatter, required=True, mutable=False,
+                   doc="The 'Formatter object for displaying test case progress and results.")
 
-        params.add('progress_interval', default=0.5, vtype=(float, int), private=True)
+        params.add('progress_interval', default=10, vtype=(float, int), private=True)
+
+
         params.add('_unique_id', vtype=uuid.UUID, mutable=True, private=True)
 
         # Don't add anything here, these don't get set from anywhere
@@ -135,8 +138,9 @@ class TestCase(MooseObject):
 
         #self._controller = self.getParam('controller') or MooseTestController()
         self._runner = self.getParam('runner')
-        self.parameters().set('name', self._runner.name())
         self._differs = self._runner.getParam('differs')
+        self._formatter = self.getParam('formatter')
+        self.parameters().set('name', self._runner.name())
 
         self.__results = None
         #self.__result = None
@@ -144,7 +148,10 @@ class TestCase(MooseObject):
 
         self.__progress_time = time.time()
         self.__progress_interval = self.getParam('progress_interval')
+
+        self.__create_time = time.time()
         self.__start_time = None
+        self.__duration = None
 
         #self.setProgress(TestCase.Progress.WAITING)
 
@@ -156,6 +163,13 @@ class TestCase(MooseObject):
 
     def getProgress(self):
         return self.__progress
+
+    def getDuration(self):
+        if (self.__duration is None) and (self.__start_time is None):
+            return time.time() - self.__start_time
+        elif (self.__duration is None):
+            return time.time() - self.__create_time
+        return self.__duration
 
     def execute(self):
         #self.setProgress(TestCase.Progress.RUNNING)
@@ -228,10 +242,14 @@ class TestCase(MooseObject):
 
         return TestCase.Result.PASS, rcode, run_out.stdout, run_out.stderr
 
-    def setResult(self, state, result):
-        #self.setProgress(TestCase.Progress.FINISHED)
+    def setState(self, state):
         self.__state = state
+
+    def setResult(self, result):
+        #self.setProgress(TestCase.Progress.FINISHED)
+        #self.__state = state
         self.__results = result
+        self.__duration = time.time() - self.__start_time
         #self._printResult()
 
     #def reportProgress(self):
@@ -241,13 +259,10 @@ class TestCase(MooseObject):
 
         #self.setProgress(TestCase.Progress.CLOSED)
         #state, out = self.__results
-        self._printState(self._runner, self.__state, show_time=True)
+        self._printState(self._runner, self.__state)
 
         r_state, r_rcode, r_out, r_err = self.__results.get(self._runner.name())
-        prefix = '{} '.format(mooseutils.color_text(self._runner.name(), *r_state.color))
-        text = textwrap.indent(r_err.strip('\n'), prefix=prefix)
-        if text:
-            print(text)
+        self._printResult(self._runner, r_state, r_rcode, r_out, r_err)
 
         #for obj in [d for d in self._differs if d.name() in out]:
         #    d_state, d_out = out.get(obj.name())
@@ -261,35 +276,19 @@ class TestCase(MooseObject):
         if progress == TestCase.Progress.RUNNING:
             current = time.time()
             if (current - self.__progress_time) > self.__progress_interval:
-                self._printState(self._runner, progress, show_time=True)
+                self._printState(self._runner, progress)
                 self.__progress_time = current
 
     # TODO:
     # _printDifferState
     # _printRunnerState
-    def _printState(self, obj, state, width=100, show_time=False):
+    def _printState(self, obj, state):
         """
         """
+        print(self._formatter.formatState(obj, state, duration=self.getDuration()))
 
-        pcolor = state.color
-        name = obj.name()
-        state = '{:<9}'.format(state.display)
-        tinfo = '[{:.1f}s] '.format(time.time() - self.__start_time) if show_time else ''
-        width = 100 - len(name) - len(state) - len(tinfo)
-        dots = '.'*width
-        state = mooseutils.color_text(state, *pcolor)
-        name = mooseutils.color_text(name, *pcolor)
-        kwargs = dict(name=name, dots=dots, tinfo=tinfo, state=state)
-        frmt = '{name}{dots}{tinfo}{state}'
 
-        msg = frmt.format(**kwargs)
-        print(msg)
-
-    #def update(self):
-    #    if getState()
-
-    #    return None#'update'
-
-    #def results(self):
-    #    self.setState(State.CLOSED)
-    #    return self.__results
+    def _printResult(self, obj, state, rcode, out, err):
+        """
+        """
+        print(self._formatter.formatResult(obj, state, rcode, out, err), end='')
