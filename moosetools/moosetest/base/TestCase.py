@@ -56,6 +56,8 @@ class RedirectOutput(object):
         self._sys_stdout = sys.stdout
         self._sys_stderr = sys.stderr
 
+        self._logging_handlers = list()
+
     @property
     def stdout(self):
         #return sys.stdout.getvalue()
@@ -67,6 +69,7 @@ class RedirectOutput(object):
         return self._stderr[threading.current_thread().ident].getvalue()
 
     def __enter__(self):
+        self._logging_handlers = list()
         #pass
         #print("ENTER")
         sys.stdout = RedirectOutput.SysRedirect(self._sys_stdout, self._stdout)
@@ -75,7 +78,9 @@ class RedirectOutput(object):
         logger = logging.getLogger()
         for h in logger.handlers:
             if hasattr(h, 'setStream'):
+                self._logging_handlers.append((h, h.formatter))
                 h.setStream(sys.stderr)
+                h.setFormatter(logging.Formatter())
 
         return self
 
@@ -84,10 +89,10 @@ class RedirectOutput(object):
         sys.stdout = self._sys_stdout
         sys.stderr = self._sys_stderr
 
-        logger = logging.getLogger()
-        for h in logger.handlers:
-            if hasattr(h, 'setStream'):
-                h.setStream(self._sys_stderr)
+        for h, f in self._logging_handlers:
+            h.setStream(self._sys_stderr)
+            h.setFormatter(f)
+
         #
         #return self
 
@@ -205,7 +210,6 @@ class TestCase(MooseObject):
         #return TestCase.Result.Pass, rcode, '', ''
 
 
-        # Runner.execute
         try:
             with self.redirectOutput() as run_out:
                 obj.reset() # clear log counts
@@ -215,13 +219,12 @@ class TestCase(MooseObject):
                 obj.exception("An exception occurred during execution of '{}' object.\n{}", obj.name(), run_out.stdout)
             return TestCase.Result.EXCEPTION, 1, err_out.stdout, err_out.stderr
 
-        """
+
         # If an error occurs then report it and exit
         if obj.status():
             with self.redirectOutput() as err_out:
                 obj.error("An error was logged on the '{}' object during execution.\n{}", obj.name(), run_out.stdout)
             return TestCase.Result.ERROR, rcode, err_out.stdout, err_out.stderr
-        """
 
         return TestCase.Result.PASS, rcode, run_out.stdout, run_out.stderr
 

@@ -26,7 +26,6 @@ def execute_testcases(testcases, controllers, comm):
             # TODO: document that this should not throw, but if it does...
             state, results = tc.execute()
         except Exception as ex:
-            #print(traceback.format_exc())
             state = TestCase.Result.FATAL
             results = {tc._runner.name(): (TestCase.Result.FATAL, 1, '', traceback.format_exc())}
 
