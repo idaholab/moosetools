@@ -117,7 +117,7 @@ class TestCase(MooseObject):
         params.add('controllers', vtype=Controller, array=True, mutable=False,
                    doc="`Controller` object(s) that dictate if the Runner should run.")
 
-        params.add('progress_interval', default=10, vtype=(float, int), mutable=False,
+        params.add('progress_interval', default=5, vtype=(float, int), mutable=False,
                    doc="Interval, in seconds, between progress updates.")
 
         params.add('_unique_id', vtype=uuid.UUID, mutable=True, private=True)
@@ -139,28 +139,35 @@ class TestCase(MooseObject):
         self.__results = None
         self.__progress = None
 
-        self.__progress_time = time.time()
         self.__progress_interval = self.getParam('progress_interval')
-
-        self.__create_time = time.time()
+        self.__progress_time = None
+        self.__create_time = None
         self.__start_time = None
         self.__duration = None
 
-        self.setProgress(TestCase.Progress.WAITING)
+        self.setProgress(TestCase.Progress.WAITING, time.time())
 
 
     def redirectOutput(self):
         return RedirectOutput()
 
-    def setProgress(self, progress):
-        if progress == TestCase.Progress.RUNNING:
-            self.__start_time = time.time()
-            self.__progress_time = time.time()
+    def setProgress(self, progress, t):
+        if progress == TestCase.Progress.WAITING:
+            self.__create_time = t
+            self.__progress_time = t
+        elif progress == TestCase.Progress.RUNNING:
+            self.__start_time = t
+            self.__progress_time = t
+        elif progress == TestCase.Progress.FINISHED:
+            self.__duration = t - self.__start_time
 
         self.__progress = progress
 
     def getProgress(self):
         return self.__progress
+
+    def setStartTime(self, t):
+        self.__start_time = t
 
     def getDuration(self):
         if self.__progress == TestCase.Progress.WAITING:
@@ -246,7 +253,6 @@ class TestCase(MooseObject):
 
     def setResult(self, result):
         self.__results = result
-        self.__duration = time.time() - self.__start_time
 
     def reportResult(self):
         self._printState(self._runner, self.__state)

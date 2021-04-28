@@ -3,7 +3,9 @@ import io
 import sys
 import copy
 import time
+import asyncio
 import traceback
+import threading
 import multiprocessing
 multiprocessing.set_start_method('fork')
 
@@ -23,89 +25,33 @@ from moosetools.moosetest.differs import TextDiff
 from moosetools.moosetest.formatters import SimpleFormatter
 
 
-
-
-#def execute_testcase(tc, output):
-#    state, results = tc.execute()
-#    output[0] = state
-#    output[1] = results
-
-def execute_testcases(testcases, comm):
+def execute_testcases(testcases, conn, timeout):
     for tc in testcases:
         unique_id = tc.getParam('_unique_id')
-        comm.send((unique_id, TestCase.Progress.RUNNING, None, None))
+        conn.send((unique_id, TestCase.Progress.RUNNING, time.time(), None, None))
         try:
-            state, results = tc.execute()
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                f = executor.submit(tc.execute)
+                try:
+                    state, results = f.result(timeout=timeout)
+                except concurrent.futures.TimeoutError:
+                    state = TestCase.Result.TIMEOUT
+                    results = {tc.name(): (TestCase.Result.TIMEOUT, 1, '', '')}
+
+            #state, results = tc.execute()
         except Exception as ex:
             state = TestCase.Result.FATAL
-            results = {tc._runner.name(): (TestCase.Result.FATAL, 1, '', traceback.format_exception(type(ex), ex, True))}
+            results = {tc.name(): (TestCase.Result.FATAL, 1, '', traceback.format_exc())}
 
-        comm.send((unique_id, TestCase.Progress.FINISHED, state, results))
-    comm.close()
+        conn.send((unique_id, TestCase.Progress.FINISHED, time.time(), state, results))
 
-def _tmp(testcases, comm):
+    conn.close()
 
-    # TODO: document that this should not throw, but if it does...catch it as above
-
-
-    #skip_remaining = False
+def _on_error(*args):
+    print(args)
 
 
-    for tc in testcases:
-        #if skip_remaining:
-        #    state = TestCase.Result.SKIP
-        #    results = {tc._runner.name(): (TestCase.Result.SKIP, 1, None, None)}
-        #    comm.put((unique_id, TestCase.Progress.FINISHED, state, results))
-        #    continue
-
-        unique_id = tc.getParam('_unique_id')
-
-        #comm.send((unique_id, TestCase.Progress.RUNNING, None, None))
-
-
-        #print(tc.name(), TestCase.Progress.RUNNING)
-        #print('PUT:', (unique_id, TestCase.Progress.RUNNING, None, None))
-        #comm.put((unique_id, TestCase.Progress.RUNNING, None, None))
-        #results[unique_id] = (TestCase.Progress.RUNNING, None, None)
-
-        try:
-            # TODO: document that this should not throw, but if it does...
-            """
-            output = [None]*2
-            tid = threading.Thread(target=execute_testcase, args=(tc,output))
-            tid.start()
-            tid.join(timeout=5)
-            if tid.is_alive():
-                state = TestCase.Result.TIMEOUT
-                results = {tc._runner.name(): (TestCase.Result.TIMEOUT, 1, '', '')}
-            else:
-                state = output[0]
-                results = output[1]
-            """
-            state, local_results = tc.execute()
-
-
-        except Exception as ex:
-            state = TestCase.Result.FATAL
-            local_results = {tc._runner.name(): (TestCase.Result.FATAL, 1, '', traceback.format_exc())}
-
-
-        #print('here')
-        #results[unique_id] = (TestCase.Progress.FINISHED, state, local_results)
-        #print('PUT:', (unique_id, TestCase.Progress.FINISHED, state, results))
-        #comm.put((unique_id, TestCase.Progress.FINISHED, state, results))
-        #comm.send((unique_id, TestCase.Progress.FINISHED, state, results))
-
-        #comm.close()
-        #if state > 0 or state == TestCase.Result.SKIP:
-        #    skip_remaining = True
-
-def on_error(exc, comm):
-    print(multiprocessing.current_process(), multiprocessing.parent_process())
-    comm.send((None, None, None, None))
-    #raise exc
-
-def run(groups, controllers, formatter, n_threads=None, progress_interval=None):
+def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_interval=None):
 
     tc_kwargs = dict()
     tc_kwargs['progress_interval'] = progress_interval
@@ -126,13 +72,13 @@ def run(groups, controllers, formatter, n_threads=None, progress_interval=None):
     testcase_map = dict() # unique_id to Runner object
     for runners in groups:
         testcases = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
-        comm_recv, comm_send = multiprocessing.Pipe(False)
-        pipes.append(comm_recv)
+        p_recv, p_send = multiprocessing.Pipe(False)
+        pipes.append(p_recv)
 
         #execute_testcases(testcases, None)
         #futures.append(pool.submit(execute_testcases, testcases, None))
-        futures.append(pool.apply_async(execute_testcases, args=(testcases, comm_send),
-                                        error_callback=lambda x: on_error(x, comm_send)))
+        futures.append(pool.apply_async(execute_testcases, args=(testcases, p_send, timeout),
+                                        error_callback=_on_error))
         #comm_send.close()
         for tc in testcases:
             #tc.parameters().set('formatter', formatter)
@@ -141,18 +87,17 @@ def run(groups, controllers, formatter, n_threads=None, progress_interval=None):
     #pool.shutdown()
 
     pool.close()
-    force = False
-    while any(not f.ready() for f in futures):# or multiprocessing.connection.wait(pipes):
-        for r in pipes:
-            if r.poll():
+    while any(not f.ready() for f in futures):
+        for pipe in pipes:
+            if pipe.poll():
                 try:
-                    unique_id, progress, state, results = r.recv()
+                    unique_id, progress, t, state, results = pipe.recv()
                     if progress == TestCase.Progress.RUNNING:
                         tc = testcase_map.get(unique_id)
-                        tc.setProgress(progress)
-                    elif progress == TestCase.Progress.FINISHED:
+                        tc.setProgress(progress, t)
+                    else:
                         tc = testcase_map.pop(unique_id)
-                        tc.setProgress(progress)
+                        tc.setProgress(progress, t)
                         tc.setState(state)
                         tc.setResult(results)
                         tc.reportResult()
@@ -239,7 +184,7 @@ if __name__ == '__main__':
 
     grp_b = [None]*3
     grp_b[0] = ProcessRunner(name='B:test/1', command=('sleep', '3'))
-    grp_b[1] = ProcessRunner(name='B:test/2', command=('sleep', '1'))
+    grp_b[1] = ProcessRunner(name='B:test/2', command=('sleep', '5'))
     grp_b[2] = ProcessRunner(name='B:test/3', command=('sleep', '1'))
 
 
@@ -250,4 +195,4 @@ if __name__ == '__main__':
 
     groups = [grp_a, grp_b, grp_c]
 
-    sys.exit(run(groups, None, SimpleFormatter(), n_threads=2))
+    sys.exit(run(groups, None, SimpleFormatter(), n_threads=2, timeout=10))
