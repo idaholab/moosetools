@@ -35,8 +35,18 @@ def _execute_testcase(tc, conn):
     conn.close()
 
 def execute_testcases(testcases, q, timeout):
+
+    skip = False
+
+
     for tc in testcases:
         unique_id = tc.getParam('_unique_id')
+        if skip:
+            state = TestCase.Result.SKIP
+            results = {tc.name(): (TestCase.Result.SKIP, 0, '', '')}
+            q.put((unique_id, TestCase.Progress.FINISHED, time.time(), state, results))
+            continue
+
         q.put((unique_id, TestCase.Progress.RUNNING, time.time(), None, None))
 
         conn_recv, conn_send = multiprocessing.Pipe(False)
@@ -52,9 +62,8 @@ def execute_testcases(testcases, q, timeout):
 
         q.put((unique_id, TestCase.Progress.FINISHED, time.time(), state, results))
 
-def _on_error(*args):
-    print(args)
-
+        if (state == TestCase.Result.SKIP) or (state.exitcode > 0):
+            skip = True
 
 def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_interval=None):
 
@@ -70,6 +79,7 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
     testcase_map = dict()
     for runners in groups:
         testcases = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
+        #execute_testcases(testcases, result_queue, timeout)
         futures.append(executor.submit(execute_testcases, testcases, result_queue, timeout))
         for tc in testcases:
             testcase_map[tc.getParam('_unique_id')] = tc
@@ -77,6 +87,7 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
     while len(testcase_map) > 0:
         try:
             unique_id, progress, t, state, results = result_queue.get_nowait()
+            tc = testcase_map.get(unique_id)
             if progress == TestCase.Progress.RUNNING:
                 tc = testcase_map.get(unique_id)
                 tc.setProgress(progress, t)
@@ -86,9 +97,12 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
                 tc.setState(state)
                 tc.setResult(results)
                 tc.reportResult()
-            q.task_done()
+            result_queue.task_done()
         except queue.Empty:
             pass
+
+        for tc in testcase_map.values():
+            tc.reportProgress()
 
     # TODO: SUM Results, track total time
 

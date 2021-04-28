@@ -99,8 +99,8 @@ class TestCase(MooseObject):
         FINISHED = (3, 0, 'FINISHED', ('white',))
 
     class Result(State):
-        SKIP      = (11, 0, 'SKIP', ('cyan_1',))
-        PASS      = (12, 0, 'OK', ('green_1',))
+        PASS      = (11, 0, 'OK', ('green_1',))
+        SKIP      = (12, 0, 'SKIP', ('cyan_1',))
         ERROR     = (13, 1, 'ERROR', ('red_1',))
         EXCEPTION = (14, 1, 'EXCEPTION', ('magenta_1',))
         TIMEOUT   = (15, 1, 'TIMEOUT', ('orange_1',))
@@ -158,7 +158,7 @@ class TestCase(MooseObject):
             self.__start_time = t
             self.__progress_time = t
         elif progress == TestCase.Progress.FINISHED:
-            self.__execute_time = t - self.__start_time
+            self.__execute_time = t - self.__start_time if self.__start_time else 0
 
         self.__progress = progress
 
@@ -172,8 +172,6 @@ class TestCase(MooseObject):
         """
 
         """
-
-
         results = dict()
 
         state, rcode, stdout, stderr = self.executeObject(self._runner)
@@ -249,7 +247,6 @@ class TestCase(MooseObject):
         self.__state = state
 
     def setResult(self, result):
-        self.__run_time = time.time() - self.__start_time
         self.__results = result
 
     def reportResult(self):
@@ -277,7 +274,7 @@ class TestCase(MooseObject):
         if state == TestCase.Progress.RUNNING:
             duration = time.time() - self.__start_time
         else:
-            duration = self.__run_time
+            duration = self.__execute_time
 
         if obj is self._runner:
             print(self._formatter.formatRunnerState(obj, state, duration=duration))
