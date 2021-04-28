@@ -1,6 +1,8 @@
+import collections
+import time
 import textwrap
 from moosetools.mooseutils import color_text
-from moosetools.moosetest.base import Formatter
+from moosetools.moosetest.base import Formatter, TestCase
 class SimpleFormatter(Formatter):
 
     @staticmethod
@@ -8,10 +10,12 @@ class SimpleFormatter(Formatter):
         params = Formatter.validParams()
         params.add('width', default=100, vtype=int,
                    doc="The width of the state output (the results output is not altered).")
+        params.add('print_state', vtype=TestCase.Result, default=TestCase.Result.SKIP,
+                   doc="The minimum state of results to display.")
         params.add('differ_indent', default=' '*4, vtype=str,
                    doc="The text to use for indenting the differ state output.")
         params.add('fill_character', default='.', vtype=str,
-                   #verify=(lambda v: len(v) == 1, "Must be a single character."), # TODO: This break multiprocessing...
+                  # verify=(lambda v: len(v) == 1, "Must be a single character."), # TODO: This break multiprocessing...
                    doc="The character to use for filling between name and state.")
         return params
 
@@ -37,9 +41,39 @@ class SimpleFormatter(Formatter):
         return msg
 
     def formatRunnerResult(self, obj, state, rcode, out, err, **kwargs):
-        prefix = '    ' + color_text(obj.name(), *state.color) + ':sys.stdout '
-        return textwrap.indent(out, prefix, lambda *args: True)
+        max_state = self.getParam('print_state')
+        if state.level >= max_state.level:
+
+            prefix = color_text(obj.name(), *state.color) + ':sys.stdout: '
+            stdout = textwrap.indent(out, prefix, lambda *args: True)
+
+            prefix = color_text(obj.name(), *state.color) + ':sys.stderr: '
+            stderr = textwrap.indent(err, prefix, lambda *args: True)
+
+            return (stdout + stderr).strip('\n')
 
     def formatDifferResult(self, obj, state, rcode, out, err, **kwargs):
-        prefix = '    ' + color_text(obj.name(), *state.color) + ':sys.stderr '
-        return textwrap.indent(err, prefix, lambda *args: True)
+        max_state = self.getParam('print_state')
+        if state.level >= max_state.level:
+
+            name = self.getParam('differ_indent') + obj.name()
+            prefix = color_text(name, *state.color) + ':sys.stdout: '
+            stdout = textwrap.indent(out, prefix, lambda *args: True)
+
+            prefix = color_text(name, *state.color) + ':sys.stderr: '
+            stderr = textwrap.indent(err, prefix, lambda *args: True)
+
+            return (stdout + stderr).strip('\n')
+
+    def formatComplete(self, complete, **kwargs):
+        counts = collections.defaultdict(int)
+        for tc in complete:
+            counts[tc.getState()] += 1
+
+        out = list()
+        out.append("-"*self.getParam('width'))
+        t = kwargs.get('duration', None)
+        if t is not None:
+            out.append(f"Executed {len(complete)} tests in {t:.1f} seconds.")
+        out.append(' '.join(f"{color_text(s.display, *s.color)}:{counts[s]}" for s in TestCase.Result))
+        return '\n'.join(out)

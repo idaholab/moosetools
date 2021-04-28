@@ -10,6 +10,9 @@ class Formatter(MooseObject):
     def __init__(self, *args, **kwargs):
         MooseObject.__init__(self, *args, **kwargs)
 
+    def formatComplete(self, complete, **kwargs):
+        raise NotImplementedError()
+
     def formatRunnerState(self, obj, state, **kwargs):
         raise NotImplementedError()
 

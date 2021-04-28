@@ -13,11 +13,13 @@ import concurrent.futures
 
 #import threading
 
-import dill
+#import dill
 
 import queue
 import logging
 import collections
+
+from moosetools.mooseutils import color_text
 from moosetools.moosetest.base import State, TestCase
 #from moosetools.moosetest.base import Runner
 from moosetools.moosetest.runners import ProcessRunner
@@ -36,14 +38,13 @@ def _execute_testcase(tc, conn):
 
 def execute_testcases(testcases, q, timeout):
 
-    skip = False
-
+    skip_message = None
 
     for tc in testcases:
         unique_id = tc.getParam('_unique_id')
-        if skip:
+        if skip_message:
             state = TestCase.Result.SKIP
-            results = {tc.name(): (TestCase.Result.SKIP, 0, '', '')}
+            results = {tc.name(): (TestCase.Result.SKIP, 0, '', skip_message)}
             q.put((unique_id, TestCase.Progress.FINISHED, time.time(), state, results))
             continue
 
@@ -62,10 +63,58 @@ def execute_testcases(testcases, q, timeout):
 
         q.put((unique_id, TestCase.Progress.FINISHED, time.time(), state, results))
 
-        if (state == TestCase.Result.SKIP) or (state.exitcode > 0):
-            skip = True
+        if (state.level > 0):
+            skip_message = f"Previous `TestCase` ({tc.name()}) in the group returned a non-zero state of {state}."
 
-def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_interval=None):
+
+def _running_get_results(testcase_map, complete, result_queue, num_fail):
+
+    try:
+        unique_id, progress, t, state, results = result_queue.get_nowait()
+        tc = testcase_map.get(unique_id)
+        if progress == TestCase.Progress.RUNNING:
+            tc = testcase_map.get(unique_id)
+            tc.setProgress(progress, t)
+        else:
+            tc = testcase_map.pop(unique_id)
+            tc.setProgress(progress, t)
+            tc.setState(state)
+            tc.setResult(results)
+            tc.reportResult()
+            complete.append(tc)
+
+            if state.level > 1:
+                num_fail += 1
+
+            result_queue.task_done()
+    except queue.Empty:
+        pass
+
+
+def _running_check_max_fail(testcase_map, complete, futures, num_fail, max_fail):
+    if (max_fail is not None) and (num_fail > max_fail):
+        for f in futures:
+            f.cancel()
+        for uid in list(testcase_map.keys()):
+            tc = testcase_map.get(uid)
+            if tc.getProgress() == tc.Progress.WAITING:
+                testcase_map.pop(uid)
+                tc.setProgress(TestCase.Progress.FINISHED, time.time())
+                tc.setState(TestCase.Result.SKIP)
+                tc.setResult({tc.name(): (TestCase.Result.SKIP, 0, '', f"Max failures of {max_fail} exceeded.")})
+                tc.reportResult()
+                complete.append(tc)
+
+def _running_report_progress(testcase_map):
+    for tc in testcase_map.values():
+        tc.reportProgress()
+
+
+
+
+def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_interval=None, max_fail=None):
+
+    start_time = time.time()
 
     tc_kwargs = dict()
     tc_kwargs['progress_interval'] = progress_interval
@@ -84,27 +133,14 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
         for tc in testcases:
             testcase_map[tc.getParam('_unique_id')] = tc
 
+    complete = list()
+    num_fail = 0
     while len(testcase_map) > 0:
-        try:
-            unique_id, progress, t, state, results = result_queue.get_nowait()
-            tc = testcase_map.get(unique_id)
-            if progress == TestCase.Progress.RUNNING:
-                tc = testcase_map.get(unique_id)
-                tc.setProgress(progress, t)
-            else:
-                tc = testcase_map.pop(unique_id)
-                tc.setProgress(progress, t)
-                tc.setState(state)
-                tc.setResult(results)
-                tc.reportResult()
-            result_queue.task_done()
-        except queue.Empty:
-            pass
+        _running_get_results(testcase_map, complete, result_queue, num_fail)
+        _running_check_max_fail(testcase_map, complete, futures, num_fail, max_fail)
+        _running_report_progress(testcase_map)
 
-        for tc in testcase_map.values():
-            tc.reportProgress()
-
-    # TODO: SUM Results, track total time
+    print(formatter.formatComplete(complete, duration=time.time() - start_time))
 
 if __name__ == '__main__':
 
@@ -130,4 +166,4 @@ if __name__ == '__main__':
 
     groups = [grp_a, grp_b, grp_c]
 
-    sys.exit(run(groups, None, SimpleFormatter(), n_threads=2, timeout=10))
+    sys.exit(run(groups, None, SimpleFormatter(), n_threads=2, timeout=10, max_fail=0))

@@ -20,10 +20,10 @@ from .Formatter import Formatter
 
 
 class State(enum.Enum):
-    def __new__(cls, value, exitcode, display, color):
+    def __new__(cls, value, level, display, color):
         obj = object.__new__(cls)
         obj._value_ = value
-        obj.exitcode = exitcode
+        obj.level = level
         obj.display = display
         obj.color = color
         return obj
@@ -94,17 +94,17 @@ class RedirectOutput(object):
 
 class TestCase(MooseObject):
     class Progress(State):
-        WAITING  = (1, 0, 'WAITING', ('grey_82',))
-        RUNNING  = (2, 0, 'RUNNING', ('dodger_blue_3',))
-        FINISHED = (3, 0, 'FINISHED', ('white',))
+        WAITING  = (0, 0, 'WAITING', ('grey_82',))
+        RUNNING  = (1, 0, 'RUNNING', ('dodger_blue_3',))
+        FINISHED = (2, 0, 'FINISHED', ('white',))
 
     class Result(State):
-        PASS      = (11, 0, 'OK', ('green_1',))
-        SKIP      = (12, 0, 'SKIP', ('cyan_1',))
-        ERROR     = (13, 1, 'ERROR', ('red_1',))
-        EXCEPTION = (14, 1, 'EXCEPTION', ('magenta_1',))
-        TIMEOUT   = (15, 1, 'TIMEOUT', ('orange_1',))
-        FATAL     = (16, 1, 'FATAL', ('white', 'red_1')) # internal error (see, run.py)
+        PASS      = (10, 0, 'OK', ('green_1',))
+        SKIP      = (11, 1, 'SKIP', ('cyan_1',))
+        TIMEOUT   = (12, 2, 'TIMEOUT', ('orange_1',))
+        ERROR     = (13, 3, 'ERROR', ('red_1',))
+        EXCEPTION = (14, 4, 'EXCEPTION', ('magenta_1',))
+        FATAL     = (15, 5, 'FATAL', ('white', 'red_1')) # internal error (see, run.py)
 
     @staticmethod
     def validParams():
@@ -138,6 +138,7 @@ class TestCase(MooseObject):
 
         self.__results = None
         self.__progress = None
+        self.__state = None
 
         self.__progress_interval = self.getParam('progress_interval')
         self.__progress_time = None
@@ -165,8 +166,10 @@ class TestCase(MooseObject):
     def getProgress(self):
         return self.__progress
 
-    def setStartTime(self, t):
-        self.__start_time = t
+
+    def getState(self):
+        return self.__state
+
 
     def execute(self):
         """
@@ -176,13 +179,13 @@ class TestCase(MooseObject):
 
         state, rcode, stdout, stderr = self.executeObject(self._runner)
         results[self._runner.name()] = (state, rcode, stdout, stderr)
-        if (state == TestCase.Result.SKIP) or (state.exitcode > 0):
+        if state.level > 0:
             return state, results
 
         for obj in self._differs:
             d_state, d_rcode, d_stdout, d_stderr = self.executeObject(obj, rcode, stdout, stderr)
             results[obj.name()] = (d_state, d_rcode, d_stdout, d_stderr)
-            if (d_state != TestCase.Result.SKIP) and (d_state.exitcode > 0):
+            if d_state.level > state.level:
                 state = d_state
 
         return state, results
@@ -277,14 +280,18 @@ class TestCase(MooseObject):
             duration = self.__execute_time
 
         if obj is self._runner:
-            print(self._formatter.formatRunnerState(obj, state, duration=duration))
+            txt = self._formatter.formatRunnerState(obj, state, duration=duration)
         else:
-            print(self._formatter.formatDifferState(obj, state, duration=duration))
+            txt = self._formatter.formatDifferState(obj, state, duration=duration)
+        if txt:
+            print(txt)
 
     def _printResult(self, obj, state, rcode, out, err):
         """
         """
         if obj is self._runner:
-            print(self._formatter.formatRunnerResult(obj, state, rcode, out, err), end='')
+            txt = self._formatter.formatRunnerResult(obj, state, rcode, out, err)
         else:
-            print(self._formatter.formatDifferResult(obj, state, rcode, out, err), end='')
+            txt = self._formatter.formatDifferResult(obj, state, rcode, out, err)
+        if txt:
+            print(txt)
