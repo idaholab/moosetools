@@ -64,20 +64,19 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
 
     executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
     manager = multiprocessing.Manager()
-    q = manager.Queue()
-    #pool = multiprocessing.Pool(processes=n_threads)
+    result_queue = manager.Queue()
 
     futures = list()
     testcase_map = dict()
     for runners in groups:
         testcases = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
-        futures.append(executor.submit(execute_testcases, testcases, q, timeout))
+        futures.append(executor.submit(execute_testcases, testcases, result_queue, timeout))
         for tc in testcases:
             testcase_map[tc.getParam('_unique_id')] = tc
 
     while len(testcase_map) > 0:
         try:
-            unique_id, progress, t, state, results = q.get_nowait()
+            unique_id, progress, t, state, results = result_queue.get_nowait()
             if progress == TestCase.Progress.RUNNING:
                 tc = testcase_map.get(unique_id)
                 tc.setProgress(progress, t)
@@ -94,31 +93,6 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
     # TODO: SUM Results, track total time
 
 if __name__ == '__main__':
-    """
-    import random
-    import logging
-
-    handler = logging.StreamHandler()
-    #logging.basicConfig(handlers=[handler])#, format='%(levelname)s: %(message)s')
-    logging.basicConfig(handlers=[handler], format='%(message)s')
-
-    sleep_range = (1,2)
-    n_groups = 4
-    n_per_group = 3
-    groups = list()
-
-    for i in range(n_groups):
-        local = list()
-        for j in range(n_per_group):
-            t =  random.randint(*sleep_range)
-            runner = ProcessRunner(name='{}/{}.rand_{}'.format(i, j, t), command=('sleep', str(t)))
-            differs = (TextDiff(name=runner.name() + '.text', text_in='sleep'),
-                       TextDiff(name=runner.name() + '.text2', text_in='sleep 2'))
-            local.append(TestCase(runner=runner, differs=differs))
-        groups.append(local)
-    """
-
-    # TODO: Create TestCases inside of run command
 
     logging.basicConfig()
 
