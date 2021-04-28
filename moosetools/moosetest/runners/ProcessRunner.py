@@ -9,7 +9,7 @@ class ProcessRunner(Runner):
     def validParams():
         params = Runner.validParams()
         params.add('command', vtype=str, array=True, required=True, doc="Command to execute.")
-        params.add('timeout', vtype=int, default=100, doc="Limit the execution to the specified time; implemented via 'timeout' flag in `subprocess.run` command.")
+        params.add('timeout', vtype=int, doc="Limit the execution to the specified time; implemented via 'timeout' flag in `subprocess.run` command.")
         params.add('allow_exception', vtype=bool, default=False, doc="Do not raise exception if the process fails; implemented via 'check' flag in `subprocess.run` command.")
         return params
 

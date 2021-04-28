@@ -5,6 +5,16 @@ from moosetools.mooseutils import color_text
 from moosetools.moosetest.base import Formatter, TestCase
 class SimpleFormatter(Formatter):
 
+    """
+    TODO: Create a list of keyword arguments and functions that can be passed into an F-string then
+          get rid of FStringFormatter.
+          Rename this to BasicFormatter to be inline with basicConfig...
+
+          Update State to include state.text for raw string and state.display to be color version
+
+    """
+
+
     @staticmethod
     def validParams():
         params = Formatter.validParams()
@@ -68,7 +78,7 @@ class SimpleFormatter(Formatter):
     def formatComplete(self, complete, **kwargs):
         counts = collections.defaultdict(int)
         for tc in complete:
-            counts[tc.getState()] += 1
+            counts[tc.state] += 1
 
         out = list()
         out.append("-"*self.getParam('width'))

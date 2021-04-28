@@ -140,36 +140,63 @@ class TestCase(MooseObject):
         self.__progress = None
         self.__state = None
 
-        self.__progress_interval = self.getParam('progress_interval')
         self.__progress_time = None
         self.__create_time = None
         self.__start_time = None
         self.__execute_time = None
 
-        self.setProgress(TestCase.Progress.WAITING, time.time())
+        self.setProgress(TestCase.Progress.WAITING)
+
+    @property
+    def waiting(self):
+        return self.__progress == TestCase.Progress.WAITING
+
+    @property
+    def running(self):
+        return self.__progress == TestCase.Progress.RUNNING
+
+    @property
+    def finished(self):
+        return self.__progress == TestCase.Progress.FINISHED
+
+    @property
+    def state(self):
+        return self.__state
+
+    @property
+    def progress(self):
+        return self.__progress
+
+    @property
+    def time(self):
+        """
+        TODO: error check that execute_time exists
+        """
+
+
+        current = time.time()
+        if self.waiting:
+            return current - self.__create_time
+        elif self.running:
+            return current - self.__progress_time
+
+        return self.__execute_time
 
     def redirectOutput(self):
         return RedirectOutput()
 
-    def setProgress(self, progress, t):
+    def setProgress(self, progress):
+        current = time.time()
         if progress == TestCase.Progress.WAITING:
-            self.__create_time = t
-            self.__progress_time = t
+            if self.__create_time is None: self.__create_time = current
+            self.__progress_time = current
         elif progress == TestCase.Progress.RUNNING:
-            self.__start_time = t
-            self.__progress_time = t
+            if self.__start_time is None: self.__start_time = current
+            self.__progress_time = current
         elif progress == TestCase.Progress.FINISHED:
-            self.__execute_time = t - self.__start_time if self.__start_time else 0
+            if self.__execute_time is None: self.__execute_time = current - self.__start_time if self.__start_time else 0
 
         self.__progress = progress
-
-    def getProgress(self):
-        return self.__progress
-
-
-    def getState(self):
-        return self.__state
-
 
     def execute(self):
         """
@@ -264,12 +291,8 @@ class TestCase(MooseObject):
             self._printResult(obj, d_state, d_rcode, d_out, d_err)
 
     def reportProgress(self):
-        progress = self.getProgress()
-        if progress == TestCase.Progress.RUNNING:
-            current = time.time()
-            if (current - self.__progress_time) > self.__progress_interval:
-                self._printState(self._runner, progress)
-                self.__progress_time = current
+        self._printState(self._runner, self.__progress)
+        self.__progress_time = time.time()
 
     def _printState(self, obj, state):
         """
