@@ -7,6 +7,7 @@ import uuid
 import logging
 import collections
 import multiprocessing
+import traceback
 #import threading
 import textwrap
 from moosetools import mooseutils
@@ -236,16 +237,16 @@ class TestCase(MooseObject):
             with self.redirectOutput() as out:
                 try:
                     controller.reset() # clear log counts
-                    controller.execute(obj)
+                    controller.execute(obj, obj.getParam(controller.getParam('prefix')))
 
                     # Stop if an error is logged on the Controller object
                     if controller.status():
-                        self.error("An error occurred, on the controller, during execution of the Controller '{}' with '{}' object.", type(controller), obj.name())
+                        self.error("An error occurred, on the controller, during execution of the {} with '{}' object.", type(controller).__name__, obj.name())
                         return TestCase.Result.FATAL, 1, out.stdout, out.stderr
 
                     # Stop if an error is logged on the object, due to execution of Controller
                     if obj.status():
-                        self.error("An error occurred, on the object, during execution of the Controller '{}' with '{}' object.", type(controller), obj.name())
+                        self.error("An error occurred, on the object, during execution of the {} with '{}' object.", type(controller).__name__, obj.name())
                         return TestCase.Result.FATAL, 1, out.stdout, out.stderr
 
                     # Skip it...maybe
@@ -253,7 +254,7 @@ class TestCase(MooseObject):
                         return TestCase.Result.SKIP, 0, out.stdout, out.stderr
 
                 except Exception as ex:
-                    self.error("An exception occurred during execution of the Controller '{}' with '{}' object.", type(controller), obj.name())
+                    self.error("An exception occurred during execution of the {} with '{}' object.\n{}", type(controller).__name__, obj.name(), traceback.format_exc())
                     return TestCase.Result.FATAL, 1, out.stdout, out.stderr
 
         # Execute the object

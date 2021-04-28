@@ -58,7 +58,7 @@ class MooseObject(object):
     def __init__(self, params=None, **kwargs):
         type(self).__MooseObject_counter__ += 1
         self.__log_counts = {key: 0 for key in logging._levelToName.keys()}
-        self._parameters = params or getattr(self.__class__, 'validParams')()
+        self._parameters = getattr(self.__class__, 'validParams')() if params is None else params
         self._parameters.update(**kwargs)
         self._parameters.set('_moose_object', self)
         self._parameters.validate()  # once this is called, the mutable flag becomes active

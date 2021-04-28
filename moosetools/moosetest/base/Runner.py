@@ -19,9 +19,12 @@ class Runner(MooseObject):
         params.add('_unique_id', vtype=uuid.UUID, mutable=False, private=True)
         return params
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, params=None, controllers=None, **kwargs):
+        if params is None: params = getattr(self.__class__, 'validParams')()
+        for ctrl in controllers:
+            params.add(ctrl.getParam('prefix'), default=ctrl.validObjectParams())
         kwargs['_unique_id'] = uuid.uuid4()
-        MooseObject.__init__(self, *args, **kwargs)
+        MooseObject.__init__(self, params, **kwargs)
 
     def execute(self):
         """

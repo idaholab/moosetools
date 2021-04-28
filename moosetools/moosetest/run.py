@@ -4,23 +4,13 @@ import sys
 import copy
 import time
 import traceback
+import queue
+import concurrent.futures
 import multiprocessing
 multiprocessing.set_start_method('fork')
 
-import concurrent.futures
-
-#import threading
-
-#import dill
-
-
 from moosetools.mooseutils import color_text
-from moosetools.moosetest.base import State, TestCase
-#from moosetools.moosetest.base import Runner
-from moosetools.moosetest.runners import ProcessRunner
-from moosetools.moosetest.differs import TextDiff
-from moosetools.moosetest.formatters import SimpleFormatter
-
+from moosetools.moosetest.base import TestCase
 
 def _execute_testcase(tc, conn):
     try:
@@ -59,7 +49,7 @@ def _execute_testcases(testcases, q, timeout):
         q.put((unique_id, TestCase.Progress.FINISHED, state, results))
 
         if (state.level > 0):
-            skip_message = f"Previous `TestCase` ({tc.name()}) in the group returned a non-zero state of {state}."
+            skip_message = f"A previous `TestCase` ({tc.name()}) in the group returned a non-zero state of {state}."
 
 
 def _running_results(testcase_map, result_queue):
@@ -127,27 +117,43 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
 
 if __name__ == '__main__':
     import logging
+    from moosetools.moosetest.runners import ProcessRunner
+    from moosetools.moosetest.differs import TextDiff
+    from moosetools.moosetest.formatters import SimpleFormatter
+    from moosetools.moosetest.controllers import EnvironmentController
     logging.basicConfig()
 
+    controllers = (EnvironmentController(),)
+    formatter = SimpleFormatter()
+
+    #params = ProcessRunner.validParams()
+    #for ctrl in controllers:
+    #    params.add(ctrl.getParam('prefix'), default=ctrl.validObjectParams())
+
+
     grp_a = [None]*3
-    grp_a[0] = ProcessRunner(name='A:test/1', command=('sleep', '4'),
-                          differs=(TextDiff(name='diff', text_in_stderr='sleep'),
-                                   TextDiff(name='diff2', text_in_stderr='2')))
-    grp_a[1] = ProcessRunner(name='A:test/2', command=('sleep', '2'))
-    grp_a[2] = ProcessRunner(name='A:test/3', command=('sleep', '1'))
+    grp_a[0] = ProcessRunner(None, controllers, name='A:test/1', command=('sleep', '4'),
+                          differs=(TextDiff(None, controllers, name='diff', text_in_stderr='sleep'),
+                                   TextDiff(None, controllers, name='diff2', text_in_stderr='2')))
+    grp_a[1] = ProcessRunner(None, controllers, name='A:test/2', command=('sleep', '2'))
+    grp_a[2] = ProcessRunner(None, controllers, name='A:test/3', command=('sleep', '1'))
 
     grp_b = [None]*5
-    grp_b[0] = ProcessRunner(name='B:test/1', command=('sleep', '3'))
-    grp_b[1] = ProcessRunner(name='B:test/2', command=('sleep', '5'))
-    grp_b[2] = ProcessRunner(name='B:test/3', command=('sleep', '1'))
-    grp_b[3] = ProcessRunner(name='B:test/4', command=('wrong', ))
-    grp_b[4] = ProcessRunner(name='B:test/5', command=('sleep', '3'))
+    grp_b[0] = ProcessRunner(None, controllers, name='B:test/1', command=('sleep', '3'),
+                             differs=(TextDiff(None, controllers, name='diff', text_in_stderr='sleep'),
+                                      TextDiff(None, controllers, name='diff2', text_in_stderr='3')))
+    grp_b[1] = ProcessRunner(None, controllers, name='B:test/2', command=('sleep', '5'), env_platform=('Linux',),
+                             differs=(TextDiff(None, controllers, name='diff', text_in_stderr='sleep'),
+                                      TextDiff(None, controllers, name='diff2', text_in_stderr='2')))
+    grp_b[2] = ProcessRunner(None, controllers, name='B:test/3', command=('sleep', '1'))
+    grp_b[3] = ProcessRunner(None, controllers, name='B:test/4', command=('wrong', ))
+    grp_b[4] = ProcessRunner(None, controllers, name='B:test/5', command=('sleep', '3'))
 
     grp_c = [None]*2
-    grp_c[0] = ProcessRunner(name='C:test/1', command=('sleep', '13'))
-    grp_c[1] = ProcessRunner(name='C:test/2', command=('sleep', '1'))
+    grp_c[0] = ProcessRunner(None, controllers, name='C:test/1', command=('sleep', '13'))
+    grp_c[1] = ProcessRunner(None, controllers, name='C:test/2', command=('sleep', '1'))
 
 
     groups = [grp_a, grp_b, grp_c]
 
-    sys.exit(run(groups, None, SimpleFormatter(), n_threads=1, timeout=10, max_fails=5, progress_interval=4))
+    sys.exit(run(groups, controllers, formatter, n_threads=1, timeout=10, max_fails=5, progress_interval=4))

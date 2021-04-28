@@ -317,7 +317,8 @@ class InputParameters(object):
             self.__errorHelper("The parameter '{}' does not exist.", args[0])
             return None
         elif opt.isInstance(InputParameters) and len(args) > 1:
-            return opt.value._getParameter(*args[1:])
+            value = opt.value or opt.default
+            return value._getParameter(*args[1:])
         elif (not opt.isInstance(InputParameters)) and len(args) > 1:
             self.__errorHelper("Extra argument(s) found: {}", ', '.join(str(a) for a in args[1:]))
         else:

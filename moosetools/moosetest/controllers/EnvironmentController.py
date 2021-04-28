@@ -29,11 +29,11 @@ class EnvironmentController(Controller):
     def __init__(self, *args, **kwargs):
         Controller.__init__(self, *args, **kwargs)
 
-    def execute(self, params):
+    def execute(self, obj, params):
         self.debug("Checking that '{}'is able to execute.", obj.name())
 
         sys_platform = platform.system()
         self.debug('platform.system() = {}', repr(sys_platform))
         pf = params.get('platform')
         if (pf is not None) and (sys_platform not in pf):
-            self.skip('{} not in {}', repr(sys_platform), repr(platform))
+            self.skip('{} not in {}', repr(sys_platform), repr(pf))
