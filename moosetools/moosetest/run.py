@@ -34,33 +34,23 @@ def _execute_testcase(tc, conn):
     conn.send((state, results))
     conn.close()
 
-def execute_testcases(testcases, conn, timeout):
+def execute_testcases(testcases, q, timeout):
     for tc in testcases:
         unique_id = tc.getParam('_unique_id')
-        conn.send((unique_id, TestCase.Progress.RUNNING, time.time(), None, None))
-        try:
-            """
-            conn_recv, conn_send = multiprocessing.Pipe(False)
-            proc = multiprocessing.Process(target=_execute_testcase, args=(tc, conn_send))
-            proc.start()
+        q.put((unique_id, TestCase.Progress.RUNNING, time.time(), None, None))
 
-            if conn_recv.poll(timeout):
-                state, results = conn_recv.recv()
-            else:
-                proc.terminate()
-                state = TestCase.Result.TIMEOUT
-                results = {tc.name(): (TestCase.Result.TIMEOUT, 1, '', '')}
-            #print(state, results)
-            """
-            state, results = tc.execute()
-        except Exception as ex:
-            #print(traceback.format_exc())
-            state = TestCase.Result.FATAL
-            results = {tc.name(): (TestCase.Result.FATAL, 1, '', traceback.format_exc())}
+        conn_recv, conn_send = multiprocessing.Pipe(False)
+        proc = multiprocessing.Process(target=_execute_testcase, args=(tc, conn_send))
+        proc.start()
 
-        conn.send((unique_id, TestCase.Progress.FINISHED, time.time(), state, results))
+        if conn_recv.poll(timeout):
+            state, results = conn_recv.recv()
+        else:
+            proc.terminate()
+            state = TestCase.Result.TIMEOUT
+            results = {tc.name(): (TestCase.Result.TIMEOUT, 1, '', '')}
 
-    conn.close()
+        q.put((unique_id, TestCase.Progress.FINISHED, time.time(), state, results))
 
 def _on_error(*args):
     print(args)
@@ -72,85 +62,34 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
     tc_kwargs['progress_interval'] = progress_interval
     tc_kwargs['formatter'] = formatter
 
-    #executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
-    pool = multiprocessing.Pool(processes=n_threads)
+    executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
+    manager = multiprocessing.Manager()
+    q = manager.Queue()
+    #pool = multiprocessing.Pool(processes=n_threads)
 
-    pipes = list()
     futures = list()
     testcase_map = dict()
     for runners in groups:
         testcases = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
-        p_recv, p_send = multiprocessing.Pipe(False)
-        pipes.append(p_recv)
-
-        #execute_testcases(testcases, p_send, timeout)
-        #futures.append(executor.submit(execute_testcases, testcases, p_send, timeout))
-        futures.append(pool.apply_async(execute_testcases, args=(testcases, p_send, timeout)))
+        futures.append(executor.submit(execute_testcases, testcases, q, timeout))
         for tc in testcases:
             testcase_map[tc.getParam('_unique_id')] = tc
 
-    pool.close()
-
-    #while any(not f.ready() for f in futures) or any(p.poll(0.01) for p in pipes):
     while len(testcase_map) > 0:
-    #while any(not f.done() for f in futures):
-        for pipe in pipes:
-            if pipe.poll(0.1):
-                try:
-                    unique_id, progress, t, state, results = pipe.recv()
-                    if progress == TestCase.Progress.RUNNING:
-                        tc = testcase_map.get(unique_id)
-                        tc.setProgress(progress, t)
-                    else:
-                        tc = testcase_map.pop(unique_id)
-                        tc.setProgress(progress, t)
-                        tc.setState(state)
-                        tc.setResult(results)
-                        tc.reportResult()
-                except EOFError:
-                    pass
-
-        for tc in testcase_map.values():
-            tc.reportProgress()
-
-    #executor.shutdown()
-    """
-    print(futures)
-    time.sleep(1)
-    print([f.ready() for f in futures])
-    time.sleep(1)
-    print([f.ready() for f in futures])
-
-    while any(not f.ready() for f in futures):# or len(testcase_map) > 0:
-        print('here')
-    #    for comm, _ in pipes:
-    #        if comm.poll():
-    #            unique_id, progress, state, results = comm.recv()
-    #            print(unique_id, progress)
-
-    print(any(not f.ready() for f in futures))
-    """
-
-    """
-    try:
-    unique_id, progress, state, results = comm.get_nowait()
-    if results is None:
-    tc =  testcase_map.get(unique_id)
-    tc.setProgress(progress)
-
-    else:
-    tc = testcase_map.pop(unique_id)
-    tc.setState(state)
-    tc.setResult(results)
-    tc.reportResult()
-
-    except queue.Empty:
-    pass
-
-    for tc in testcase_map.values():
-    tc.reportProgress()
-    """
-
+        try:
+            unique_id, progress, t, state, results = q.get_nowait()
+            if progress == TestCase.Progress.RUNNING:
+                tc = testcase_map.get(unique_id)
+                tc.setProgress(progress, t)
+            else:
+                tc = testcase_map.pop(unique_id)
+                tc.setProgress(progress, t)
+                tc.setState(state)
+                tc.setResult(results)
+                tc.reportResult()
+            q.task_done()
+        except queue.Empty:
+            pass
 
     # TODO: SUM Results, track total time
 
