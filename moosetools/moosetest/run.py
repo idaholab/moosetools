@@ -25,21 +25,36 @@ from moosetools.moosetest.differs import TextDiff
 from moosetools.moosetest.formatters import SimpleFormatter
 
 
+def _execute_testcase(tc, conn):
+    try:
+        state, results = tc.execute()
+    except Exception:
+        state = TestCase.Result.FATAL
+        results = {tc.name(): (TestCase.Result.FATAL, 1, '', traceback.format_exc())}
+    conn.send((state, results))
+    conn.close()
+
 def execute_testcases(testcases, conn, timeout):
     for tc in testcases:
         unique_id = tc.getParam('_unique_id')
         conn.send((unique_id, TestCase.Progress.RUNNING, time.time(), None, None))
         try:
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                f = executor.submit(tc.execute)
-                try:
-                    state, results = f.result(timeout=timeout)
-                except concurrent.futures.TimeoutError:
-                    state = TestCase.Result.TIMEOUT
-                    results = {tc.name(): (TestCase.Result.TIMEOUT, 1, '', '')}
+            """
+            conn_recv, conn_send = multiprocessing.Pipe(False)
+            proc = multiprocessing.Process(target=_execute_testcase, args=(tc, conn_send))
+            proc.start()
 
-            #state, results = tc.execute()
+            if conn_recv.poll(timeout):
+                state, results = conn_recv.recv()
+            else:
+                proc.terminate()
+                state = TestCase.Result.TIMEOUT
+                results = {tc.name(): (TestCase.Result.TIMEOUT, 1, '', '')}
+            #print(state, results)
+            """
+            state, results = tc.execute()
         except Exception as ex:
+            #print(traceback.format_exc())
             state = TestCase.Result.FATAL
             results = {tc.name(): (TestCase.Result.FATAL, 1, '', traceback.format_exc())}
 
@@ -57,39 +72,30 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
     tc_kwargs['progress_interval'] = progress_interval
     tc_kwargs['formatter'] = formatter
 
-    #comm = queue.SimpleQueue()
-    #pool = concurrent.futures.ThreadPoolExecutor(max_workers=n_threads)
-
-    #manager = multiprocessing.Manager()
-    #data = manager.dict()
-    #pool = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
+    #executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
     pool = multiprocessing.Pool(processes=n_threads)
 
     pipes = list()
-
-
-    futures = list() # Future object returned from `pool.submit`
-    testcase_map = dict() # unique_id to Runner object
+    futures = list()
+    testcase_map = dict()
     for runners in groups:
         testcases = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
         p_recv, p_send = multiprocessing.Pipe(False)
         pipes.append(p_recv)
 
-        #execute_testcases(testcases, None)
-        #futures.append(pool.submit(execute_testcases, testcases, None))
-        futures.append(pool.apply_async(execute_testcases, args=(testcases, p_send, timeout),
-                                        error_callback=_on_error))
-        #comm_send.close()
+        #execute_testcases(testcases, p_send, timeout)
+        #futures.append(executor.submit(execute_testcases, testcases, p_send, timeout))
+        futures.append(pool.apply_async(execute_testcases, args=(testcases, p_send, timeout)))
         for tc in testcases:
-            #tc.parameters().set('formatter', formatter)
             testcase_map[tc.getParam('_unique_id')] = tc
 
-    #pool.shutdown()
-
     pool.close()
-    while any(not f.ready() for f in futures):
+
+    #while any(not f.ready() for f in futures) or any(p.poll(0.01) for p in pipes):
+    while len(testcase_map) > 0:
+    #while any(not f.done() for f in futures):
         for pipe in pipes:
-            if pipe.poll():
+            if pipe.poll(0.1):
                 try:
                     unique_id, progress, t, state, results = pipe.recv()
                     if progress == TestCase.Progress.RUNNING:
@@ -106,6 +112,8 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
 
         for tc in testcase_map.values():
             tc.reportProgress()
+
+    #executor.shutdown()
     """
     print(futures)
     time.sleep(1)
@@ -179,7 +187,7 @@ if __name__ == '__main__':
     grp_a[0] = ProcessRunner(name='A:test/1', command=('sleep', '4'),
                           differs=(TextDiff(name='diff', text_in_stderr='sleep'),
                                    TextDiff(name='diff2', text_in_stderr='2')))
-    grp_a[1] = ProcessRunner(name='A:test/2', command=('sleep', '1'))
+    grp_a[1] = ProcessRunner(name='A:test/2', command=('sleep', '2'))
 
 
     grp_b = [None]*3

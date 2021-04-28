@@ -143,10 +143,9 @@ class TestCase(MooseObject):
         self.__progress_time = None
         self.__create_time = None
         self.__start_time = None
-        self.__duration = None
+        self.__execute_time = None
 
         self.setProgress(TestCase.Progress.WAITING, time.time())
-
 
     def redirectOutput(self):
         return RedirectOutput()
@@ -159,7 +158,7 @@ class TestCase(MooseObject):
             self.__start_time = t
             self.__progress_time = t
         elif progress == TestCase.Progress.FINISHED:
-            self.__duration = t - self.__start_time
+            self.__execute_time = t - self.__start_time
 
         self.__progress = progress
 
@@ -169,14 +168,12 @@ class TestCase(MooseObject):
     def setStartTime(self, t):
         self.__start_time = t
 
-    def getDuration(self):
-        if self.__progress == TestCase.Progress.WAITING:
-            return time.time() - self.__create_time
-        elif self.__progress == TestCase.Progress.RUNNING:
-            return time.time() - self.__start_time
-        return self.__duration
-
     def execute(self):
+        """
+
+        """
+
+
         results = dict()
 
         state, rcode, stdout, stderr = self.executeObject(self._runner)
@@ -252,6 +249,7 @@ class TestCase(MooseObject):
         self.__state = state
 
     def setResult(self, result):
+        self.__run_time = time.time() - self.__start_time
         self.__results = result
 
     def reportResult(self):
@@ -276,10 +274,15 @@ class TestCase(MooseObject):
     def _printState(self, obj, state):
         """
         """
-        if obj is self._runner:
-            print(self._formatter.formatRunnerState(obj, state, duration=self.getDuration()))
+        if state == TestCase.Progress.RUNNING:
+            duration = time.time() - self.__start_time
         else:
-            print(self._formatter.formatDifferState(obj, state, duration=self.getDuration()))
+            duration = self.__run_time
+
+        if obj is self._runner:
+            print(self._formatter.formatRunnerState(obj, state, duration=duration))
+        else:
+            print(self._formatter.formatDifferState(obj, state, duration=duration))
 
     def _printResult(self, obj, state, rcode, out, err):
         """
