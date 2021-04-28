@@ -11,7 +11,7 @@ class SimpleFormatter(Formatter):
         params.add('differ_indent', default=' '*4, vtype=str,
                    doc="The text to use for indenting the differ state output.")
         params.add('fill_character', default='.', vtype=str,
-                   verify=(lambda v: len(v) == 1, "Must be a single character."),
+                   #verify=(lambda v: len(v) == 1, "Must be a single character."), # TODO: This break multiprocessing...
                    doc="The character to use for filling between name and state.")
         return params
 

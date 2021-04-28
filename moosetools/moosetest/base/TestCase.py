@@ -7,7 +7,7 @@ import uuid
 import logging
 import collections
 import multiprocessing
-import threading
+#import threading
 import textwrap
 from moosetools import mooseutils
 from moosetools.base import MooseObject
@@ -37,13 +37,15 @@ class RedirectOutput(object):
 
         @property
         def is_main(self):
-            return threading.main_thread().ident == threading.current_thread().ident
+            return multiprocessing.parent_process() is None
+            #return threading.main_thread().ident == threading.current_thread().ident
 
         def write(self, message):
             if self.is_main:
                 self._sysout.write(message)
             else:
-                self._out[threading.current_thread().ident].write(message)
+                self._out[multiprocessing.current_process().pid].write(message)
+                #self._out[threading.current_thread().ident].write(message)
 
         def flush(self):
             if self.is_main:
@@ -60,11 +62,13 @@ class RedirectOutput(object):
 
     @property
     def stdout(self):
-        return self._stdout[threading.current_thread().ident].getvalue()
+        return self._stdout[multiprocessing.current_process().pid].getvalue()
+        #return self._stdout[threading.current_thread().ident].getvalue()
 
     @property
     def stderr(self):
-        return self._stderr[threading.current_thread().ident].getvalue()
+        return self._stderr[multiprocessing.current_process().pid].getvalue()
+        #return self._stderr[threading.current_thread().ident].getvalue()
 
     def __enter__(self):
         self._logging_handlers = list()
@@ -93,14 +97,14 @@ class TestCase(MooseObject):
         WAITING  = (1, 0, 'WAITING', ('grey_82',))
         RUNNING  = (2, 0, 'RUNNING', ('dodger_blue_3',))
         FINISHED = (3, 0, 'FINISHED', ('white',))
-        CLOSED   = (4, 0, 'CLOSED', ('white',))
 
     class Result(State):
         SKIP      = (11, 0, 'SKIP', ('cyan_1',))
         PASS      = (12, 0, 'OK', ('green_1',))
         ERROR     = (13, 1, 'ERROR', ('red_1',))
         EXCEPTION = (14, 1, 'EXCEPTION', ('magenta_1',))
-        FATAL     = (15, 1, 'FATAL', ('white', 'red_1')) # internal error (see, run.py)
+        TIMEOUT   = (15, 1, 'TIMEOUT', ('orange_1',))
+        FATAL     = (16, 1, 'FATAL', ('white', 'red_1')) # internal error (see, run.py)
 
     @staticmethod
     def validParams():
@@ -108,7 +112,7 @@ class TestCase(MooseObject):
 
         params.add('runner', vtype=Runner, required=True, mutable=False,
                    doc="The `Runner` object to execute.")
-        params.add('formatter', vtype=Formatter, required=True, mutable=False,
+        params.add('formatter', vtype=Formatter, required=False, mutable=True,
                    doc="The `Formatter` object for displaying test case progress and results.")
         params.add('controllers', vtype=Controller, array=True, mutable=False,
                    doc="`Controller` object(s) that dictate if the Runner should run.")
@@ -134,7 +138,6 @@ class TestCase(MooseObject):
 
         self.__results = None
         self.__progress = None
-        self.setProgress(TestCase.Progress.WAITING)
 
         self.__progress_time = time.time()
         self.__progress_interval = self.getParam('progress_interval')
@@ -143,26 +146,32 @@ class TestCase(MooseObject):
         self.__start_time = None
         self.__duration = None
 
+        self.setProgress(TestCase.Progress.WAITING)
+
+
     def redirectOutput(self):
         return RedirectOutput()
 
     def setProgress(self, progress):
+        if progress == TestCase.Progress.RUNNING:
+            self.__start_time = time.time()
+            self.__progress_time = time.time()
+
         self.__progress = progress
 
     def getProgress(self):
         return self.__progress
 
     def getDuration(self):
-        if (self.__duration is None) and (self.__start_time is None):
-            return time.time() - self.__start_time
-        elif (self.__duration is None):
+        if self.__progress == TestCase.Progress.WAITING:
             return time.time() - self.__create_time
+        elif self.__progress == TestCase.Progress.RUNNING:
+            return time.time() - self.__start_time
         return self.__duration
 
     def execute(self):
         results = dict()
 
-        self.__start_time = time.time()
         state, rcode, stdout, stderr = self.executeObject(self._runner)
         results[self._runner.name()] = (state, rcode, stdout, stderr)
         if (state == TestCase.Result.SKIP) or (state.exitcode > 0):
