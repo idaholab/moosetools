@@ -3,9 +3,7 @@ import io
 import sys
 import copy
 import time
-import asyncio
 import traceback
-import threading
 import multiprocessing
 multiprocessing.set_start_method('fork')
 
@@ -15,9 +13,6 @@ import concurrent.futures
 
 #import dill
 
-import queue
-import logging
-import collections
 
 from moosetools.mooseutils import color_text
 from moosetools.moosetest.base import State, TestCase
@@ -131,7 +126,7 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
     print(formatter.formatComplete(testcase_map.values(), duration=time.time() - start_time))
 
 if __name__ == '__main__':
-
+    import logging
     logging.basicConfig()
 
     grp_a = [None]*3
