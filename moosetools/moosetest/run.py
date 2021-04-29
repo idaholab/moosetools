@@ -126,11 +126,6 @@ if __name__ == '__main__':
     controllers = (EnvironmentController(),)
     formatter = SimpleFormatter()
 
-    #params = ProcessRunner.validParams()
-    #for ctrl in controllers:
-    #    params.add(ctrl.getParam('prefix'), default=ctrl.validObjectParams())
-
-
     grp_a = [None]*3
     grp_a[0] = ProcessRunner(None, controllers, name='A:test/1', command=('sleep', '4'),
                           differs=(TextDiff(None, controllers, name='diff', text_in_stderr='sleep'),
