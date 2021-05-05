@@ -6,9 +6,10 @@ from moosetools.moosetest.base import Controller
 
 class EnvironmentController(Controller):
     """
-    Controls if a `TestCase` should execute based on the operating environment.
-    """
+    Controls if a `moosetest.base.Runner` or `moosetest.base.Differ` should execute.
 
+    Refer to `moosetest.base.Runner` documentation for how these are utilized.
+    """
     @staticmethod
     def validParams():
         params = Controller.validParams()
@@ -17,6 +18,10 @@ class EnvironmentController(Controller):
 
     @staticmethod
     def validObjectParams():
+        """
+        Return an `parameters.InputParameters` object to be added to a sub-parameter of an object
+        with the name given in the "prefix" parameter
+        """
         params = Controller.validObjectParams()
         params.add('platform', array=True, allow=('Linux', 'Darwin', 'Windows'),
                    doc="Limit the execution to the supplied platform(s).")
@@ -36,4 +41,6 @@ class EnvironmentController(Controller):
         self.debug('platform.system() = {}', repr(sys_platform))
         pf = params.get('platform')
         if (pf is not None) and (sys_platform not in pf):
-            self.skip('{} not in {}', repr(sys_platform), repr(pf))
+            self.skip(obj, '{} not in {}', repr(sys_platform), repr(pf))
+            self.debug("The system platform {} is not in the allowable platforms list of {}",
+                       repr(sys_platform), repr(pf))

@@ -38,6 +38,9 @@ def valid_params():
     params.add('spec_file_blocks', vtype=str, array=True, default=('Tests',),
                doc="List of top-level test specifications (e.g., `[Tests]`) HIT blocks to run.")
 
+    levels = tuple(logging._nameToLevel.keys())
+    params.add('log_level', default='INFO', vtype=str, allow=levels, mutable=False,
+               doc="Set the logging level, see python 'logging' package for details.")
 
     return params
 
@@ -69,17 +72,11 @@ def main():
     # Extract command-line arguments
     args = cli_args()
 
-    # TODO: update docs after this is working, perhaps the handler needs to be set on the MooseTest object
-    # TODO: change formatter in redirect output of TestCase
-    # Setup basic logging. The formatting is removed to allow for captured logs from the tests to
-    # have a minimal width. A stream handler is also added to allow for the capture to occur, this
-    # occurs in the TestCase object.
-    #handler = logging.StreamHandler()
-    #logging.basicConfig(handlers=[handler], level=args.level)#, format='%(message)s')
-    logging.basicConfig(level='DEBUG')
-
     # Load the configuration
     filename, config = _locate_and_load_config(args.config)
+
+    # Initialize logging
+    logging.basicConfig(level=config.get('log_level'))
 
     # Get/update the [Main] parameters
     params = _create_main_parameters(filename, config)

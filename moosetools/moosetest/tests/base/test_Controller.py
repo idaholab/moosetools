@@ -29,3 +29,10 @@ class TestController(unittest.TestCase):
 
         ctrl.reset()
         self.assertTrue(ctrl.isRunnable())
+
+    def testValidObjectParams(self):
+        params = moosetest.base.Controller.validObjectParams()
+        self.assertIsInstance(params, InputParameters)
+
+if __name__ == '__main__':
+    unittest.main(module=__name__, verbosity=2)

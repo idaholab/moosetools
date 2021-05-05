@@ -6,22 +6,18 @@ from moosetools.base import MooseObject
 
 class Controller(MooseObject):
     """
-    TODO: Clean this up...
+    An object to dictate if a `moosetest.base.Runner` or `moosetest.base.Differ` should execute.
 
-    The `Controller` objects are used to dictate if the tests are able to run based on things like the
-    operating environment. Each Controller object parameters are added to a sub-InputParameters for
-    all test objects (i.e., Runners and Differs) upon creation of these objects. This allows test
-    run controls to be added to all objects, such that each Runner and/or differ can run on
-    different system configurations.
+    The parameters defined in the static `validObjectParams` are applied to the `validParams` of
+    a `moosetest.base.Runner` or `moosetest.base.Differ`. Refer to `moosetest.base.Runner`
+    documentation for how these are utilized.
 
     The idea behind this concept is to allow for these checks to be shared among custom objects
     while allowing basic functionality to be included in the moosetools repository.
 
-    The Controller objects within this repository are added by default, custom objects can be
+    The `Controller` objects within this repository are added by default, custom objects can be
     added by the [Controllers] block with the '.moosetools' configure file.
     """
-    PREFIX = None
-
     @staticmethod
     def validParams():
         params = MooseObject.validParams()
@@ -31,6 +27,10 @@ class Controller(MooseObject):
 
     @staticmethod
     def validObjectParams():
+        """
+        Return an `parameters.InputParameters` object to be added to a sub-parameter of an object
+        with the name given in the "prefix" parameter.
+        """
         params = InputParameters()
         return params
 
@@ -38,13 +38,57 @@ class Controller(MooseObject):
         kwargs.setdefault('name', self.__class__.__name__)
         MooseObject.__init__(self, *args, **kwargs)
         self.__runnable = True
+        self.__reasons = list()
+
+    def reset(self):
+        """
+        Reset the "runnable" and log status.
+        """
+        self.__runnable = True
+        self.__reasons = list()
+        MooseObject.reset(self)
+
+    def reasons(self):
+        """
+
+        """
+        return self.__reasons
 
     def isRunnable(self):
+        """
+        Return `True` if the `execute` method of the object provided to the `execute` method of this
+        class should be called.
+
+        See `moosetest.base.TestCase` for details of how this method is used.
+        """
         return self.__runnable
 
-    def skip(self, *args, **kwargs):
-        self.__runnable = False
-        self.info(*args, **kwargs)
+    def skip(self, obj, msg, *args, **kwargs):
+        """
+        Indicate that the *obj* that was passed to the `execute` method of this class should not run.
 
-    def execute(self, obj):
-        raise NotImplementedError()
+        The supplied *msg* is formatted with the `format` built-in with the supplied *\*args* and
+        *\*\*kwargs* arguments.
+
+        !alert tip title=Keep the message short
+        The supplied message to this function should be as short as possible, since the content
+        of the message is printed on a single line with the test name. If more information is needed
+        the standard logging methods ('info', 'debug', etc. should be used). It is recommended that
+        detailed messages be logged with the 'debug' method. For an example please refer to the
+        `moosetest.controllers.EnvironmentController` for an example.
+        """
+        self.__runnable = False
+        self.__reasons.append(msg.format(*args, **kwargs))
+
+    def execute(self, obj, params):
+        """
+        Determine if the supplied *obj*, which should be a `moosetest.base.Runner` or
+        `moosetest.base.Differ` object, should run. The *params* are the sub-parameters from object
+        add by this `Controller` object.
+
+        This method must be overridden in a child class. The `skip` method should be called to
+        indicate that the supplied object should not be run.
+
+        See `moosetest.base.TestCase` for details of how this method is used.
+        """
+        raise NotImplementedError("The 'execute' method must be overridden.")

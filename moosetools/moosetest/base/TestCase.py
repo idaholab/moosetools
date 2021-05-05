@@ -10,6 +10,7 @@ import multiprocessing
 import traceback
 #import threading
 import textwrap
+
 from moosetools import mooseutils
 from moosetools.base import MooseObject
 #from .MooseTestController import MooseTestController
@@ -21,13 +22,20 @@ from .Formatter import Formatter
 
 
 class State(enum.Enum):
-    def __new__(cls, value, level, display, color):
+    def __new__(cls, value, level, text, color):
         obj = object.__new__(cls)
         obj._value_ = value
         obj.level = level
-        obj.display = display
+        obj.text = text
         obj.color = color
         return obj
+
+    @property
+    def display(self):
+        return mooseutils.color_text(f"{self.text}", *self.color)
+
+    def format(self, msg, *args, **kwargs):
+        return mooseutils.color_text(msg.format(*args, **kwargs), *self.color)
 
 
 class RedirectOutput(object):
@@ -101,7 +109,7 @@ class TestCase(MooseObject):
 
     class Result(State):
         PASS      = (10, 0, 'OK', ('green_1',))
-        SKIP      = (11, 1, 'SKIP', ('cyan_1',))
+        SKIP      = (11, 1, 'SKIP', ('grey_42',))
         TIMEOUT   = (12, 2, 'TIMEOUT', ('orange_1',))
         ERROR     = (13, 3, 'ERROR', ('red_1',))
         EXCEPTION = (14, 4, 'EXCEPTION', ('magenta_1',))
@@ -117,9 +125,6 @@ class TestCase(MooseObject):
                    doc="The `Formatter` object for displaying test case progress and results.")
         params.add('controllers', vtype=Controller, array=True, mutable=False,
                    doc="`Controller` object(s) that dictate if the Runner should run.")
-
-        params.add('progress_interval', default=5, vtype=(float, int), mutable=False,
-                   doc="Interval, in seconds, between progress updates.")
 
         params.add('_unique_id', vtype=uuid.UUID, mutable=True, private=True)
 
@@ -205,14 +210,14 @@ class TestCase(MooseObject):
         """
         results = dict()
 
-        state, rcode, stdout, stderr = self.executeObject(self._runner)
-        results[self._runner.name()] = (state, rcode, stdout, stderr)
+        state, rcode, stdout, stderr, reasons = self.executeObject(self._runner)
+        results[self._runner.name()] = (state, rcode, stdout, stderr, reasons)
         if state.level > 0:
             return state, results
 
         for obj in self._differs:
-            d_state, d_rcode, d_stdout, d_stderr = self.executeObject(obj, rcode, stdout, stderr)
-            results[obj.name()] = (d_state, d_rcode, d_stdout, d_stderr)
+            d_state, d_rcode, d_stdout, d_stderr, d_reasons = self.executeObject(obj, rcode, stdout, stderr)
+            results[obj.name()] = (d_state, d_rcode, d_stdout, d_stderr, d_reasons)
             if d_state.level > state.level:
                 state = d_state
 
@@ -227,8 +232,8 @@ class TestCase(MooseObject):
             try:
                 obj.reset() # clear log counts of the object to be passed to the Controller
             except Exception as ex:
-                #self.exception("An unexpected exception occurred during the reset call of the {} object in preparation for calling the {} controller.\n{}", obj.name(), type(self._controller))
-                return TestCase.Result.FATAL, 1, out.stdout, out.stderr
+                self.exception("An error occurred while calling the reset method of the '{}' object.", obj.name())
+                return TestCase.Result.FATAL, 1, out.stdout, out.stderr, None
 
         # Loop through each `Controller` object
         for controller in self._controllers:
@@ -242,20 +247,20 @@ class TestCase(MooseObject):
                     # Stop if an error is logged on the Controller object
                     if controller.status():
                         self.error("An error occurred, on the controller, during execution of the {} with '{}' object.", type(controller).__name__, obj.name())
-                        return TestCase.Result.FATAL, 1, out.stdout, out.stderr
+                        return TestCase.Result.FATAL, 1, out.stdout, out.stderr, None
 
                     # Stop if an error is logged on the object, due to execution of Controller
                     if obj.status():
                         self.error("An error occurred, on the object, during execution of the {} with '{}' object.", type(controller).__name__, obj.name())
-                        return TestCase.Result.FATAL, 1, out.stdout, out.stderr
+                        return TestCase.Result.FATAL, 1, out.stdout, out.stderr, None
 
                     # Skip it...maybe
                     if not controller.isRunnable():
-                        return TestCase.Result.SKIP, 0, out.stdout, out.stderr
+                        return TestCase.Result.SKIP, 0, out.stdout, out.stderr, controller.reasons()
 
                 except Exception as ex:
                     self.error("An exception occurred during execution of the {} with '{}' object.\n{}", type(controller).__name__, obj.name(), traceback.format_exc())
-                    return TestCase.Result.FATAL, 1, out.stdout, out.stderr
+                    return TestCase.Result.FATAL, 1, out.stdout, out.stderr, None
 
         # Execute the object
         with self.redirectOutput() as out:
@@ -264,15 +269,15 @@ class TestCase(MooseObject):
 
                 # Errors on object result in failure
                 if obj.status():
-                    self.error("An error occurred during execution of '{}' object.", obj.name())
-                    return TestCase.Result.ERROR, 1, out.stdout, out.stderr
+                    self.error("An error occurred during execution of the '{}' object.", obj.name())
+                    return TestCase.Result.ERROR, 1, out.stdout, out.stderr, None
 
             except Exception as ex:
-                self.exception("An exception occurred during execution of '{}' object.", obj.name())
-                return TestCase.Result.EXCEPTION, 1, out.stdout, out.stderr
+                self.exception("An exception occurred during execution of the '{}' object.", obj.name())
+                return TestCase.Result.EXCEPTION, 1, out.stdout, out.stderr, None
 
 
-        return TestCase.Result.PASS, rcode, out.stdout, out.stderr
+        return TestCase.Result.PASS, rcode, out.stdout, out.stderr, None
 
     def setState(self, state):
         self.__state = state
@@ -281,21 +286,21 @@ class TestCase(MooseObject):
         self.__results = result
 
     def reportResult(self):
-        self._printState(self._runner, self.__state)
+        r_state, r_rcode, r_out, r_err, r_reasons = self.__results.get(self._runner.name())
 
-        r_state, r_rcode, r_out, r_err = self.__results.get(self._runner.name())
-        self._printResult(self._runner, r_state, r_rcode, r_out, r_err)
+        self._printState(self._runner, self.__state, r_reasons)
+        self._printResult(self._runner, r_state, r_rcode, r_out, r_err, r_reasons)
 
         for obj in [d for d in self._differs if d.name() in self.__results]:
-            d_state, d_rcode, d_out, d_err = self.__results.get(obj.name())
-            self._printState(obj, d_state)
-            self._printResult(obj, d_state, d_rcode, d_out, d_err)
+            d_state, d_rcode, d_out, d_err, d_reasons = self.__results.get(obj.name())
+            self._printState(obj, d_state, d_reasons)
+            self._printResult(obj, d_state, d_rcode, d_out, d_err, d_reasons)
 
     def reportProgress(self):
-        self._printState(self._runner, self.__progress)
+        self._printState(self._runner, self.__progress, None)
         self.__progress_time = time.time()
 
-    def _printState(self, obj, state):
+    def _printState(self, obj, state, reasons):
         """
         """
         if state == TestCase.Progress.RUNNING:
@@ -303,19 +308,35 @@ class TestCase(MooseObject):
         else:
             duration = self.__execute_time
 
+        kwargs = dict()
+        kwargs['name'] = obj.name()
+        kwargs['reasons'] = reasons
+        kwargs['duration'] = duration
+        kwargs['state'] = state
+
         if obj is self._runner:
-            txt = self._formatter.formatRunnerState(obj, state, duration=duration)
+            txt = self._formatter.formatRunnerState(**kwargs)
         else:
-            txt = self._formatter.formatDifferState(obj, state, duration=duration)
+            txt = self._formatter.formatDifferState(**kwargs)
         if txt:
             print(txt)
 
-    def _printResult(self, obj, state, rcode, out, err):
+    def _printResult(self, obj, state, rcode, out, err, reasons):
         """
         """
+        kwargs = dict()
+
+        kwargs['name'] = obj.name()
+        kwargs['reasons'] = reasons
+        kwargs['duration'] = self.__execute_time
+        kwargs['state'] = state
+        kwargs['returncode'] = rcode
+        kwargs['stdout'] = out
+        kwargs['stderr'] = err
+
         if obj is self._runner:
-            txt = self._formatter.formatRunnerResult(obj, state, rcode, out, err)
+            txt = self._formatter.formatRunnerResult(**kwargs)
         else:
-            txt = self._formatter.formatDifferResult(obj, state, rcode, out, err)
+            txt = self._formatter.formatDifferResult(**kwargs)
         if txt:
             print(txt)

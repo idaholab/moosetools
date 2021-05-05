@@ -1,2 +1,2 @@
 from .FStringFormatter import FStringFormatter
-from .SimpleFormatter import SimpleFormatter
+from .BasicFormatter import BasicFormatter
