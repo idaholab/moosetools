@@ -8,18 +8,15 @@ import logging
 import collections
 import multiprocessing
 import traceback
-#import threading
+from dataclasses import dataclass
 import textwrap
 
 from moosetools import mooseutils
 from moosetools.base import MooseObject
-#from .MooseTestController import MooseTestController
 from .Runner import Runner
 from .Differ import Differ
 from .Controller import Controller
 from .Formatter import Formatter
-
-
 
 class State(enum.Enum):
     def __new__(cls, value, level, text, color):
@@ -102,6 +99,10 @@ class RedirectOutput(object):
             h.setFormatter(f)
 
 class TestCase(MooseObject):
+
+    __TOTAL = 0
+    __FINISHED = 0
+
     class Progress(State):
         WAITING  = (0, 0, 'WAITING', ('grey_82',))
         RUNNING  = (1, 0, 'RUNNING', ('dodger_blue_3',))
@@ -114,6 +115,14 @@ class TestCase(MooseObject):
         ERROR     = (13, 3, 'ERROR', ('red_1',))
         EXCEPTION = (14, 4, 'EXCEPTION', ('magenta_1',))
         FATAL     = (15, 5, 'FATAL', ('white', 'red_1')) # internal error (see, run.py)
+
+    @dataclass
+    class Data:
+        state: State = None
+        returncode: int = None
+        stdout: str = None
+        stderr: str = None
+        reasons: list[str] = None
 
     @staticmethod
     def validParams():
@@ -150,6 +159,8 @@ class TestCase(MooseObject):
         self.__create_time = None
         self.__start_time = None
         self.__execute_time = None
+
+        TestCase.__TOTAL += 1
 
         self.setProgress(TestCase.Progress.WAITING)
 
@@ -200,6 +211,7 @@ class TestCase(MooseObject):
             if self.__start_time is None: self.__start_time = current
             self.__progress_time = current
         elif progress == TestCase.Progress.FINISHED:
+            TestCase.__FINISHED += 1
             if self.__execute_time is None: self.__execute_time = current - self.__start_time if self.__start_time else 0
 
         self.__progress = progress
@@ -210,16 +222,17 @@ class TestCase(MooseObject):
         """
         results = dict()
 
-        state, rcode, stdout, stderr, reasons = self.executeObject(self._runner)
-        results[self._runner.name()] = (state, rcode, stdout, stderr, reasons)
-        if state.level > 0:
-            return state, results
+        r_data = self.executeObject(self._runner)
+        results[self._runner.name()] = r_data
+        if r_data.state.level > 0:
+            return r_data.state, results
 
+        state = r_data.state
         for obj in self._differs:
-            d_state, d_rcode, d_stdout, d_stderr, d_reasons = self.executeObject(obj, rcode, stdout, stderr)
-            results[obj.name()] = (d_state, d_rcode, d_stdout, d_stderr, d_reasons)
-            if d_state.level > state.level:
-                state = d_state
+            d_data = self.executeObject(obj, r_data.returncode, r_data.stdout, r_data.stderr)
+            results[obj.name()] = d_data
+            if d_data.state.level > state.level:
+                state = d_data.state
 
         return state, results
 
@@ -233,7 +246,7 @@ class TestCase(MooseObject):
                 obj.reset() # clear log counts of the object to be passed to the Controller
             except Exception as ex:
                 self.exception("An error occurred while calling the reset method of the '{}' object.", obj.name())
-                return TestCase.Result.FATAL, 1, out.stdout, out.stderr, None
+                return TestCase.Data(TestCase.Result.FATAL, 1, out.stdout, out.stderr, None)
 
         # Loop through each `Controller` object
         for controller in self._controllers:
@@ -247,20 +260,20 @@ class TestCase(MooseObject):
                     # Stop if an error is logged on the Controller object
                     if controller.status():
                         self.error("An error occurred, on the controller, during execution of the {} with '{}' object.", type(controller).__name__, obj.name())
-                        return TestCase.Result.FATAL, 1, out.stdout, out.stderr, None
+                        return TestCase.Data(TestCase.Result.FATAL, 1, out.stdout, out.stderr, None)
 
                     # Stop if an error is logged on the object, due to execution of Controller
                     if obj.status():
                         self.error("An error occurred, on the object, during execution of the {} with '{}' object.", type(controller).__name__, obj.name())
-                        return TestCase.Result.FATAL, 1, out.stdout, out.stderr, None
+                        return TestCase.Data(TestCase.Result.FATAL, 1, out.stdout, out.stderr, None)
 
                     # Skip it...maybe
                     if not controller.isRunnable():
-                        return TestCase.Result.SKIP, 0, out.stdout, out.stderr, controller.reasons()
+                        return TestCase.Data(TestCase.Result.SKIP, 0, out.stdout, out.stderr, controller.reasons())
 
                 except Exception as ex:
                     self.error("An exception occurred during execution of the {} with '{}' object.\n{}", type(controller).__name__, obj.name(), traceback.format_exc())
-                    return TestCase.Result.FATAL, 1, out.stdout, out.stderr, None
+                    return TestCase.Data(TestCase.Result.FATAL, 1, out.stdout, out.stderr, None)
 
         # Execute the object
         with self.redirectOutput() as out:
@@ -270,14 +283,14 @@ class TestCase(MooseObject):
                 # Errors on object result in failure
                 if obj.status():
                     self.error("An error occurred during execution of the '{}' object.", obj.name())
-                    return TestCase.Result.ERROR, 1, out.stdout, out.stderr, None
+                    return TestCase.Data(TestCase.Result.ERROR, 1, out.stdout, out.stderr, None)
 
             except Exception as ex:
                 self.exception("An exception occurred during execution of the '{}' object.", obj.name())
-                return TestCase.Result.EXCEPTION, 1, out.stdout, out.stderr, None
+                return TestCase.Data(TestCase.Result.EXCEPTION, 1, out.stdout, out.stderr, None)
 
 
-        return TestCase.Result.PASS, rcode, out.stdout, out.stderr, None
+        return TestCase.Data(TestCase.Result.PASS, rcode, out.stdout, out.stderr, None)
 
     def setState(self, state):
         self.__state = state
@@ -286,15 +299,15 @@ class TestCase(MooseObject):
         self.__results = result
 
     def reportResult(self):
-        r_state, r_rcode, r_out, r_err, r_reasons = self.__results.get(self._runner.name())
+        r_data = self.__results.get(self._runner.name())
 
-        self._printState(self._runner, self.__state, r_reasons)
-        self._printResult(self._runner, r_state, r_rcode, r_out, r_err, r_reasons)
+        self._printState(self._runner, self.__state, r_data.reasons)
+        self._printResult(self._runner, r_data)
 
         for obj in [d for d in self._differs if d.name() in self.__results]:
-            d_state, d_rcode, d_out, d_err, d_reasons = self.__results.get(obj.name())
-            self._printState(obj, d_state, d_reasons)
-            self._printResult(obj, d_state, d_rcode, d_out, d_err, d_reasons)
+            d_data = self.__results.get(obj.name())
+            self._printState(obj, d_data.state, d_data.reasons)
+            self._printResult(obj, d_data)
 
     def reportProgress(self):
         self._printState(self._runner, self.__progress, None)
@@ -308,11 +321,13 @@ class TestCase(MooseObject):
         else:
             duration = self.__execute_time
 
+        # TODO: Document these items and make them the same
         kwargs = dict()
         kwargs['name'] = obj.name()
+        kwargs['state'] = state
         kwargs['reasons'] = reasons
         kwargs['duration'] = duration
-        kwargs['state'] = state
+        kwargs['percent'] = TestCase.__FINISHED / TestCase.__TOTAL * 100
 
         if obj is self._runner:
             txt = self._formatter.formatRunnerState(**kwargs)
@@ -321,18 +336,21 @@ class TestCase(MooseObject):
         if txt:
             print(txt)
 
-    def _printResult(self, obj, state, rcode, out, err, reasons):
+    def _printResult(self, obj, data):
         """
         """
         kwargs = dict()
 
+        # TODO: Document these items
         kwargs['name'] = obj.name()
-        kwargs['reasons'] = reasons
+        kwargs['state'] = data.state
+        kwargs['reasons'] = data.reasons
+        kwargs['returncode'] = data.returncode
         kwargs['duration'] = self.__execute_time
-        kwargs['state'] = state
-        kwargs['returncode'] = rcode
-        kwargs['stdout'] = out
-        kwargs['stderr'] = err
+        kwargs['percent'] = TestCase.__FINISHED / TestCase.__TOTAL * 100
+
+        kwargs['stdout'] = data.stdout
+        kwargs['stderr'] = data.stderr
 
         if obj is self._runner:
             txt = self._formatter.formatRunnerResult(**kwargs)

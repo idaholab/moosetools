@@ -17,7 +17,7 @@ def _execute_testcase(tc, conn):
         state, results = tc.execute()
     except Exception:
         state = TestCase.Result.FATAL
-        results = {tc.name(): (TestCase.Result.FATAL, 1, '', traceback.format_exc())}
+        results = {tc.name(): TestCase.Data(TestCase.Result.FATAL, 1, '', traceback.format_exc(), None)}
     conn.send((state, results))
     conn.close()
 
@@ -29,7 +29,7 @@ def _execute_testcases(testcases, q, timeout):
         unique_id = tc.getParam('_unique_id')
         if skip_message:
             state = TestCase.Result.SKIP
-            results = {tc.name(): (TestCase.Result.SKIP, 0, '', skip_message, ['Dependency failed'])}
+            results = {tc.name(): TestCase.Data(TestCase.Result.SKIP, 0, '', skip_message, ['Dependency failed'])}
             q.put((unique_id, TestCase.Progress.FINISHED, state, results))
             continue
 
@@ -44,7 +44,7 @@ def _execute_testcases(testcases, q, timeout):
         else:
             proc.terminate()
             state = TestCase.Result.TIMEOUT
-            results = {tc.name(): (TestCase.Result.TIMEOUT, 1, '', '', None)}
+            results = {tc.name(): TestCase.Data(TestCase.Result.TIMEOUT, 1, '', '', None)}
 
         q.put((unique_id, TestCase.Progress.FINISHED, state, results))
 
@@ -77,7 +77,7 @@ def _running_progress(testcase_map, futures, progress_interval, max_fails):
         if (num_fail >= max_fails) and tc.waiting:
             tc.setProgress(TestCase.Progress.FINISHED)
             tc.setState(TestCase.Result.SKIP)
-            tc.setResult({tc.name(): (TestCase.Result.SKIP, 0, '', f"Max failures of {max_fails} exceeded.", ['Max failures reached'])})
+            tc.setResult({tc.name(): TestCase.Data(TestCase.Result.SKIP, 0, '', f"Max failures of {max_fails} exceeded.", ['Max failures reached'])})
             tc.reportResult()
 
         if tc.running and (tc.time > progress_interval):
@@ -156,4 +156,4 @@ if __name__ == '__main__':
 
     groups = [grp_a, grp_b, grp_c, grp_d]
 
-    sys.exit(run(groups, controllers, formatter, n_threads=1, timeout=10, max_fails=5, progress_interval=4))
+    sys.exit(run(groups, controllers, formatter, n_threads=4, timeout=10, max_fails=5, progress_interval=4))

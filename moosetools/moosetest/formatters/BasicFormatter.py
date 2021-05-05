@@ -22,7 +22,7 @@ class BasicFormatter(Formatter):
                    doc="The width of the state output (the results output is not altered).")
         params.add('print_state', vtype=TestCase.Result, default=TestCase.Result.TIMEOUT,
                    doc="The minimum state of results to display.")
-        params.add('differ_indent', default=' '*4, vtype=str,
+        params.add('differ_indent', default=' '*15, vtype=str,
                    doc="The text to use for indenting the differ state output.")
         #params.add('fill_character', default='.', vtype=str,
                   # verify=(lambda v: len(v) == 1, "Must be a single character."), # TODO: This break multiprocessing...
@@ -42,9 +42,10 @@ class BasicFormatter(Formatter):
         return char * (width - sum([len(a) for a in args]) - 1)
 
     def formatRunnerState(self, **kwargs):
-        return self._formatState(**kwargs)
+        return self._formatState('', **kwargs)
 
     def formatDifferState(self, **kwargs):
+        kwargs.pop('percent')
         return self._formatState(self.getParam('differ_indent'), **kwargs)
 
     def formatRunnerResult(self, **kwargs):
@@ -66,13 +67,16 @@ class BasicFormatter(Formatter):
         out.append(' '.join(f"{color_text(s.display, *s.color)}:{counts[s]}" for s in TestCase.Result))
         return '\n'.join(out)
 
-    def _formatState(self, indent='', **kwargs):
+    def _formatState(self, indent, **kwargs):
         state = kwargs.get('state')
         reasons = kwargs.get('reasons')
+        percent = kwargs.get('percent', None)
+        if percent is not None:
+            percent = f'{percent:>3.0f}% '
         if reasons is not None:
             reasons = '; '.join(reasons)
         stext = f"{state.text:.<{self._max_state_width + 1}}{kwargs['name']}"
-        msg = f"{indent}{state.format(stext)} [{kwargs['duration']:.2f}s] {reasons or ''}"
+        msg = f"{percent or ''}{indent}{state.format(stext)} [{kwargs['duration']:.2f}s] {reasons or ''}"
         return msg
 
     def _formatResult(self, indent='', **kwargs):
