@@ -155,7 +155,6 @@ if __name__ == '__main__':
     grp_d[1] = ProcessRunner(None, controllers, name='D:test/2', command=('sleep', '1'), env_platform=('Linux',))
 
 
-
     groups = [grp_a, grp_b, grp_c, grp_d]
 
     sys.exit(run(groups, controllers, formatter, n_threads=4, timeout=10, max_fails=5, progress_interval=4))

@@ -334,7 +334,6 @@ class TestCase(MooseObject):
         and results returned from this method are communicated to the root process instance and
         stored there for reporting.
         """
-
         # The results to be returned
         results = dict()
 
@@ -434,6 +433,7 @@ class TestCase(MooseObject):
         return TestCase.Data(TestCase.Result.PASS, rcode, out.stdout, out.stderr, None)
 
     def setResult(self, result):
+        # Check data
         self.__results = result
 
     def reportResult(self):

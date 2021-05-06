@@ -38,5 +38,11 @@ class TestRunner(unittest.TestCase):
         self.assertIn('platform', runner.getParam('test'))
         self.assertEqual(runner.getParam('test_platform'), 'TempleOS')
 
+    def testDiffers(self):
+        d = moosetest.base.make_differ(moosetest.base.Differ, name='a')
+        runner = moosetest.base.make_runner(moosetest.base.Runner, differs=(d,), name='name', test_platform='TempleOS')
+        self.assertIs(runner.getParam('differs')[0], d)
+
+
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

@@ -51,21 +51,19 @@ class MooseObject(object):
                    doc="Set the logging level, see python 'logging' package for details.")
         params.add('log_status_error_level', default='ERROR', vtype=str, allow=levels,
                    doc="Set the allowable logging level for the status method to return an error code.")
-
-        params.add('_logger', vtype=logging.Logger, mutable=False, private=True)
         return params
 
     def __init__(self, params=None, **kwargs):
         type(self).__MooseObject_counter__ += 1
         self.__log_counts = {key: 0 for key in logging._levelToName.keys()}
-        self._parameters = getattr(self.__class__, 'validParams')() if params is None else params
+        self._parameters = getattr(self.__class__, 'validParams')() if (params is None) else params
         self._parameters.update(**kwargs)
         self._parameters.set('_moose_object', self)
         self._parameters.validate()  # once this is called, the mutable flag becomes active
 
         # Create a unique logger for this object, to allow for object level log controls
         logger_name = '{}.{}'.format(self.__class__.__module__, type(self).__MooseObject_counter__)
-        logger = self.getParam('_logger') or logging.getLogger(logger_name)
+        logger = logging.getLogger(logger_name)
         logger.setLevel(self.getParam('log_level'))
         self.__logger = logger
 

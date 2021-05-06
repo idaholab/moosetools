@@ -26,10 +26,10 @@ class InputParameters(object):
 
     class ErrorMode(enum.Enum):
         """Defines the error mode for all instances"""
-        NONE = 0  # disable errors
-        WARNING = 1  # logging.warning
-        ERROR = 2  # logging.error
-        CRITICAL = 3  # logging.critical
+        NONE = 0       # disable errors
+        WARNING = 1    # logging.warning
+        ERROR = 2      # logging.error
+        CRITICAL = 3   # logging.critical
         EXCEPTION = 4  # raises MooseException, the import occurs when raised to avoid cyclic imports
 
     def __init__(self):
