@@ -33,7 +33,6 @@ def make_runner(cls, controllers=None, **kwargs):
     sub-parameter.
     """
     params = cls.validParams()
-
     for ctrl in controllers or []:
         for ctrl in controllers or []:
             params.add(ctrl.getParam('prefix'), default=ctrl.validObjectParams())

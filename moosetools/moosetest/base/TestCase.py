@@ -387,7 +387,7 @@ class TestCase(MooseObject):
                 obj.reset() # clear log counts of the object to be passed to the Controller
             except Exception as ex:
                 self.exception("An exception occurred while calling the `reset` method of the '{}' object.", obj.name())
-                return TestCase.Data(TestCase.Result.FATAL, 1, out.stdout, out.stderr, None)
+                return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
 
         # Loop through each `Controller` object
         for controller in self._controllers:
@@ -401,20 +401,20 @@ class TestCase(MooseObject):
                     # Stop if an error is logged on the Controller object
                     if controller.status():
                         self.error("An error occurred, on the controller, during execution of the {} controller with '{}' object.", type(controller).__name__, obj.name())
-                        return TestCase.Data(TestCase.Result.FATAL, 1, out.stdout, out.stderr, None)
+                        return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
 
                     # Stop if an error is logged on the object, due to execution of Controller
                     if obj.status():
                         self.error("An error occurred, on the object, during execution of the {} controller with '{}' object.", type(controller).__name__, obj.name())
-                        return TestCase.Data(TestCase.Result.FATAL, 1, out.stdout, out.stderr, None)
+                        return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
 
                     # Skip it...maybe
                     if not controller.isRunnable():
-                        return TestCase.Data(TestCase.Result.SKIP, 0, out.stdout, out.stderr, controller.reasons())
+                        return TestCase.Data(TestCase.Result.SKIP, None, out.stdout, out.stderr, controller.reasons())
 
                 except Exception as ex:
                     self.error("An exception occurred during execution of the {} controller with '{}' object.\n{}", type(controller).__name__, obj.name(), traceback.format_exc())
-                    return TestCase.Data(TestCase.Result.FATAL, 1, out.stdout, out.stderr, None)
+                    return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
 
         # Execute the object
         with RedirectOutput() as out:
@@ -425,11 +425,11 @@ class TestCase(MooseObject):
                 if obj.status():
                     state = TestCase.Result.DIFF if isinstance(obj, Differ) else TestCase.Result.ERROR
                     self.error("An error occurred during execution of the '{}' object.", obj.name())
-                    return TestCase.Data(state, 1, out.stdout, out.stderr, None)
+                    return TestCase.Data(state, rcode, out.stdout, out.stderr, None)
 
             except Exception as ex:
                 self.exception("An exception occurred during execution of the '{}' object.", obj.name())
-                return TestCase.Data(TestCase.Result.EXCEPTION, 1, out.stdout, out.stderr, None)
+                return TestCase.Data(TestCase.Result.EXCEPTION, None, out.stdout, out.stderr, None)
 
         return TestCase.Data(TestCase.Result.PASS, rcode, out.stdout, out.stderr, None)
 

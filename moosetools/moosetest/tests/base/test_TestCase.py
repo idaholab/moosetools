@@ -6,7 +6,12 @@ import multiprocessing
 import collections
 import logging
 import unittest
-from moosetools.moosetest.base import Runner, Differ, TestCase, State, RedirectOutput
+from unittest import mock
+from moosetools.moosetest.base import make_runner, Runner, make_differ, Differ, TestCase, State, RedirectOutput
+
+#class TestRunner(Runner):
+#    def execute(self):
+#        return TestCase.Result.PASS, dict()
 
 class TestState(unittest.TestCase):
     def testDefault(self):
@@ -114,8 +119,83 @@ class TestTestCase(unittest.TestCase):
         self.assertIsNotNone(tc.state)
         self.assertEqual(tc.state, TestCase.Result.PASS)
 
-    def testExecuteObject(self):
-        pass
+    @mock.patch("moosetools.moosetest.base.Runner.execute")
+    def testExecuteObject_Runner(self, exc):
+
+        r = make_runner(Runner, name='a')
+        tc = TestCase(runner=r)
+
+        # No error, no output
+        exc.return_value = 1980
+        out = tc._executeObject(r)
+        gold = TestCase.Data(TestCase.Result.PASS, 1980, '', '', None)
+        self.assertEqual(out, gold)
+
+        # No error, with stdout and stderr
+        def side_effect():
+            logging.error('log error')
+            print('print text')
+            return 1980
+
+        exc.side_effect = side_effect
+        out = tc._executeObject(r)
+        gold = TestCase.Data(TestCase.Result.PASS, 1980, 'print text\n', 'ERROR:root:log error\n', None)
+        self.assertEqual(out, gold)
+
+        # Error
+        def side_effect():
+            r.error('log error')
+            print('print text')
+            return 1980
+
+        exc.side_effect = side_effect
+        out = tc._executeObject(r)
+        self.assertEqual(out.state, TestCase.Result.ERROR)
+        self.assertEqual(out.returncode, 1980)
+        self.assertEqual(out.stdout, 'print text\n')
+        self.assertIn('log error', out.stderr)
+        self.assertIn("An error occurred during execution of the 'a' object.", out.stderr)
+        self.assertEqual(out.reasons, None)
+
+        # Exception
+        def side_effect():
+            print('print text')
+            raise Exception("no worky")
+            return 1980
+
+        exc.side_effect = side_effect
+        out = tc._executeObject(r)
+        self.assertEqual(out.state, TestCase.Result.EXCEPTION)
+        self.assertEqual(out.returncode, None)
+        self.assertEqual(out.stdout, 'print text\n')
+        self.assertIn('no worky', out.stderr)
+        self.assertIn("An exception occurred during execution of the 'a' object.", out.stderr)
+        self.assertEqual(out.reasons, None)
+
+        # Exception during reset
+        def side_effect():
+            print('print text')
+            raise Execption("reset failed")
+        with mock.patch("moosetools.moosetest.base.Runner.reset") as reset:
+            reset.side_effect = side_effect
+            out = tc._executeObject(r)
+        self.assertEqual(out.state, TestCase.Result.FATAL)
+        self.assertEqual(out.returncode, None)
+        self.assertEqual(out.stdout, 'print text\n')
+        self.assertIn('reset failed', out.stderr)
+        self.assertIn("An exception occurred while calling the `reset` method of the 'a' object.", out.stderr)
+        self.assertEqual(out.reasons, None)
+
+
+
+        #with mock.patch("moosetools.moosetest.base.Runner.execute") as exc:
+        #    exc.return_value = TestCase.Result.PASS, dict()
+        #    tc._executeObject(r)
+
+
+
+
+
 
 
 

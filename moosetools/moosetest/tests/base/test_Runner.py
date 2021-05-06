@@ -15,7 +15,6 @@ class TestRunner(unittest.TestCase):
         self.assertIn("The parameter 'name' is marked as required", str(ex.exception))
 
         runner = moosetest.base.Runner(name='name')
-        self.assertIsNotNone(runner.getParam('_unique_id'))
         self.assertIsNone(runner.getParam('differs'))
 
         with self.assertRaises(NotImplementedError) as ex:
@@ -34,7 +33,7 @@ class TestRunner(unittest.TestCase):
             def getParam(self, value):
                 return 'test'
 
-        runner = moosetest.base.Runner(None, [ProxyController(),], name='name', test_platform='TempleOS')
+        runner = moosetest.base.make_runner(moosetest.base.Runner, [ProxyController(),], name='name', test_platform='TempleOS')
         self.assertIn('test', runner.parameters())
         self.assertIn('platform', runner.getParam('test'))
         self.assertEqual(runner.getParam('test_platform'), 'TempleOS')

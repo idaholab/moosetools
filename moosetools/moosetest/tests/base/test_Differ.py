@@ -32,7 +32,7 @@ class TestDiffer(unittest.TestCase):
             def getParam(self, value):
                 return 'test'
 
-        diff = moosetest.base.Differ(None, [ProxyController(),], name='name', test_platform='TempleOS')
+        diff = moosetest.base.make_differ(moosetest.base.Differ, [ProxyController(),], name='name', test_platform='TempleOS')
         self.assertIn('test', diff.parameters())
         self.assertIn('platform', diff.getParam('test'))
         self.assertEqual(diff.getParam('test_platform'), 'TempleOS')
