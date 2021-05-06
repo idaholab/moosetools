@@ -264,6 +264,14 @@ class TestCase(MooseObject):
 
         See `moosetest.run` for use.
         """
+        if not isinstance(progress, TestCase.Progress):
+            with RedirectOutput() as out:
+                self.critical("The supplied progress must be of type `TestCase.Progress`.")
+            result = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
+            self.setState(TestCase.Result.FATAL)
+            self.setResult(result)
+            progress = TestCase.Progress.FINISHED
+
         current = time.time()
         if progress == TestCase.Progress.WAITING:
             if self.__create_time is None: self.__create_time = current
@@ -292,6 +300,14 @@ class TestCase(MooseObject):
 
         See `moosetest.run` for use.
         """
+        if not isinstance(state, TestCase.Result):
+            with RedirectOutput() as out:
+                self.critical("The supplied state must be of type `TestCase.Result`.")
+            result = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
+            self.setProgress(TestCase.Progress.FINISHED)
+            self.setResult(result)
+            state = TestCase.Result.FATAL
+
         self.__state = state
 
     @property
@@ -433,26 +449,106 @@ class TestCase(MooseObject):
         return TestCase.Data(TestCase.Result.PASS, rcode, out.stdout, out.stderr, None)
 
     def setResult(self, result):
-        # Check data
+        """
+        Store the data returned from the `execute` method.
+
+        In practice the data is computed on a subprocess and then stored on the root processor
+        instance using this function.
+
+        See `moosetest.run`.
+        """
+        # Attempt to avoid adding unexpected data. If a problem is detected change the state and
+        # log a critical error message.
+        if not isinstance(result, dict):
+            with RedirectOutput() as out:
+                self.critical("The supplied result must be of type `dict`.")
+            result = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
+            self.setState(TestCase.Result.FATAL)
+
+        if any(not isinstance(val, TestCase.Data) for val in result.values()):
+            with RedirectOutput() as out:
+                self.critical("The supplied result values must be of type `TestCase.Data`.")
+            result = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
+            self.setState(TestCase.Result.FATAL)
+
+        names = [self._runner.name()] + [d.name() for d in self._differs]
+        if any(key not in names for key in result.keys()):
+            with RedirectOutput() as out:
+                self.critical("The supplied result keys must be the names of the `Runner` or `Differ` object(s).")
+            result = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
+            self.setState(TestCase.Result.FATAL)
+
         self.__results = result
 
-    def reportResult(self):
-        r_data = self.__results.get(self._runner.name())
+    @property
+    def result(self):
+        """
+        Return the available results.
 
+        This will return None if the `setResult` method has not been called.
+        """
+        return self.__results
+
+    def reportProgress(self):
+        """
+        Print the results of the `TestCase`.
+
+        See `moosetools.run` for use.
+        """
+        # This shouldn't be possible to hit because setProgress is called in __init__
+        if self.__progress is None:
+            with RedirectOutput() as out:
+                self.critical("The progress has not been set via the `setProgress` method.")
+            self.setProgress(TestCase.Progress.FINISHED)
+            self.setState(TestCase.Result.FATAL)
+            self.setResult({self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)})
+
+        self._printState(self._runner, self.__progress, None)
+        self.__progress_time = time.time()
+
+    def reportResult(self):
+        """
+        Print the results of the `TestCase`.
+
+        See `moosetools.run` for use.
+        """
+        # Attempt to avoid unexpected calls to this function, these should not be hit unless
+        # something has gone wrong.
+        if self.__state is None:
+            with RedirectOutput() as out:
+                self.critical("The state has not been set via the `setState` method.")
+            self.setProgress(TestCase.Progress.FINISHED)
+            self.setState(TestCase.Result.FATAL)
+            self.setResult({self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)})
+
+        elif self.__results is None:
+            with RedirectOutput() as out:
+                self.critical("The results have not been set via the `setResults` method.")
+            self.setProgress(TestCase.Progress.FINISHED)
+            self.setState(TestCase.Result.FATAL)
+            self.setResult({self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)})
+
+        elif self.__progress != TestCase.Progress.FINISHED:
+            with RedirectOutput() as out:
+                self.critical("The execution has not finished, so results cannot be reported.")
+            self.setProgress(TestCase.Progress.FINISHED)
+            self.setState(TestCase.Result.FATAL)
+            self.setResult({self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)})
+
+        # Report Runner results
+        r_data = self.__results.get(self._runner.name())
         self._printState(self._runner, self.__state, r_data.reasons)
         self._printResult(self._runner, r_data)
 
+        # Report Differ results
         for obj in [d for d in self._differs if d.name() in self.__results]:
             d_data = self.__results.get(obj.name())
             self._printState(obj, d_data.state, d_data.reasons)
             self._printResult(obj, d_data)
 
-    def reportProgress(self):
-        self._printState(self._runner, self.__progress, None)
-        self.__progress_time = time.time()
-
     def _printState(self, obj, state, reasons):
         """
+        Helper to prepare information for passing to the Formatter state printing methods.
         """
         if state == TestCase.Progress.RUNNING:
             duration = time.time() - self.__start_time
@@ -476,6 +572,7 @@ class TestCase(MooseObject):
 
     def _printResult(self, obj, data):
         """
+        Helper to prepare information for passing to the Formatter result printing methods.
         """
         kwargs = dict()
 
