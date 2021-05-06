@@ -29,18 +29,20 @@ class TestController(Controller):
         self._stderr = False
         self._error = False
         self._raise = False
+        self._type = None
 
-    def execute(self, *args):
-        if self._skip:
-            self.skip("a reason")
-        if self._print:
-            print("controller print")
-        if self._stderr:
-            logging.error("controller stderr")
-        if self._error:
-            self.error("controller error")
-        if self._raise:
-            raise Exception("controller raise")
+    def execute(self, obj, *args):
+        if (self._type is None) or isinstance(obj, self._type):
+            if self._skip:
+                self.skip("a reason")
+            if self._print:
+                print("controller print")
+            if self._stderr:
+                logging.error("controller stderr")
+            if self._error:
+                self.error("controller error")
+            if self._raise:
+                raise Exception("controller raise")
         return 1980
 
 class TestRunner(Runner):
@@ -374,11 +376,227 @@ class TestTestCase(unittest.TestCase):
 
         tc = TestCase(runner=rr, controllers=(ct,))
 
+        # No error, no output
         s, r = tc.execute()
         self.assertEqual(s, TestCase.Result.PASS)
         self.assertEqual(list(r.keys()), ['r', 'd'])
         self.assertEqual(r['r'], TestCase.Data(TestCase.Result.PASS, 2011, '', '', None))
         self.assertEqual(r['d'], TestCase.Data(TestCase.Result.PASS, 2013, '', '', None))
+
+        ## RUNNER ################################
+        # Reset Exception, Runner
+        with mock.patch("moosetools.moosetest.base.Runner.reset") as func:
+            func.side_effect = Exception("runner reset raise")
+            s, r = tc.execute()
+        self.assertEqual(s, TestCase.Result.FATAL)
+        self.assertEqual(list(r.keys()), ['r'])
+        self.assertEqual(r['r'].state, TestCase.Result.FATAL)
+        self.assertEqual(r['r'].returncode, None)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertIn("An exception occurred while calling the `reset` method of the 'r' object.", r['r'].stderr)
+        self.assertIn("runner reset raise", r['r'].stderr)
+        self.assertEqual(r['r'].reasons, None)
+
+        # Reset Exception, Controller with Runner
+        with mock.patch("moosetools.moosetest.base.Controller.reset") as func:
+            func.side_effect = Exception("controller reset raise")
+            s, r = tc.execute()
+        self.assertEqual(s, TestCase.Result.FATAL)
+        self.assertEqual(list(r.keys()), ['r'])
+        self.assertEqual(r['r'].state, TestCase.Result.FATAL)
+        self.assertEqual(r['r'].returncode, None)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertIn("An exception occurred during execution of the TestController controller with 'r' object.", r['r'].stderr)
+        self.assertIn("controller reset raise", r['r'].stderr)
+        self.assertEqual(r['r'].reasons, None)
+
+        # Execute Exception, Controller with Runner
+        ct._raise = True
+        s, r = tc.execute()
+        self.assertEqual(s, TestCase.Result.FATAL)
+        self.assertEqual(list(r.keys()), ['r'])
+        self.assertEqual(r['r'].state, TestCase.Result.FATAL)
+        self.assertEqual(r['r'].returncode, None)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertIn("An exception occurred during execution of the TestController controller with 'r' object.", r['r'].stderr)
+        self.assertIn("controller raise", r['r'].stderr)
+        self.assertEqual(r['r'].reasons, None)
+
+        # Error Object, Controller with Runner
+        ct._raise = False
+        with mock.patch("moosetools.moosetest.base.Runner.status") as func:
+            func.return_value = 1
+            s, r = tc.execute()
+        self.assertEqual(s, TestCase.Result.FATAL)
+        self.assertEqual(list(r.keys()), ['r'])
+        self.assertEqual(r['r'].state, TestCase.Result.FATAL)
+        self.assertEqual(r['r'].returncode, None)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertIn("An error occurred, on the object, during execution of the TestController controller with 'r' object.", r['r'].stderr)
+        self.assertEqual(r['r'].reasons, None)
+
+        # Skip, Controller with Runner
+        ct._skip = True
+        s, r = tc.execute()
+        self.assertEqual(s, TestCase.Result.SKIP)
+        self.assertEqual(list(r.keys()), ['r'])
+        self.assertEqual(r['r'].state, TestCase.Result.SKIP)
+        self.assertEqual(r['r'].returncode, None)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].stderr, '')
+        self.assertEqual(r['r'].reasons, ['a reason'])
+        ct._skip = False
+
+        # Error on Runner
+        rr._error = True
+        s, r = tc.execute()
+        self.assertEqual(s, TestCase.Result.ERROR)
+        self.assertEqual(list(r.keys()), ['r'])
+        self.assertEqual(r['r'].state, TestCase.Result.ERROR)
+        self.assertEqual(r['r'].returncode, 2011)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertIn("runner error", r['r'].stderr)
+        self.assertIn("An error occurred during execution of the 'r' object", r['r'].stderr)
+        self.assertEqual(r['r'].reasons, None)
+        rr._error = False
+
+        # Exception on Runner
+        rr._raise = True
+        s, r = tc.execute()
+        self.assertEqual(s, TestCase.Result.EXCEPTION)
+        self.assertEqual(list(r.keys()), ['r'])
+        self.assertEqual(r['r'].state, TestCase.Result.EXCEPTION)
+        self.assertEqual(r['r'].returncode, None)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertIn("runner raise", r['r'].stderr)
+        self.assertIn("An exception occurred during execution of the 'r' object", r['r'].stderr)
+        self.assertEqual(r['r'].reasons, None)
+        rr._raise = False
+
+        ## DIFFER ################################
+        # Reset Exception, Differ
+        with mock.patch("moosetools.moosetest.base.Differ.reset") as func:
+            func.side_effect = Exception("differ reset raise")
+            s, r = tc.execute()
+        self.assertEqual(s, TestCase.Result.FATAL)
+        self.assertEqual(list(r.keys()), ['r', 'd'])
+        self.assertEqual(r['r'].state, TestCase.Result.PASS)
+        self.assertEqual(r['r'].returncode, 2011)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['d'].state, TestCase.Result.FATAL)
+        self.assertEqual(r['d'].returncode, None)
+        self.assertEqual(r['d'].stdout, '')
+        self.assertIn("An exception occurred while calling the `reset` method of the 'd' object.", r['d'].stderr)
+        self.assertIn("differ reset raise", r['d'].stderr)
+        self.assertEqual(r['d'].reasons, None)
+
+        # Reset Exception, Controller with Differ
+        with mock.patch("moosetools.moosetest.base.Controller.reset") as func:
+            func.side_effect = [None, Exception("controller reset raise")]
+            s, r = tc.execute()
+        self.assertEqual(list(r.keys()), ['r', 'd'])
+        self.assertEqual(r['r'].state, TestCase.Result.PASS)
+        self.assertEqual(r['r'].returncode, 2011)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['d'].state, TestCase.Result.FATAL)
+        self.assertEqual(r['d'].returncode, None)
+        self.assertEqual(r['d'].stdout, '')
+        self.assertIn("An exception occurred during execution of the TestController controller with 'd' object.", r['d'].stderr)
+        self.assertIn("controller reset raise", r['d'].stderr)
+        self.assertEqual(r['d'].reasons, None)
+
+        # Execute Exception, Controller with Differ
+        ct._raise = True
+        ct._type = Differ
+        s, r = tc.execute()
+        self.assertEqual(list(r.keys()), ['r', 'd'])
+        self.assertEqual(r['r'].state, TestCase.Result.PASS)
+        self.assertEqual(r['r'].returncode, 2011)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['d'].state, TestCase.Result.FATAL)
+        self.assertEqual(r['d'].returncode, None)
+        self.assertEqual(r['d'].stdout, '')
+        self.assertIn("An exception occurred during execution of the TestController controller with 'd' object.", r['d'].stderr)
+        self.assertIn("controller raise", r['d'].stderr)
+        self.assertEqual(r['d'].reasons, None)
+        ct._raise = False
+        ct._type = None
+
+        # Error Object, Controller with Differ
+        with mock.patch("moosetools.moosetest.base.Differ.status") as func:
+            func.return_value = 1
+            s, r = tc.execute()
+        self.assertEqual(list(r.keys()), ['r', 'd'])
+        self.assertEqual(r['r'].state, TestCase.Result.PASS)
+        self.assertEqual(r['r'].returncode, 2011)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['d'].state, TestCase.Result.FATAL)
+        self.assertEqual(r['d'].returncode, None)
+        self.assertEqual(r['d'].stdout, '')
+        self.assertIn("An error occurred, on the object, during execution of the TestController controller with 'd' object.", r['d'].stderr)
+        self.assertEqual(r['d'].reasons, None)
+
+        # Skip, Controller with Differ
+        ct._skip = True
+        ct._type = Differ
+        s, r = tc.execute()
+        self.assertEqual(s, TestCase.Result.SKIP)
+        self.assertEqual(list(r.keys()), ['r', 'd'])
+        self.assertEqual(r['r'].state, TestCase.Result.PASS)
+        self.assertEqual(r['r'].returncode, 2011)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['d'].state, TestCase.Result.SKIP)
+        self.assertEqual(r['d'].returncode, None)
+        self.assertEqual(r['d'].stdout, '')
+        self.assertEqual(r['d'].stderr, '')
+        self.assertEqual(r['d'].reasons, ['a reason'])
+        ct._skip = False
+        ct._type = None
+
+        # Error on Differ
+        dr._error = True
+        s, r = tc.execute()
+        self.assertEqual(s, TestCase.Result.DIFF)
+        self.assertEqual(list(r.keys()), ['r', 'd'])
+        self.assertEqual(r['r'].state, TestCase.Result.PASS)
+        self.assertEqual(r['r'].returncode, 2011)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['d'].state, TestCase.Result.DIFF)
+        self.assertEqual(r['d'].returncode, 2013)
+        self.assertEqual(r['d'].stdout, '')
+        self.assertIn("differ error", r['d'].stderr)
+        self.assertIn("An error occurred during execution of the 'd' object", r['d'].stderr)
+        self.assertEqual(r['d'].reasons, None)
+        dr._error = False
+
+        # Exception on Differ
+        dr._raise = True
+        s, r = tc.execute()
+        self.assertEqual(s, TestCase.Result.EXCEPTION)
+        self.assertEqual(list(r.keys()), ['r', 'd'])
+        self.assertEqual(r['r'].state, TestCase.Result.PASS)
+        self.assertEqual(r['r'].returncode, 2011)
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].stdout, '')
+        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['d'].state, TestCase.Result.EXCEPTION)
+        self.assertEqual(r['d'].returncode, None)
+        self.assertEqual(r['d'].stdout, '')
+        self.assertIn("differ raise", r['d'].stderr)
+        self.assertIn("An exception occurred during execution of the 'd' object", r['d'].stderr)
+        self.assertEqual(r['d'].reasons, None)
 
 
 
