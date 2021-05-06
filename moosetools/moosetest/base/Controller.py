@@ -42,7 +42,7 @@ class Controller(MooseObject):
 
     def reset(self):
         """
-        Reset the "runnable" and log status.
+        Reset the "runnable" state, the skip reasons, and the log status.
         """
         self.__runnable = True
         self.__reasons = list()
@@ -50,7 +50,11 @@ class Controller(MooseObject):
 
     def reasons(self):
         """
+        Return the reasons for skipping that were created with the `skip` method.
 
+        The skip reasons are cleared with the `reset` method.
+
+        See `moosetest.base.TestCase` for details of how this method is used.
         """
         return self.__reasons
 
@@ -63,9 +67,9 @@ class Controller(MooseObject):
         """
         return self.__runnable
 
-    def skip(self, obj, msg, *args, **kwargs):
+    def skip(self, msg, *args, **kwargs):
         """
-        Indicate that the *obj* that was passed to the `execute` method of this class should not run.
+        Indicate that the object passed to the `execute` method of this class should not run.
 
         The supplied *msg* is formatted with the `format` built-in with the supplied *\*args* and
         *\*\*kwargs* arguments.

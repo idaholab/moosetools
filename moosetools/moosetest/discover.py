@@ -57,6 +57,10 @@ def create_testcases(filename, spec_file_blocks, obj_factory):
         runner.parameters().set('differs', tuple(differs))
         testcases.append(TestCase(runner=runner))
 
+
+    # TODO: return list of lists, by default [testcases], but should detect parameter in
+    #       the runner block to run separate to allow for dependencies to be removed
+
     return testcases
 
 

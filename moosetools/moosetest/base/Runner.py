@@ -30,7 +30,7 @@ class Runner(MooseObject):
     from moosetools import moosetest
     c = moosetest.controllers.EnvironmentController()
     r = moosetest.base.Runner(None, [c,], env_platform='Darwin')
-    print(r)bas
+    print(r)
     ```
 
     See `parameters.InputParameters` for details regarding getting/setting values of a

@@ -41,6 +41,6 @@ class EnvironmentController(Controller):
         self.debug('platform.system() = {}', repr(sys_platform))
         pf = params.get('platform')
         if (pf is not None) and (sys_platform not in pf):
-            self.skip(obj, '{} not in {}', repr(sys_platform), repr(pf))
+            self.skip('{} not in {}', repr(sys_platform), repr(pf))
             self.debug("The system platform {} is not in the allowable platforms list of {}",
                        repr(sys_platform), repr(pf))

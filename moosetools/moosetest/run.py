@@ -29,7 +29,7 @@ def _execute_testcases(testcases, q, timeout):
         unique_id = tc.getParam('_unique_id')
         if skip_message:
             state = TestCase.Result.SKIP
-            results = {tc.name(): TestCase.Data(TestCase.Result.SKIP, 0, '', skip_message, ['Dependency failed'])}
+            results = {tc.name(): TestCase.Data(TestCase.Result.SKIP, 0, '', skip_message, ['dependency'])}
             q.put((unique_id, TestCase.Progress.FINISHED, state, results))
             continue
 
@@ -44,7 +44,7 @@ def _execute_testcases(testcases, q, timeout):
         else:
             proc.terminate()
             state = TestCase.Result.TIMEOUT
-            results = {tc.name(): TestCase.Data(TestCase.Result.TIMEOUT, 1, '', '', None)}
+            results = {tc.name(): TestCase.Data(TestCase.Result.TIMEOUT, 1, '', '', [f'max time ({timeout}) exceeded'])}
 
         q.put((unique_id, TestCase.Progress.FINISHED, state, results))
 
@@ -77,7 +77,7 @@ def _running_progress(testcase_map, futures, progress_interval, max_fails):
         if (num_fail >= max_fails) and tc.waiting:
             tc.setProgress(TestCase.Progress.FINISHED)
             tc.setState(TestCase.Result.SKIP)
-            tc.setResult({tc.name(): TestCase.Data(TestCase.Result.SKIP, 0, '', f"Max failures of {max_fails} exceeded.", ['Max failures reached'])})
+            tc.setResult({tc.name(): TestCase.Data(TestCase.Result.SKIP, 0, '', f"Max failures of {max_fails} exceeded.", ['max failures reached'])})
             tc.reportResult()
 
         if tc.running and (tc.time > progress_interval):
@@ -114,6 +114,8 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
         _running_progress(testcase_map, futures, progress_interval, max_fails)
 
     print(formatter.formatComplete(testcase_map.values(), duration=time.time() - start_time))
+
+    # TODO: return 0/1 based on error level (default to TIMEOUT)
 
 if __name__ == '__main__':
     import logging
