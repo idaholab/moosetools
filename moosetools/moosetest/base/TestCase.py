@@ -381,7 +381,7 @@ class TestCase(MooseObject):
 
         # Reset the state of supplied "obj". The status of the object will be checked after all
         # calls that could lead the object to produce an error are completed. The object status at
-        # this point indicates if the objected execution suceeded.
+        # this point indicates if the objected execution succeeded.
         with RedirectOutput() as out:
             try:
                 obj.reset() # clear log counts of the object to be passed to the Controller

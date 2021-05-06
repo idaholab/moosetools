@@ -114,6 +114,10 @@ class TestTestCase(unittest.TestCase):
         self.assertIsNotNone(tc.state)
         self.assertEqual(tc.state, TestCase.Result.PASS)
 
+    def testExecuteObject(self):
+        pass
+
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

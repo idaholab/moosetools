@@ -18,14 +18,12 @@ class Differ(MooseObject):
     def validParams():
         params = MooseObject.validParams()
         params.setRequired('name', True)
-        params.add('_reasons', vtype=list, private=True) # see Controller
         return params
 
     def __init__(self, params=None, controllers=None, **kwargs):
         if params is None: params = getattr(self.__class__, 'validParams')()
         for ctrl in controllers or []:
             params.add(ctrl.getParam('prefix'), default=ctrl.validObjectParams())
-        kwargs['_reasons'] = list()
         MooseObject.__init__(self, params, **kwargs)
 
     def execute(self, rcode, stdout, stderr):
