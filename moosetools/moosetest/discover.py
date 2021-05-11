@@ -4,6 +4,7 @@ from moosetools import moosetree
 from moosetools import pyhit
 from moosetools import factory
 from moosetools.moosetest.base import Controller, TestCase
+from moosetools.moosetest.base import Runner, Differ
 
 
 # TODO:
@@ -31,36 +32,30 @@ class MooseTestFactory(factory.Factory):
         return params
 
 
+class MooseTestWarehouse(factory.Warehouse):
+    @staticmethod
+    def validParams():
+        params = factory.Warehouse.validParams()
+        return params
 
-
-
+    def append(self, obj):
+        if isinstance(obj, Differ):
+            self.objects[-1].getParam('differs').append(obj)
+        else:
+            factory.Warehouse.append(self, obj)
 
 def create_runners(filename, spec_file_blocks, obj_factory):
 
     root = pyhit.load(filename)
-
-
-    runners = list()
-    parser = factory.Parser(obj_factory, runners)
+    wh = MooseTestWarehouse()
+    parser = factory.Parser(obj_factory, wh)
     for node in moosetree.findall(root, func=lambda n: n.name in spec_file_blocks):
         parser.parse(filename, node)
-
-    testcases = list()
-    for runner in runners:
-        node = moosetree.find(root, func=lambda n: n.fullpath == runner.getParam('_hit_path'))
-        differs = list()
-        parser = factory.Parser(obj_factory, differs)
-        for child in node:
-            parser.parse(filename, child)
-
-        runner.parameters().set('differs', tuple(differs))
-        #testcases.append(TestCase(runner=runner))
-
 
     # TODO: return list of lists, by default [testcases], but should detect parameter in
     #       the runner block to run separate to allow for dependencies to be removed
 
-    return runners
+    return wh.objects
 
 
 def discover(start, spec_file_names, spec_file_blocks, plugin_dirs=None, controllers=None, n_threads=None):
@@ -74,11 +69,18 @@ def discover(start, spec_file_names, spec_file_blocks, plugin_dirs=None, control
     for root, _, files in os.walk(start):
         spec_files += [os.path.join(root, f) for f in files if f in spec_file_names]
 
-    from moosetools.moosetest.base import Runner, Differ
     obj_factory = MooseTestFactory(plugin_dirs=tuple(plugin_dirs), plugin_types=(Runner, Differ), controllers=tuple(controllers))
     obj_factory.load()
 
     with concurrent.futures.ThreadPoolExecutor(n_threads) as pool:
         futures = [pool.submit(create_runners, filename, spec_file_blocks, obj_factory) for filename in spec_files]
 
+    #testcases = [f.result() for f in futures]
+
+
+    #paths = [tc.name() for tc in [group for group in testcases]]
+    #print(paths)
+
     return [f.result() for f in futures]
+
+    #return [create_runners(filename, spec_file_blocks, obj_factory) for filename in spec_files]

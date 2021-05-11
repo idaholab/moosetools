@@ -11,6 +11,10 @@
     [runner1]
       type = RunCommand
       command = 'sleep 3'
+      [diff]
+        type = ConsoleDiff
+        text_in_stderr = 'sleep'
+      []
     []
   []
 []

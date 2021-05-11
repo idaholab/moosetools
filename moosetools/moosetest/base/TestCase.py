@@ -185,7 +185,8 @@ class TestCase(MooseObject):
         returncode: int = None
         stdout: str = None
         stderr: str = None
-        reasons: list[str] = None
+        #reasons: list[str] = None
+        reasons: list = None
 
     @staticmethod
     def validParams():

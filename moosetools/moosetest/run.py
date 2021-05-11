@@ -104,8 +104,8 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
     testcase_map = dict()
     for runners in groups:
         testcases = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
-        _execute_testcases(testcases, result_queue, timeout)
-        #futures.append(executor.submit(_execute_testcases, testcases, result_queue, timeout))
+        #_execute_testcases(testcases, result_queue, timeout)
+        futures.append(executor.submit(_execute_testcases, testcases, result_queue, timeout))
         for tc in testcases:
             testcase_map[tc.getParam('_unique_id')] = tc
 
@@ -117,8 +117,9 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_i
 
     # TODO: return 0/1 based on error level (default to TIMEOUT)
 
-if False:# __name__ == '__main__':
+if  __name__ == '__main__':
     import logging
+    from moosetools.moosetest.base import make_runner, make_differ
     from moosetools.moosetest.runners import RunCommand
     from moosetools.moosetest.differs import ConsoleDiff
     from moosetools.moosetest.formatters import BasicFormatter
@@ -129,30 +130,30 @@ if False:# __name__ == '__main__':
     formatter = BasicFormatter()
 
     grp_a = [None]*3
-    grp_a[0] = RunCommand(None, controllers, name='A:test/with/a/long/name/1', command=('sleep', '4'),
-                          differs=(ConsoleDiff(None, controllers, name='diff', text_in_stderr='sleep'),
-                                   ConsoleDiff(None, controllers, name='diff2', text_in_stderr='2')))
-    grp_a[1] = RunCommand(None, controllers, name='A:test/with/a/long/name/2', command=('sleep', '2'))
-    grp_a[2] = RunCommand(None, controllers, name='A:test/with/a/long/name/3', command=('sleep', '1'))
+    grp_a[0] = make_runner(RunCommand, controllers, name='A:test/with/a/long/name/1', command=('sleep', '4'),
+                          differs=(make_differ(ConsoleDiff, controllers, name='diff', text_in_stderr='sleep'),
+                                   make_differ(ConsoleDiff, controllers, name='diff2', text_in_stderr='2')))
+    grp_a[1] = make_runner(RunCommand, controllers, name='A:test/with/a/long/name/2', command=('sleep', '2'))
+    grp_a[2] = make_runner(RunCommand, controllers, name='A:test/with/a/long/name/3', command=('sleep', '1'))
 
     grp_b = [None]*5
-    grp_b[0] = RunCommand(None, controllers, name='B:test/1', command=('sleep', '3'),
-                             differs=(ConsoleDiff(None, controllers, name='diff', text_in_stderr='sleep'),
-                                      ConsoleDiff(None, controllers, name='diff2', text_in_stderr='3')))
-    grp_b[1] = RunCommand(None, controllers, name='B:test/2', command=('sleep', '5'),
-                             differs=(ConsoleDiff(None, controllers, name='diff', text_in_stderr='sleep'),
-                                      ConsoleDiff(None, controllers, name='diff2', text_in_stderr='2')))
-    grp_b[2] = RunCommand(None, controllers, name='B:test/3', command=('sleep', '1'))
-    grp_b[3] = RunCommand(None, controllers, name='B:test/4', command=('wrong', ))
-    grp_b[4] = RunCommand(None, controllers, name='B:test/5', command=('sleep', '3'))
+    grp_b[0] = make_runner(RunCommand, controllers, name='B:test/1', command=('sleep', '3'),
+                             differs=(make_differ(ConsoleDiff, controllers, name='diff', text_in_stderr='sleep'),
+                                      make_differ(ConsoleDiff, controllers, name='diff2', text_in_stderr='3')))
+    grp_b[1] = make_runner(RunCommand, controllers, name='B:test/2', command=('sleep', '5'),
+                             differs=(make_differ(ConsoleDiff, controllers, name='diff', text_in_stderr='sleep'),
+                                      make_differ(ConsoleDiff, controllers, name='diff2', text_in_stderr='2')))
+    grp_b[2] = make_runner(RunCommand, controllers, name='B:test/3', command=('sleep', '1'))
+    grp_b[3] = make_runner(RunCommand, controllers, name='B:test/4', command=('wrong', ))
+    grp_b[4] = make_runner(RunCommand, controllers, name='B:test/5', command=('sleep', '3'))
 
     grp_c = [None]*2
-    grp_c[0] = RunCommand(None, controllers, name='C:test/1', command=('sleep', '13'))
-    grp_c[1] = RunCommand(None, controllers, name='C:test/2', command=('sleep', '1'), env_platform=('Linux',))
+    grp_c[0] = make_runner(RunCommand, controllers, name='C:test/1', command=('sleep', '13'))
+    grp_c[1] = make_runner(RunCommand, controllers, name='C:test/2', command=('sleep', '1'), env_platform=('Linux',))
 
     grp_d = [None]*2
-    grp_d[0] = RunCommand(None, controllers, name='D:test/1', command=('sleep', '2'))
-    grp_d[1] = RunCommand(None, controllers, name='D:test/2', command=('sleep', '1'), env_platform=('Linux',))
+    grp_d[0] = make_runner(RunCommand, controllers, name='D:test/1', command=('sleep', '2'))
+    grp_d[1] = make_runner(RunCommand, controllers, name='D:test/2', command=('sleep', '1'), env_platform=('Linux',))
 
 
     groups = [grp_a, grp_b, grp_c, grp_d]

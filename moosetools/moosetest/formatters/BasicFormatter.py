@@ -29,10 +29,6 @@ def shorten_text(text, max_lines=10, mode=ShortenMode.MIDDLE, replace='...'):
 class BasicFormatter(Formatter):
 
     """
-    TODO: Create a list of keyword arguments and functions that can be passed into an F-string then
-          get rid of FStringFormatter.
-          Rename this to BasicFormatter to be inline with basicConfig...
-
     """
 
 
@@ -51,13 +47,22 @@ class BasicFormatter(Formatter):
                    doc="Maximum number of lines to show in sys.stdout/sys.stderr in result output.")
         return params
 
+
+    def save(obj):
+        return (obj.__class__, obj.__dict__)
+
+    def load(cls, attributes):
+        obj = cls.__new__(cls)
+        obj.__dict__.update(attributes)
+        return obj
+
     def __init__(self, *args, **kwargs):
         Formatter.__init__(self, *args, **kwargs)
 
         max_state = max([len(e.text) for e in list(TestCase.Progress)])
         max_result = max([len(e.text) for e in list(TestCase.Result)])
         self._max_state_width = max(max_state, max_result)
-        self._extra_width = 15 # Extract width for percent complete and duration
+        self._extra_width = 16 # Extract width for percent complete and duration
 
     def width(self):
         width = self.getParam('width')

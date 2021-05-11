@@ -6,3 +6,6 @@ class TestController(Controller):
         params = Controller.validParams()
         params.set('prefix', 'test')
         return params
+
+    def execute(self, *args, **kwargs):
+        pass

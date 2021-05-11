@@ -114,7 +114,7 @@ class Parser(base.MooseObject):
         params.add('_hit_path', default=node.fullpath, private=True)
 
         # Update the Parameters with the HIT node
-        Parser.setParameters(params, filename, node)
+        self.setParameters(params, filename, node)
 
         # Attempt to build the object and update warehouse
         obj = self.factory.create(otype, params)
@@ -150,8 +150,7 @@ class Parser(base.MooseObject):
             else:
                 paths.add(fullparam)
 
-    @staticmethod
-    def setParameters(params, filename, node):
+    def setParameters(self, params, filename, node):
         """
         Update the `InputParameters` object in *params* with the key/value pairs in *node*,
         which is a `pyhit.Node` object.

@@ -7,9 +7,15 @@ from moosetools import moosetree
 from moosetools import pyhit
 from moosetools import factory
 from moosetools import base
-from moosetools.moosetest.base import Controller, Formatter
-from moosetools.moosetest.controllers import EnvironmentController
+from moosetools.moosetest.base import Controller, Formatter, make_runner, make_differ
 from moosetools.moosetest import discover, run
+
+
+from moosetools.moosetest.base import make_runner, make_differ
+from moosetools.moosetest.runners import RunCommand
+from moosetools.moosetest.differs import ConsoleDiff
+from moosetools.moosetest.controllers import EnvironmentController
+from moosetools.moosetest.formatters import BasicFormatter
 
 
 # TODO:
@@ -45,6 +51,7 @@ class TestHarness(base.MooseObject):
     def validParams():
         params = base.MooseObject.validParams()
         params.add('plugin_dirs',
+                   default=tuple(),
                    vtype=str,
                    array=True,
                    verify=(lambda dirs: all(os.path.isdir(d) for d in dirs),
@@ -79,22 +86,27 @@ class TestHarness(base.MooseObject):
 
         return params
 
-    #def __init__(self, *args, **kwargs):
-    #    base.MooseObject.__init__(self, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        base.MooseObject.__init__(self, *args, **kwargs)
+        logging.basicConfig(level=self.getParam('log_level'))
+
 
     def applyArguments(self, args):
         pass
 
 
     def execute(self):
-        testcase_groups = discover(os.getcwd(),
-                                   self.getParam('spec_file_names'),
-                                   self.getParam('spec_file_blocks'),
-                                   self.getParam('plugin_dirs'),
-                                   self.getParam('controllers'),
-                                   self.getParam('n_threads'))
 
-        run(testcase_groups,
+
+
+        groups = discover(os.getcwd(),
+                          self.getParam('spec_file_names'),
+                          self.getParam('spec_file_blocks'),
+                          self.getParam('plugin_dirs'),
+                          self.getParam('controllers'),
+                          self.getParam('n_threads'))
+
+        run(groups,
             self.getParam('controllers'),
             self.getParam('formatter'),
             self.getParam('n_threads'),
@@ -178,25 +190,23 @@ def make_harness(filename, root):
     harness = w[0]
 
 
-    plugin_dirs = list()
-    base_dir = os.path.dirname(filename)
-    for p_dir in harness.getParam('plugin_dirs'):
-        plugin_dirs.append(os.path.abspath(os.path.join(base_dir, p_dir)))
+    #plugin_dirs = list()
+    #base_dir = os.path.dirname(filename)
+    #for p_dir in harness.getParam('plugin_dirs'):
+    #    plugin_dirs.append(os.path.abspath(os.path.join(base_dir, p_dir)))
 
-    plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'controllers')))
-    plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'formatters')))
-    plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'runners')))
-    plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'differs')))
-    harness.parameters().set('plugin_dirs', tuple(plugin_dirs))
+    #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'controllers')))
+    #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'formatters')))
+    #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'runners')))
+    #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'differs')))
+    #harness.parameters().set('plugin_dirs', tuple(plugin_dirs))
 
 
     controllers = make_controllers(filename, root, harness.getParam('plugin_dirs'))
     harness.parameters().set('controllers', controllers)
 
-
     formatter = make_formatter(filename, root, harness.getParam('plugin_dirs'))
     harness.parameters().set('formatter', formatter)
-
 
     return harness
 
@@ -313,6 +323,30 @@ def _create_controllers(filename, config, plugin_dirs):
 
 
 if __name__ == '__main__':
-    #import multiprocessing
-    #multiprocessing.set_start_method('fork')
+    import multiprocessing
+    multiprocessing.set_start_method('fork', force=True)
     sys.exit(main())
+
+
+    """
+    import pickle
+
+    #import moosetools
+    from moosetools.moosetest.formatters import BasicFormatter
+    f0 = BasicFormatter()
+    print(f0, type(f0))
+
+    d0 = pickle.dumps(f0)
+    obj0 = pickle.loads(d0)
+
+    filename = _locate_config(os.getcwd())
+    root = _load_config(filename)
+    f1 = make_formatter(filename, root, ('../formatters',))
+    print(f1, type(f1))
+
+
+    d1 = pickle.dumps(f1)
+    obj1 = pickle.loads(d1)
+
+    print(d0 == d1)
+    """

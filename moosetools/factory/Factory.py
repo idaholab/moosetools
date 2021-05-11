@@ -19,10 +19,14 @@ from moosetools.base import MooseObject
 class Factory(MooseObject):
     """
     The `Factory` object exists as a convenient way to create `base.MooseObject` objects that
-    exist within a directory without requiring a full python module/package directory structure.
+    exist within a directory without requiring PYTHONPATH.
 
     It was originally designed to be utilized via the `factory.Parser` for creating objects from HIT
     input files.
+
+    The first iteration of this did not require the creation of __init__.py files. However,
+
+
     """
     @staticmethod
     def validParams():
@@ -110,9 +114,22 @@ class Factory(MooseObject):
         error occurred.
         """
         self.reset()
-
         plugin_dirs = self.getParam('plugin_dirs')
         plugin_types = self.getParam('plugin_types')
+
+
+        sys.path.append(plugin_dirs)
+
+        def predicate(obj):
+            return inspect.isclass(obj) and (obj not in plugin_types) and (obj.__name__ not in self._registered_types) and any(p in inspect.getmro(obj) for p in plugin_types)
+
+        for module in list(sys.modules.values()):
+            try:
+                for name, otype in inspect.getmembers(module, predicate):
+                    self.register(name, otype)
+            except ModuleNotFoundError:
+                continue
+
 
         for info in pkgutil.iter_modules(plugin_dirs):
             loader = info.module_finder.find_module(info.name)
