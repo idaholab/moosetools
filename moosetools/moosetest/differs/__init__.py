@@ -1,1 +1,1 @@
-from .TextDiff import TextDiff
+from .ConsoleDiff import ConsoleDiff

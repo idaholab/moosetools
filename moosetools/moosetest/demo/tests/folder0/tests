@@ -1,13 +1,13 @@
 [Tests]
   [runner]
-    type = ProcessRunner
+    type = RunCommand
     command = 'sleep 5'
   []
 []
 
 [Assessments]
   [runner]
-    type = ProcessRunner
+    type = RunCommand
     command = 'sleep 2'
   []
 []

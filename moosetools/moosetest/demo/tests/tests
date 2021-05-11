@@ -1,15 +1,15 @@
 [Tests]
   [runner0]
-    type = ProcessRunner
+    type = RunCommand
     command = 'sleep 3'
   []
   [runner1]
-    type = ProcessRunner
+    type = RunCommand
     command = 'sleep 3'
   []
   [group]
     [runner1]
-      type = ProcessRunner
+      type = RunCommand
       command = 'sleep 3'
     []
   []
@@ -17,7 +17,7 @@
 
 [Assessments]
   [runner]
-    type = ProcessRunner
+    type = RunCommand
     command = 'sleep 1'
   []
 []

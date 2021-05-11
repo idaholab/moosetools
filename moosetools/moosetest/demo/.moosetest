@@ -1,7 +1,6 @@
-[Main]
-  plugin_dirs = ./plugins/moosetest
-  progress_interval = 2
-[]
+plugin_dirs = ./plugins/moosetest
+progress_interval = 2
+
 [Controllers]
   [test]
     type = TestController

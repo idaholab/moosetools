@@ -24,7 +24,6 @@ class MooseTestFactory(factory.Factory):
         params = factory.Factory.params(self, *args, **kwargs)
 
         for controller in self.getParam('controllers') or list():
-
             params.add(controller.getParam('prefix'),
                        default=controller.validObjectParams(),
                        doc="Parameters for determining execute state from the '{}' control object.".format(type(controller).__name__))
@@ -36,7 +35,7 @@ class MooseTestFactory(factory.Factory):
 
 
 
-def create_testcases(filename, spec_file_blocks, obj_factory):
+def create_runners(filename, spec_file_blocks, obj_factory):
 
     root = pyhit.load(filename)
 
@@ -55,23 +54,13 @@ def create_testcases(filename, spec_file_blocks, obj_factory):
             parser.parse(filename, child)
 
         runner.parameters().set('differs', tuple(differs))
-        testcases.append(TestCase(runner=runner))
+        #testcases.append(TestCase(runner=runner))
 
 
     # TODO: return list of lists, by default [testcases], but should detect parameter in
     #       the runner block to run separate to allow for dependencies to be removed
 
-    return testcases
-
-
-
-#def _create_testcases(filename):
-
-
-
-
-
-
+    return runners
 
 
 def discover(start, spec_file_names, spec_file_blocks, plugin_dirs=None, controllers=None, n_threads=None):
@@ -86,10 +75,10 @@ def discover(start, spec_file_names, spec_file_blocks, plugin_dirs=None, control
         spec_files += [os.path.join(root, f) for f in files if f in spec_file_names]
 
     from moosetools.moosetest.base import Runner, Differ
-    obj_factory = MooseTestFactory(plugin_dirs=plugin_dirs, plugin_types=(Runner, Differ), controllers=controllers)
+    obj_factory = MooseTestFactory(plugin_dirs=tuple(plugin_dirs), plugin_types=(Runner, Differ), controllers=tuple(controllers))
     obj_factory.load()
 
     with concurrent.futures.ThreadPoolExecutor(n_threads) as pool:
-        futures = [pool.submit(create_testcases, filename, spec_file_blocks, obj_factory) for filename in spec_files]
+        futures = [pool.submit(create_runners, filename, spec_file_blocks, obj_factory) for filename in spec_files]
 
     return [f.result() for f in futures]

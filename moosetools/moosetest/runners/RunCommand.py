@@ -4,7 +4,7 @@ import multiprocessing
 import subprocess
 from moosetools.moosetest.base import Runner
 
-class ProcessRunner(Runner):
+class RunCommand(Runner):
     @staticmethod
     def validParams():
         params = Runner.validParams()

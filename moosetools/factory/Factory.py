@@ -65,6 +65,12 @@ class Factory(MooseObject):
                 stack_info=True)
         self._registered_types[name] = object_type
 
+    #def isRegistered(self, name):
+    #    """
+    #    Return True if the *name* is among the registered types.
+    #    """
+    #    return name in self._registered_types
+
     def params(self, name):
         """
         Return the `InputParameters` object associated with the registered *name*.
@@ -118,7 +124,7 @@ class Factory(MooseObject):
                 continue
 
             for name, otype in inspect.getmembers(module):
-                if inspect.isclass(otype) and (name not in self._registered_types) and any(p in inspect.getmro(otype) for p in plugin_types):
+                if inspect.isclass(otype) and (otype.__module__ == module.__name__) and (name not in self._registered_types) and any(p in inspect.getmro(otype) for p in plugin_types):
                     self.register(name, otype)
 
         return self.status()
