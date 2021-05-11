@@ -350,7 +350,7 @@ class TestInputParameters(unittest.TestCase):
 
         with self.assertRaises(MooseException) as e:
             font.validate()
-        self.assertIn("The Parameter 'name' is marked as required, but no value is assigned",
+        self.assertIn("The parameter 'name' is marked as required, but no value is assigned",
                       str(e.exception))
 
     def testParameter(self):
@@ -358,6 +358,51 @@ class TestInputParameters(unittest.TestCase):
         font.add('size', default=24)
         p = font.parameter('size')
         self.assertIsInstance(p, Parameter)
+
+    def testSetRequired(self):
+
+        date = InputParameters()
+        date.add('year')
+        self.assertEqual(date.isRequired('year'), False)
+
+        date.set('year', 1980)
+        date.setRequired('year', True)
+        self.assertEqual(date.isRequired('year'), True)
+
+        date.validate()
+
+        with self.assertRaises(MooseException) as e:
+            date.setRequired('year', True)
+        self.assertIn("The parameter 'year' has already been validated, the required state cannot be changed.",
+                      str(e.exception))
+
+
+        date.set('error_mode', InputParameters.ErrorMode.ERROR)
+        with self.assertLogs(level='ERROR') as log:
+            value = date.isRequired('wrong')
+        self.assertEqual(value, False)
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("The parameter 'wrong' does not exist.", log.output[0])
+
+    def testDeprecated(self):
+        date = InputParameters()
+        date.addParam('year', 'doco')
+        self.assertIn('year', date)
+        self.assertEqual('doco', date.parameter('year').doc)
+
+        date.addParam('day', 1, 'doco')
+        self.assertIn('day', date)
+        self.assertEqual(date.get('day'), 1)
+        self.assertEqual('doco', date.parameter('year').doc)
+
+        date.addRequiredParam('month', 1, "doco")
+        self.assertEqual(date.isRequired('day'), False)
+        self.assertEqual(date.isRequired('month'), True)
+
+        self.assertEqual(date['month'], 1)
+
+        date['month'] = 2
+        self.assertEqual(date['month'], 2)
 
 
 if __name__ == '__main__':

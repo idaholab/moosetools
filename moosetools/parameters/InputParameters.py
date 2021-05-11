@@ -143,13 +143,22 @@ class InputParameters(object):
 
     def setRequired(self, *args):
         """
-        Set the required status for a paramter
+        Set the required status for a parameter.
         """
         opt = self._getParameter(*args[:-1])
         if opt is not None:
             ret, err = opt.setRequired(args[-1])
             if ret > 0:
                 self.__errorHelper(err)
+
+    def isRequired(self, *args):
+        """
+        Return True if the parameter is required.
+        """
+        opt = self._getParameter(*args)
+        if opt is not None:
+            return opt.required
+        return False
 
     def setDefault(self, *args):
         """
