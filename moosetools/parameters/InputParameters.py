@@ -200,8 +200,7 @@ class InputParameters(object):
         if opt is not None:
             return opt.is_set_by_user
 
-    # TODO: Change to setValue and getValue
-    def set(self, *args):
+    def setValue(self, *args):
         """
         Set the value of a parameter or update contents of a sub-parameters.
 
@@ -209,10 +208,10 @@ class InputParameters(object):
         the parameters via InputParameters.update
 
         Use:
-           params.set('foo', 42)            # foo is an 'int'
-           params.set('bar', 'year', 1980)  # bar is an 'InputParameters' object
-           params.set('bar', {'year':1980}) # bar is an 'InputParameters' object
-           params.set('bar_year', 1980)     # bar is an 'InputParameters' object
+           params.setValue('foo', 42)            # foo is an 'int'
+           params.setValue('bar', 'year', 1980)  # bar is an 'InputParameters' object
+           params.setValue('bar', {'year':1980}) # bar is an 'InputParameters' object
+           params.setValue('bar_year', 1980)     # bar is an 'InputParameters' object
 
         Inputs:
             name(s)[str]: The name(s) of the Parameter to modify
@@ -226,7 +225,7 @@ class InputParameters(object):
             if ret > 0:
                 self.__errorHelper(err)
 
-    def get(self, *args):
+    def getValue(self, *args):
         """
         Overload for accessing the parameter value by name with []
 
@@ -261,13 +260,13 @@ class InputParameters(object):
                     "The supplied arguments must be InputParameters objects or key, value pairs.")
             else:
                 for key in opt.keys():
-                    value = opt.get(key)
+                    value = opt.getValue(key)
                     if self.hasParameter(key) and (value is not None):
-                        self.set(key, value)
+                        self.setValue(key, value)
 
         # Update from kwargs
         for k, v in kwargs.items():
-            self.set(k, v)
+            self.setValue(k, v)
 
     def validate(self):
         """
@@ -338,8 +337,8 @@ class InputParameters(object):
         Produce warning, error, or exception based on operation mode.
         """
         msg = text.format(*args, **kwargs)
-        mode = self.get('error_mode')
-        log = self.get('_moose_object') or logging.getLogger(__name__)
+        mode = self.getValue('error_mode')
+        log = self.getValue('_moose_object') or logging.getLogger(__name__)
         if mode == InputParameters.ErrorMode.WARNING:
             log.warning(msg)
         elif mode == InputParameters.ErrorMode.ERROR:
@@ -361,7 +360,7 @@ class InputParameters(object):
         self.addParam(name, *args, required=True)
 
     def __getitem__(self, name):
-        return self.get(name)
+        return self.getValue(name)
 
     def __setitem__(self, name, value):
-        return self.set(name, value)
+        return self.setValue(name, value)

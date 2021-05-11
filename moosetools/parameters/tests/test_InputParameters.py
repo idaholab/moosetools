@@ -24,10 +24,10 @@ class TestInputParameters(unittest.TestCase):
         self.assertEqual(list(params.keys()), ['error_mode', 'foo'])
         self.assertFalse(params.isValid('foo'))
         self.assertIn('foo', params)
-        self.assertIsNone(params.get('foo'))
+        self.assertIsNone(params.getValue('foo'))
         self.assertTrue(params.hasParameter('foo'))
 
-        params.set('error_mode', InputParameters.ErrorMode.ERROR)  # use error to capture return
+        params.setValue('error_mode', InputParameters.ErrorMode.ERROR)  # use error to capture return
         with self.assertLogs(level='ERROR') as log:
             params.add('foo')
         self.assertEqual(len(log.output), 1)
@@ -102,7 +102,7 @@ class TestInputParameters(unittest.TestCase):
         params = InputParameters()
         params.add('foo')
         self.assertFalse(params.isValid('foo'))
-        params.set('foo', 1980)
+        params.setValue('foo', 1980)
         self.assertTrue(params.isValid('foo'))
 
         with self.assertRaises(MooseException) as e:
@@ -112,20 +112,20 @@ class TestInputParameters(unittest.TestCase):
     def testSetDefault(self):
         params = InputParameters()
         params.add('foo', vtype=int)
-        self.assertIsNone(params.get('foo'))
+        self.assertIsNone(params.getValue('foo'))
         params.setDefault('foo', 1980)
-        self.assertEqual(params.get('foo'), 1980)
+        self.assertEqual(params.getValue('foo'), 1980)
 
         params.add('bar', default=1980)
         params.setDefault('bar', 1949)
-        self.assertEqual(params.get('bar'), 1980)
+        self.assertEqual(params.getValue('bar'), 1980)
         self.assertEqual(params.getDefault('bar'), 1949)
 
         with self.assertRaises(MooseException) as e:
             params.setDefault('other', 1980)
         self.assertIn("The parameter 'other' does not exist", str(e.exception))
 
-        params.set('error_mode', InputParameters.ErrorMode.ERROR)  # use error to capture return
+        params.setValue('error_mode', InputParameters.ErrorMode.ERROR)  # use error to capture return
         with self.assertLogs(level='ERROR') as log:
             params.setDefault('foo', 'wrong')
         self.assertEqual(len(log.output), 1)
@@ -134,7 +134,7 @@ class TestInputParameters(unittest.TestCase):
     def testGetDefault(self):
         params = InputParameters()
         params.add('foo', default=42)
-        params.set('foo', 54)
+        params.setValue('foo', 54)
         self.assertEqual(params.getDefault('foo'), 42)
 
         with self.assertRaises(MooseException) as e:
@@ -145,7 +145,7 @@ class TestInputParameters(unittest.TestCase):
         params = InputParameters()
         params.add('foo', default=1949)
         self.assertTrue(params.isDefault('foo'))
-        params.set('foo', 1980)
+        params.setValue('foo', 1980)
         self.assertFalse(params.isDefault('foo'))
 
         with self.assertRaises(MooseException) as e:
@@ -156,70 +156,70 @@ class TestInputParameters(unittest.TestCase):
         params = InputParameters()
         params.add('foo', default=1949)
         self.assertFalse(params.isSetByUser('foo'))
-        params.set('foo', 1980)
+        params.setValue('foo', 1980)
         self.assertFalse(params.isDefault('foo'))
 
     def testSet(self):
         params = InputParameters()
         params.add('foo', vtype=int)
-        params.set('foo', 42)
+        params.setValue('foo', 42)
         self.assertTrue(params.isValid('foo'))
         self.assertIn('foo', params)
-        self.assertIsNotNone(params.get('foo'))
-        self.assertEqual(params.get('foo'), 42)
+        self.assertIsNotNone(params.getValue('foo'))
+        self.assertEqual(params.getValue('foo'), 42)
         self.assertTrue(params.hasParameter('foo'))
 
         with self.assertRaises(MooseException) as e:
-            params.set('bar', 1980)
+            params.setValue('bar', 1980)
         self.assertIn("The parameter 'bar' does not exist", str(e.exception))
 
         # Sub-options
         params2 = InputParameters()
         params2.add('bar')
         params.add('sub', params2)
-        params.set('sub', {'bar': 2013})
-        self.assertEqual(params2.get('bar'), 2013)
-        self.assertEqual(params.get('sub').get('bar'), 2013)
+        params.setValue('sub', {'bar': 2013})
+        self.assertEqual(params2.getValue('bar'), 2013)
+        self.assertEqual(params.getValue('sub').getValue('bar'), 2013)
 
-        params2.set('bar', 1954)
-        self.assertEqual(params2.get('bar'), 1954)
-        self.assertEqual(params.get('sub').get('bar'), 1954)
+        params2.setValue('bar', 1954)
+        self.assertEqual(params2.getValue('bar'), 1954)
+        self.assertEqual(params.getValue('sub').getValue('bar'), 1954)
 
         params3 = InputParameters()
         params3.add('bar', default=2011)
-        params.set('sub', params3)
-        self.assertEqual(params2.get('bar'), 1954)
-        self.assertEqual(params3.get('bar'), 2011)
-        self.assertEqual(params.get('sub').get('bar'), 2011)
+        params.setValue('sub', params3)
+        self.assertEqual(params2.getValue('bar'), 1954)
+        self.assertEqual(params3.getValue('bar'), 2011)
+        self.assertEqual(params.getValue('sub').getValue('bar'), 2011)
 
-        params.set('sub', 'bar', 1944)
-        self.assertEqual(params2.get('bar'), 1954)
-        self.assertEqual(params3.get('bar'), 1944)
-        self.assertEqual(params.get('sub').get('bar'), 1944)
+        params.setValue('sub', 'bar', 1944)
+        self.assertEqual(params2.getValue('bar'), 1954)
+        self.assertEqual(params3.getValue('bar'), 1944)
+        self.assertEqual(params.getValue('sub').getValue('bar'), 1944)
 
         with self.assertRaises(MooseException) as e:
-            params.set('foo', 1980, 2011)
+            params.setValue('foo', 1980, 2011)
         self.assertIn("Extra argument(s) found: 1980", str(e.exception))
 
-        params.set('error_mode', InputParameters.ErrorMode.ERROR)  # log to capture return
+        params.setValue('error_mode', InputParameters.ErrorMode.ERROR)  # log to capture return
         with self.assertLogs(level='ERROR') as log:
-            params.set('foo')
+            params.setValue('foo')
         self.assertEqual(len(log.output), 1)
         self.assertIn("One or more names must be supplied.", log.output[0])
 
-        params.set('error_mode', InputParameters.ErrorMode.ERROR)
+        params.setValue('error_mode', InputParameters.ErrorMode.ERROR)
         with self.assertLogs(level='ERROR') as log:
-            params.set('foo', 'wrong')
+            params.setValue('foo', 'wrong')
         self.assertEqual(len(log.output), 1)
         self.assertIn("'foo' must be of type", log.output[0])
 
     def testGet(self):
         params = InputParameters()
         params.add('foo', default=1980)
-        self.assertEqual(params.get('foo'), 1980)
+        self.assertEqual(params.getValue('foo'), 1980)
 
         with self.assertRaises(MooseException) as e:
-            params.get('bar')
+            params.getValue('bar')
         self.assertIn("The parameter 'bar' does not exist", str(e.exception))
 
     def testHasParameter(self):
@@ -232,13 +232,13 @@ class TestInputParameters(unittest.TestCase):
         params = InputParameters()
         params.add('foo')
         params.update(foo=1980)
-        self.assertEqual(params.get('foo'), 1980)
+        self.assertEqual(params.getValue('foo'), 1980)
 
         params2 = InputParameters()
         params2.add('foo', 2013)
 
         params.update(params2)
-        self.assertEqual(params.get('foo'), 2013)
+        self.assertEqual(params.getValue('foo'), 2013)
 
         with self.assertRaises(MooseException) as e:
             params.update(foo=2011, bar=2013)
@@ -250,28 +250,28 @@ class TestInputParameters(unittest.TestCase):
 
     def testErrorMode(self):
         params = InputParameters()
-        params.set('error_mode', InputParameters.ErrorMode.WARNING)
+        params.setValue('error_mode', InputParameters.ErrorMode.WARNING)
         with self.assertLogs(level='WARNING') as log:
             self.assertIsNone(params.isValid('bar'))
         self.assertEqual(len(log.output), 1)
         self.assertIn("The parameter 'bar' does not exist", log.output[0])
 
         params = InputParameters()
-        params.set('error_mode', InputParameters.ErrorMode.ERROR)
+        params.setValue('error_mode', InputParameters.ErrorMode.ERROR)
         with self.assertLogs(level='ERROR') as log:
             self.assertIsNone(params.isValid('bar'))
         self.assertEqual(len(log.output), 1)
         self.assertIn("The parameter 'bar' does not exist", log.output[0])
 
         params = InputParameters()
-        params.set('error_mode', InputParameters.ErrorMode.CRITICAL)
+        params.setValue('error_mode', InputParameters.ErrorMode.CRITICAL)
         with self.assertLogs(level='CRITICAL') as log:
             self.assertIsNone(params.isValid('bar'))
         self.assertEqual(len(log.output), 1)
         self.assertIn("The parameter 'bar' does not exist", log.output[0])
 
         params = InputParameters()
-        params.set('error_mode', InputParameters.ErrorMode.EXCEPTION)
+        params.setValue('error_mode', InputParameters.ErrorMode.EXCEPTION)
         with self.assertRaises(MooseException) as e:
             self.assertIsNone(params.isValid('bar'))
         self.assertIn("The parameter 'bar' does not exist", str(e.exception))
@@ -283,29 +283,29 @@ class TestInputParameters(unittest.TestCase):
         people = InputParameters()
         people.add('andrew', default=andrew)
 
-        people.set('andrew', 'year', 1949)
-        self.assertEqual(andrew.get('year'), 1949)
+        people.setValue('andrew', 'year', 1949)
+        self.assertEqual(andrew.getValue('year'), 1949)
 
-        people.set('andrew', {'year': 1954})
-        self.assertEqual(andrew.get('year'), 1954)
+        people.setValue('andrew', {'year': 1954})
+        self.assertEqual(andrew.getValue('year'), 1954)
 
-        people.set('andrew_year', 1977)
-        self.assertEqual(andrew.get('year'), 1977)
+        people.setValue('andrew_year', 1977)
+        self.assertEqual(andrew.getValue('year'), 1977)
 
         yo_dawg = InputParameters()
         yo_dawg.add('nunchuck')
         andrew.add('skills', yo_dawg)
-        self.assertEqual(yo_dawg.get('nunchuck'), None)
+        self.assertEqual(yo_dawg.getValue('nunchuck'), None)
 
-        people.set('andrew_skills', 'nunchuck', True)
-        self.assertEqual(yo_dawg.get('nunchuck'), True)
+        people.setValue('andrew_skills', 'nunchuck', True)
+        self.assertEqual(yo_dawg.getValue('nunchuck'), True)
 
         with self.assertRaises(MooseException) as e:
-            people.set('andrew_day', 'python', False)
+            people.setValue('andrew_day', 'python', False)
         self.assertIn("The parameter 'day' does not exist", str(e.exception))
 
         with self.assertRaises(MooseException) as e:
-            people.set('andrew_skills', 'python', False)
+            people.setValue('andrew_skills', 'python', False)
         self.assertIn("The parameter 'python' does not exist.", str(e.exception))
 
     def testGetWithSubOption(self):
@@ -319,11 +319,11 @@ class TestInputParameters(unittest.TestCase):
         text = InputParameters()
         text.add('font', font)
 
-        self.assertEqual(text.get('font', 'size'), 24)
-        self.assertEqual(text.get('font', 'unit', 'name'), 'pts')
+        self.assertEqual(text.getValue('font', 'size'), 24)
+        self.assertEqual(text.getValue('font', 'unit', 'name'), 'pts')
 
-        self.assertEqual(text.get('font_size'), 24)
-        self.assertEqual(text.get('font_unit_name'), 'pts')
+        self.assertEqual(text.getValue('font_size'), 24)
+        self.assertEqual(text.getValue('font_unit_name'), 'pts')
 
     def testToString(self):
         font = InputParameters()
@@ -365,7 +365,7 @@ class TestInputParameters(unittest.TestCase):
         date.add('year')
         self.assertEqual(date.isRequired('year'), False)
 
-        date.set('year', 1980)
+        date.setValue('year', 1980)
         date.setRequired('year', True)
         self.assertEqual(date.isRequired('year'), True)
 
@@ -377,7 +377,7 @@ class TestInputParameters(unittest.TestCase):
                       str(e.exception))
 
 
-        date.set('error_mode', InputParameters.ErrorMode.ERROR)
+        date.setValue('error_mode', InputParameters.ErrorMode.ERROR)
         with self.assertLogs(level='ERROR') as log:
             value = date.isRequired('wrong')
         self.assertEqual(value, False)
@@ -392,7 +392,7 @@ class TestInputParameters(unittest.TestCase):
 
         date.addParam('day', 1, 'doco')
         self.assertIn('day', date)
-        self.assertEqual(date.get('day'), 1)
+        self.assertEqual(date.getValue('day'), 1)
         self.assertEqual('doco', date.parameter('year').doc)
 
         date.addRequiredParam('month', 1, "doco")
