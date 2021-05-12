@@ -216,7 +216,7 @@ class TestCase(MooseObject):
         self._differs = self._runner.getParam('differs') or tuple()
         self._formatter = self.getParam('formatter') # TODO: add default
         self._controllers = self.getParam('controllers') or tuple()
-        self.parameters().set('name', self._runner.name())
+        self.parameters().setValue('name', self._runner.name())
 
         self.__results = None  # results from the Runner/Differ objects
         self.__progress = None # execution progress of this TestCase

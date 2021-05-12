@@ -32,8 +32,6 @@ class Factory(MooseObject):
     def validParams():
         params = MooseObject.validParams()
         params.add('plugin_dirs',
-                   default=(os.path.join(os.getcwd(), 'plugins'), ),
-                   required=True,
                    vtype=str,
                    array=True,
                    verify=(lambda dirs: all(os.path.isdir(d) for d in dirs),
@@ -68,12 +66,6 @@ class Factory(MooseObject):
                 otype,
                 stack_info=True)
         self._registered_types[name] = object_type
-
-    #def isRegistered(self, name):
-    #    """
-    #    Return True if the *name* is among the registered types.
-    #    """
-    #    return name in self._registered_types
 
     def params(self, name):
         """
@@ -114,14 +106,27 @@ class Factory(MooseObject):
         error occurred.
         """
         self.reset()
-        plugin_dirs = self.getParam('plugin_dirs')
         plugin_types = self.getParam('plugin_types')
 
+        # Import modules from the supplied directories
+        plugin_dirs = self.getParam('plugin_dirs')
+        if plugin_dirs is not None:
+            for path in set(os.path.abspath(p) for p in plugin_dirs):
+                if not os.path.isfile(os.path.join(path, '__init__.py')):
+                   msg = "The supplied plugin directory '{}' is not a python package (i.e., it doesn't contain an __init__.py file)."
+                   self.error(msg, path)
+                   continue
 
-        sys.path.append(plugin_dirs)
+                d_name, m_name = path.rsplit(os.sep, maxsplit=1)
+                sys.path.append(d_name)
+                try:
+                    importlib.import_module(m_name)
+                except Exception:
+                    self.exception("Failed to load module '{}' in directory '{}'", m_name, d_name)
 
-        def predicate(obj):
-            return inspect.isclass(obj) and (obj not in plugin_types) and (obj.__name__ not in self._registered_types) and any(p in inspect.getmro(obj) for p in plugin_types)
+        # Load Classes that exist within the available modules
+        def predicate(otype):
+            return inspect.isclass(otype) and (otype not in plugin_types) and (otype.__name__ not in self._registered_types) and any(p in inspect.getmro(otype) for p in plugin_types)
 
         for module in list(sys.modules.values()):
             try:
@@ -130,8 +135,13 @@ class Factory(MooseObject):
             except ModuleNotFoundError:
                 continue
 
+        # Load classes that do
+        #def predicate2(otype):
+        #    inspect.isclass(otype) and (otype.__module__ == module.__name__) and (name not in self._registered_types) and any(p in inspect.getmro(otype) for p in plugin_types)
 
+        """
         for info in pkgutil.iter_modules(plugin_dirs):
+            print(info)
             loader = info.module_finder.find_module(info.name)
             try:
                 module = loader.load_module()
@@ -140,9 +150,9 @@ class Factory(MooseObject):
                                info.module_finder.path)
                 continue
 
-            for name, otype in inspect.getmembers(module):
-                if inspect.isclass(otype) and (otype.__module__ == module.__name__) and (name not in self._registered_types) and any(p in inspect.getmro(otype) for p in plugin_types):
-                    self.register(name, otype)
+            for name, otype in inspect.getmembers(module, predicate):
+                self.register(name, otype)
+        """
 
         return self.status()
 

@@ -13,7 +13,7 @@ class EnvironmentController(Controller):
     @staticmethod
     def validParams():
         params = Controller.validParams()
-        params.set('prefix', 'env')
+        params.setValue('prefix', 'env')
         return params
 
     @staticmethod
@@ -39,7 +39,7 @@ class EnvironmentController(Controller):
 
         sys_platform = platform.system()
         self.debug('platform.system() = {}', repr(sys_platform))
-        pf = params.get('platform')
+        pf = params.getValue('platform')
         if (pf is not None) and (sys_platform not in pf):
             self.skip('{} not in {}', repr(sys_platform), repr(pf))
             self.debug("The system platform {} is not in the allowable platforms list of {}",

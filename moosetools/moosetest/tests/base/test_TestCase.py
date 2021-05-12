@@ -14,7 +14,7 @@ class TestController(Controller):
     @staticmethod
     def validParams():
         params = Controller.validParams()
-        params.set('prefix', 'ctrl')
+        params.setValue('prefix', 'ctrl')
         return params
 
     @staticmethod

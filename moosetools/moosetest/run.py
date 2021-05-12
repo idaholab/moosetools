@@ -56,7 +56,7 @@ def _running_results(testcase_map, result_queue):
 
     try:
         unique_id, progress, state, results = result_queue.get_nowait()
-        tc = testcase_map.get(unique_id)
+        tc = testcase_map.getValue(unique_id)
         tc.setProgress(progress)
         if progress == TestCase.Progress.FINISHED:
             tc.setState(state)

@@ -58,7 +58,7 @@ class MooseObject(object):
         self.__log_counts = {key: 0 for key in logging._levelToName.keys()}
         self._parameters = getattr(self.__class__, 'validParams')() if (params is None) else params
         self._parameters.update(**kwargs)
-        self._parameters.set('_moose_object', self)
+        self._parameters.setValue('_moose_object', self)
         self._parameters.validate()  # once this is called, the mutable flag becomes active
 
         # Create a unique logger for this object, to allow for object level log controls
@@ -194,4 +194,4 @@ class MooseObject(object):
 
         Refer to `InputParameters.get` for further information.
         """
-        return self._parameters.get(*args)
+        return self._parameters.getValue(*args)

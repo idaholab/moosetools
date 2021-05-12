@@ -66,10 +66,6 @@ class TestHarness(base.MooseObject):
         params.add('spec_file_blocks', vtype=str, array=True, default=('Tests',),
                    doc="List of top-level test specifications (e.g., `[Tests]`) HIT blocks to run.")
 
-        levels = tuple(logging._nameToLevel.keys())
-        params.add('log_level', default='INFO', vtype=str, allow=levels, mutable=False,
-                   doc="Set the logging level, see python 'logging' package for details.")
-
         params.add('timeout', default=300., vtype=float,
                    doc="Number of seconds allowed for the execution of a test case.")
         params.add('progress_interval', default=10., vtype=float,
@@ -89,7 +85,6 @@ class TestHarness(base.MooseObject):
     def __init__(self, *args, **kwargs):
         base.MooseObject.__init__(self, *args, **kwargs)
         logging.basicConfig(level=self.getParam('log_level'))
-
 
     def applyArguments(self, args):
         pass
@@ -128,6 +123,7 @@ def main():
 
 
     """
+
     # Extract command-line arguments
     args = cli_args()
 
@@ -141,7 +137,7 @@ def main():
     harness = make_harness(filename, root)
     #harness.applyArguments(filename, args)
 
-    harness.execute()
+    #harness.execute()
 
 
 
@@ -174,7 +170,6 @@ def make_harness(filename, root):
     """
 
     """
-
     # Top-level parameters are used to build the TestHarness object. Creating custom `TestHarness`
     # objects is not-supported, so don't allow "type" to be set.
     if 'type' in root:
@@ -189,24 +184,33 @@ def make_harness(filename, root):
     p._parseNode(filename, root)
     harness = w[0]
 
+    print('....................................')
 
-    #plugin_dirs = list()
-    #base_dir = os.path.dirname(filename)
-    #for p_dir in harness.getParam('plugin_dirs'):
-    #    plugin_dirs.append(os.path.abspath(os.path.join(base_dir, p_dir)))
+    print(harness)
+
+
+    plugin_dirs = list()
+    base_dir = os.path.dirname(filename)
+    for p_dir in harness.getParam('plugin_dirs'):
+        plugin_dirs.append(os.path.abspath(os.path.join(base_dir, p_dir)))
+
+    #print(filename)
+    #print(plugin_dirs)
+    print(list(root.params()))
+    print(harness.getParam('plugin_dirs'))
 
     #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'controllers')))
     #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'formatters')))
     #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'runners')))
     #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'differs')))
-    #harness.parameters().set('plugin_dirs', tuple(plugin_dirs))
+    #harness.parameters().setValue('plugin_dirs', tuple(plugin_dirs))
 
 
-    controllers = make_controllers(filename, root, harness.getParam('plugin_dirs'))
-    harness.parameters().set('controllers', controllers)
+    #controllers = make_controllers(filename, root, harness.getParam('plugin_dirs'))
+    #harness.parameters().setValue('controllers', controllers)
 
-    formatter = make_formatter(filename, root, harness.getParam('plugin_dirs'))
-    harness.parameters().set('formatter', formatter)
+    #formatter = make_formatter(filename, root, harness.getParam('plugin_dirs'))
+    #harness.parameters().setValue('formatter', formatter)
 
     return harness
 
@@ -264,7 +268,8 @@ def _locate_config(start):
 
     root_dir = os.path.abspath(start) + os.sep # add trailing / to consider the start directory
     for i in range(root_dir.count(os.sep)):
-        fname = os.path.join(root_dir.rsplit(os.sep, 1)[0], '.moosetest')
+        root_dir = root_dir.rsplit(os.sep, 1)[0]
+        fname = os.path.join(root_dir, '.moosetest')
         if os.path.isfile(fname):
             return fname
 
@@ -276,6 +281,7 @@ def _load_config(filename):
         msg =  "The configuration file, '{}', does not exist."
         raise RuntimeError(msg.format(filename))
     root = pyhit.load(filename)
+
     return root
 
 def _locate_and_load_config(location=os.getcwd()):
@@ -326,27 +332,3 @@ if __name__ == '__main__':
     import multiprocessing
     multiprocessing.set_start_method('fork', force=True)
     sys.exit(main())
-
-
-    """
-    import pickle
-
-    #import moosetools
-    from moosetools.moosetest.formatters import BasicFormatter
-    f0 = BasicFormatter()
-    print(f0, type(f0))
-
-    d0 = pickle.dumps(f0)
-    obj0 = pickle.loads(d0)
-
-    filename = _locate_config(os.getcwd())
-    root = _load_config(filename)
-    f1 = make_formatter(filename, root, ('../formatters',))
-    print(f1, type(f1))
-
-
-    d1 = pickle.dumps(f1)
-    obj1 = pickle.loads(d1)
-
-    print(d0 == d1)
-    """
