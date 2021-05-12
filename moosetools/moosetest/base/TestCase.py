@@ -559,6 +559,7 @@ class TestCase(MooseObject):
         # Documented in `moosetools.base.Formatter`
         kwargs = dict()
         kwargs['name'] = obj.name()
+        kwargs['object'] = obj
         kwargs['state'] = state
         kwargs['reasons'] = reasons
         kwargs['duration'] = duration
@@ -579,6 +580,7 @@ class TestCase(MooseObject):
 
         # Documented in `moosetools.base.Formatter`
         kwargs['name'] = obj.name()
+        kwargs['object'] = obj
         kwargs['state'] = data.state
         kwargs['reasons'] = data.reasons
         kwargs['returncode'] = data.returncode

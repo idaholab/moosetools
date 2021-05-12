@@ -54,8 +54,6 @@ class TestHarness(base.MooseObject):
                    default=tuple(),
                    vtype=str,
                    array=True,
-                   verify=(lambda dirs: all(os.path.isdir(d) for d in dirs),
-                           "Supplied plugin directories must exist."),
                    doc="List of directories to search for plugins, the location should be relative to the configure file.")
 
         params.add('n_threads', default=os.cpu_count(), vtype=int,
@@ -90,25 +88,6 @@ class TestHarness(base.MooseObject):
         pass
 
 
-    def execute(self):
-
-
-
-        groups = discover(os.getcwd(),
-                          self.getParam('spec_file_names'),
-                          self.getParam('spec_file_blocks'),
-                          self.getParam('plugin_dirs'),
-                          self.getParam('controllers'),
-                          self.getParam('n_threads'))
-
-        run(groups,
-            self.getParam('controllers'),
-            self.getParam('formatter'),
-            self.getParam('n_threads'),
-            self.getParam('timeout'),
-            self.getParam('progress_interval'),
-            self.getParam('max_failures'))
-
 
 
 
@@ -137,32 +116,27 @@ def main():
     harness = make_harness(filename, root)
     #harness.applyArguments(filename, args)
 
-    #harness.execute()
+    controllers = make_controllers(filename, root, harness.getParam('plugin_dirs'))
+
+    formatter = make_formatter(filename, root, harness.getParam('plugin_dirs'))
 
 
 
 
+    groups = discover(os.getcwd(),
+                      harness.getParam('spec_file_names'),
+                      harness.getParam('spec_file_blocks'),
+                      harness.getParam('plugin_dirs'),
+                      controllers,
+                      harness.getParam('n_threads'))
 
-    # Initialize logging
-    #logging.basicConfig(level=test_harness.getParam('log_level'))
-
-    # Get/update the [Main] parameters
-    #params = _create_main_parameters(filename, config)
-
-    # Create `Controller` objects for managing the testing
-    #controllers = _create_controllers(filename, config, params.get('plugin_dirs') or tuple())
-
-
-    #testcase_groups = discover(os.getcwd(),
-    #                           params.get('spec_file_names'),
-    #                           params.get('spec_file_blocks'),
-    #                           params.get('plugin_dirs'),
-    #                           controllers,
-    #                           params.get('n_threads'))
-
-    # run(testcase_groups)
-    # - remove execute functions from TestCase
-    # - remove 'controllers' from TestCase, it should just be an argument in run_testcases function
+    run(groups,
+        controllers,
+        formatter,
+        harness.getParam('n_threads'),
+        harness.getParam('timeout'),
+        harness.getParam('progress_interval'),
+        harness.getParam('max_failures'))
 
     # return 0|1
 
@@ -176,6 +150,14 @@ def make_harness(filename, root):
         msg = "The 'type' parameter must NOT be defined in the top-level of the configuration."
     root['type'] = 'TestHarness'
 
+    plugin_dirs = list()
+    hit_plugin_dirs = root.get('plugin_dirs', None)
+    if hit_plugin_dirs is not None:
+        base_dir = os.path.dirname(filename)
+        for p_dir in hit_plugin_dirs.split(' '):
+            plugin_dirs.append(os.path.abspath(os.path.join(base_dir, p_dir)))
+        root['plugin_dirs'] = ' '.join(plugin_dirs)
+
     # Create the TestHarness object, the Parser is used to correctly convert HIT to InputParameters
     f = factory.Factory()
     f.register('TestHarness', TestHarness)
@@ -184,20 +166,7 @@ def make_harness(filename, root):
     p._parseNode(filename, root)
     harness = w[0]
 
-    print('....................................')
-
-    print(harness)
-
-
-    plugin_dirs = list()
-    base_dir = os.path.dirname(filename)
-    for p_dir in harness.getParam('plugin_dirs'):
-        plugin_dirs.append(os.path.abspath(os.path.join(base_dir, p_dir)))
-
-    #print(filename)
-    #print(plugin_dirs)
-    print(list(root.params()))
-    print(harness.getParam('plugin_dirs'))
+    #harness.parameters().setValue('plugin_dirs', tuple(plugin_dirs))
 
     #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'controllers')))
     #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'formatters')))
@@ -205,12 +174,6 @@ def make_harness(filename, root):
     #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'differs')))
     #harness.parameters().setValue('plugin_dirs', tuple(plugin_dirs))
 
-
-    #controllers = make_controllers(filename, root, harness.getParam('plugin_dirs'))
-    #harness.parameters().setValue('controllers', controllers)
-
-    #formatter = make_formatter(filename, root, harness.getParam('plugin_dirs'))
-    #harness.parameters().setValue('formatter', formatter)
 
     return harness
 
@@ -245,7 +208,7 @@ def make_formatter(filename, root, plugin_dirs):
     # Locate/create the [Formatter] node
     f_node = moosetree.find(root, func=lambda n: n.fullpath == '/Formatter')
     if f_node is None:
-        f_node = root.append('Formatter', type='BasicFormatter')
+        f_node = root.append('Formatter', type='BasicFormatter', root_test_dir=os.path.dirname(filename))
 
     # Factory for building Formatter objects
     f_factory = factory.Factory(plugin_dirs=plugin_dirs, plugin_types=(Formatter,))

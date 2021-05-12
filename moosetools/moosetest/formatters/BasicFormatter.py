@@ -43,6 +43,9 @@ class BasicFormatter(Formatter):
         params.add('differ_indent', default=' '*4, vtype=str,
                    doc="The text to use for indenting the differ state/result output.")
 
+        params.add('root_test_dir', vtype=str,
+                   doc="The starting location for the test harness, typically the location of the configuration file.")
+
         params.add('max_lines', default=500, vtype=int,
                    doc="Maximum number of lines to show in sys.stdout/sys.stderr in result output.")
         return params
@@ -79,11 +82,16 @@ class BasicFormatter(Formatter):
         return shorten_text(content, n, replace=f'...OUTPUT REMOVED (MAX LINES: {n})...')
 
     def formatRunnerState(self, **kwargs):
+        obj = kwargs.get('object')
+        specfile = obj.getParam('_hit_filename') if obj.isParamValid('_hit_filename') else None
+        if specfile is not None:
+            kwargs['prefix'] = '{}:'.format(specfile.replace(self.getParam('root_test_dir'), ''))
         return self._formatState('', **kwargs)
 
     def formatDifferState(self, **kwargs):
         kwargs.pop('percent')
         kwargs.pop('duration')
+        kwargs['prefix'] = ''
         return self._formatState(self.getParam('differ_indent'), **kwargs)
 
     def formatRunnerResult(self, **kwargs):
@@ -114,13 +122,14 @@ class BasicFormatter(Formatter):
         duration = kwargs.get('duration', None)
         duration = f"[{duration:3.1f}s]" if (duration is not None) and (duration > 0) else ''
 
-        suffix = "{:<{width}}".format(percent + ' ' + duration, width=self._extra_width)
+        suffix = " {:<{width}}".format(percent + ' ' + duration, width=self._extra_width - 1)
 
         # Build the main status line
         # TODO: Handle long name and long reasons
         state = kwargs.get('state')
         status = f"{state.text:<{self._max_state_width}}"
 
+        prefix = kwargs.get('prefix')
         name = kwargs.get('name')
 
         # Create reasons and handle long reasons
@@ -131,8 +140,8 @@ class BasicFormatter(Formatter):
             reasons = textwrap.shorten(reasons, width_avail - 6, placeholder='...')
         reasons = "[{}] ".format(reasons) if reasons else ''
 
-        fill = self.fill(indent, name, reasons, status)
-        msg = f"{indent}{state.format(name)}{fill}{state.format(reasons)}{state.format(status)}{suffix}"
+        fill = self.fill(prefix, indent, name, reasons, status)
+        msg = f"{indent}{prefix}{state.format(name)}{fill}{state.format(reasons)}{state.format(status)}{suffix}"
         return msg
 
     def _formatResult(self, indent='', **kwargs):

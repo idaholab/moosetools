@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+import sys
+import os
+import multiprocessing
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from moosetools import moosetest
+if __name__ == '__main__':
+    multiprocessing.set_start_method('fork', force=True)
+    sys.exit(moosetest.main())

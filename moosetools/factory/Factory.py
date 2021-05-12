@@ -34,8 +34,6 @@ class Factory(MooseObject):
         params.add('plugin_dirs',
                    vtype=str,
                    array=True,
-                   verify=(lambda dirs: all(os.path.isdir(d) for d in dirs),
-                           "Supplied plugin directories must exist."),
                    doc="List of directories to search for plugins.")
         params.add('plugin_types',
                    array=True,
@@ -112,10 +110,15 @@ class Factory(MooseObject):
         plugin_dirs = self.getParam('plugin_dirs')
         if plugin_dirs is not None:
             for path in set(os.path.abspath(p) for p in plugin_dirs):
-                if not os.path.isfile(os.path.join(path, '__init__.py')):
-                   msg = "The supplied plugin directory '{}' is not a python package (i.e., it doesn't contain an __init__.py file)."
-                   self.error(msg, path)
-                   continue
+                if not os.path.isdir(path):
+                    msg = "The supplied item, {}, to the 'plugin_dirs' is not a directory."
+                    self.error(msg, path)
+                    continue
+
+                elif not os.path.isfile(os.path.join(path, '__init__.py')):
+                    msg = "The supplied item, {}, to the 'plugin_dirs' parameter is not a python package (i.e., it does not contain an __init__.py file)."
+                    self.error(msg, path)
+                    continue
 
                 d_name, m_name = path.rsplit(os.sep, maxsplit=1)
                 sys.path.append(d_name)
