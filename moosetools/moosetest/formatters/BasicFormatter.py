@@ -50,15 +50,6 @@ class BasicFormatter(Formatter):
                    doc="Maximum number of lines to show in sys.stdout/sys.stderr in result output.")
         return params
 
-
-    def save(obj):
-        return (obj.__class__, obj.__dict__)
-
-    def load(cls, attributes):
-        obj = cls.__new__(cls)
-        obj.__dict__.update(attributes)
-        return obj
-
     def __init__(self, *args, **kwargs):
         Formatter.__init__(self, *args, **kwargs)
 
@@ -83,8 +74,9 @@ class BasicFormatter(Formatter):
 
     def formatRunnerState(self, **kwargs):
         obj = kwargs.get('object')
-        specfile = obj.getParam('_hit_filename') if obj.isParamValid('_hit_filename') else None
-        if specfile is not None:
+
+        if obj.parameters().hasParameter('_hit_filename') and obj.isParamValid('_hit_filename'):
+            specfile = obj.getParam('_hit_filename')
             kwargs['prefix'] = '{}:'.format(specfile.replace(self.getParam('root_test_dir'), ''))
         return self._formatState('', **kwargs)
 
@@ -129,7 +121,7 @@ class BasicFormatter(Formatter):
         state = kwargs.get('state')
         status = f"{state.text:<{self._max_state_width}}"
 
-        prefix = kwargs.get('prefix')
+        prefix = kwargs.get('prefix', '')
         name = kwargs.get('name')
 
         # Create reasons and handle long reasons

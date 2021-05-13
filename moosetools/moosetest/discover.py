@@ -41,7 +41,9 @@ class MooseTestWarehouse(factory.Warehouse):
     def append(self, obj):
 
         if isinstance(obj, Differ):
-            self.objects[-1].getParam('differs').append(obj)
+            differs = list(self.objects[-1].getParam('differs'))
+            differs.append(obj)
+            self.objects[-1].parameters().setValue('differs', tuple(differs))
         else:
             obj.parameters().setValue('name', obj.getParam('_hit_path'))
             factory.Warehouse.append(self, obj)

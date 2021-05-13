@@ -40,7 +40,7 @@ class TestRunner(unittest.TestCase):
 
     def testDiffers(self):
         d = moosetest.base.make_differ(moosetest.base.Differ, name='a')
-        runner = moosetest.base.make_runner(moosetest.base.Runner, differs=(d,), name='name', test_platform='TempleOS')
+        runner = moosetest.base.make_runner(moosetest.base.Runner, differs=(d,), name='name')
         self.assertIs(runner.getParam('differs')[0], d)
 
 

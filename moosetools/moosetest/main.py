@@ -66,8 +66,6 @@ class TestHarness(base.MooseObject):
 
         params.add('timeout', default=300., vtype=float,
                    doc="Number of seconds allowed for the execution of a test case.")
-        params.add('progress_interval', default=10., vtype=float,
-                   doc="Number of seconds in between progress updates for a test case.")
         params.add('max_failures', default=50, vtype=int,
                    doc="The maximum number of failures allowed before terminating all test cases.")
 
@@ -135,7 +133,6 @@ def main():
         formatter,
         harness.getParam('n_threads'),
         harness.getParam('timeout'),
-        harness.getParam('progress_interval'),
         harness.getParam('max_failures'))
 
     # return 0|1
@@ -292,6 +289,4 @@ def _create_controllers(filename, config, plugin_dirs):
 
 
 if __name__ == '__main__':
-    import multiprocessing
-    multiprocessing.set_start_method('fork', force=True)
     sys.exit(main())

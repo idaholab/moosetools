@@ -8,11 +8,48 @@ import queue
 import concurrent.futures
 import multiprocessing
 
-
 from moosetools.mooseutils import color_text
 from moosetools.moosetest.base import TestCase
 
+def run(groups, controllers, formatter, n_threads=None, timeout=None, max_fails=None, min_fail_state=TestCase.Result.TIMEOUT):
+
+    start_time = time.time()
+
+    tc_kwargs = dict()
+    tc_kwargs['controllers'] = controllers
+
+    executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
+    manager = multiprocessing.Manager()
+    result_queue = manager.Queue()
+
+    futures = list()
+    testcase_map = dict()
+    for runners in groups:
+        testcases = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
+        #_execute_testcases(testcases, result_queue, timeout)
+        futures.append(executor.submit(_execute_testcases, testcases, result_queue, timeout))
+        for tc in testcases:
+            testcase_map[tc.getParam('_unique_id')] = tc
+
+    while any(not tc.finished for tc in testcase_map.values()):
+        _running_results(testcase_map, formatter, result_queue)
+        _running_progress(testcase_map, formatter, futures, max_fails)
+
+    print(formatter.formatComplete(testcase_map.values(), duration=time.time() - start_time))
+
+    failed = sum(tc.state.level > min_fail_state.level for tc in testcase_map.values())
+    return 1 if failed > 0 else 0
+
 def _execute_testcase(tc, conn):
+    """
+    Function for executing the `TestCase` *tc* with exception handling from within a subprocess.
+
+    This function is expected to be called by a `multiprocessing.Process`, as such the *conn* is
+    expected to be a `multiprocessing.Pipe` that the be used to send the results to the spawning
+    process.
+
+    See the `_execute_testcases` for use.
+    """
     try:
         state, results = tc.execute()
     except Exception:
@@ -21,8 +58,21 @@ def _execute_testcase(tc, conn):
     conn.send((state, results))
     conn.close()
 
-def _execute_testcases(testcases, q, timeout):
 
+def _execute_testcases(testcases, q, timeout):
+    """
+    Function for executing groups of `TestCase` objects, *testcases*, each within a subprocess.
+
+    This function is expected to be called from `concurrent.futures.ProcessPoolExecutor`. The *q*,
+    which is a `multiprocessing.Queue` is used to send the results from the run of +each+ `TestCase`
+    to the main process. This is done to allow the main process to report the results without
+    waiting for the entire group to complete.
+
+    The *timeout* is the number of seconds that each `TestCase` is allowed to run before it is
+    aborted. This is accomplished by running the cases in another process.
+
+    See the `run` function for use.
+    """
     skip_message = None
 
     for tc in testcases:
@@ -52,22 +102,36 @@ def _execute_testcases(testcases, q, timeout):
             skip_message = f"A previous `TestCase` ({tc.name()}) in the group returned a non-zero state of {state}."
 
 
-def _running_results(testcase_map, result_queue):
+def _running_results(testcase_map, formatter, result_queue):
+    """
+    Helper function for reporting results as obtained during a call to `run` function.
 
+    The results are obtained from the *result_queue* for `TestCase` objects within the
+    *testcase_map*.
+
+    See `run` function for use.
+    """
     try:
         unique_id, progress, state, results = result_queue.get_nowait()
         tc = testcase_map.get(unique_id)
         tc.setProgress(progress)
         if progress == TestCase.Progress.FINISHED:
             tc.setState(state)
-            tc.setResult(results)
-            tc.reportResult()
+            tc.setResults(results)
+            formatter.reportResult(tc)
         result_queue.task_done()
 
     except queue.Empty:
         pass
 
-def _running_progress(testcase_map, futures, progress_interval, max_fails):
+
+def _running_progress(testcase_map, formatter, futures, max_fails):
+    """
+    Helper function for reporting state of the `TestCase` objects.
+
+    The supplied `TestCase` objects *testcase_map* are each checked, if the case is running the
+    progress is reporte. If more than *max_fails* is reached the processes in *futures* are canceled.
+    """
 
     num_fail = 0
     for tc in testcase_map.values():
@@ -77,45 +141,16 @@ def _running_progress(testcase_map, futures, progress_interval, max_fails):
         if (num_fail >= max_fails) and tc.waiting:
             tc.setProgress(TestCase.Progress.FINISHED)
             tc.setState(TestCase.Result.SKIP)
-            tc.setResult({tc.name(): TestCase.Data(TestCase.Result.SKIP, 0, '', f"Max failures of {max_fails} exceeded.", ['max failures reached'])})
-            tc.reportResult()
+            tc.setResults({tc.name(): TestCase.Data(TestCase.Result.SKIP, 0, '', f"Max failures of {max_fails} exceeded.", ['max failures reached'])})
+            formatter.reportResult(tc)
 
-        if tc.running and (tc.time > progress_interval):
-            tc.reportProgress()
+        if tc.running:
+            formatter.reportProgress(tc)
 
     if num_fail >= max_fails:
         for f in futures:
             f.cancel()
 
-def run(groups, controllers, formatter, n_threads=None, timeout=None, progress_interval=None, max_fails=None):
-
-    start_time = time.time()
-
-    tc_kwargs = dict()
-    tc_kwargs['formatter'] = formatter
-    tc_kwargs['controllers'] = controllers
-
-
-    executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
-    manager = multiprocessing.Manager()
-    result_queue = manager.Queue()
-
-    futures = list()
-    testcase_map = dict()
-    for runners in groups:
-        testcases = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
-        #_execute_testcases(testcases, result_queue, timeout)
-        futures.append(executor.submit(_execute_testcases, testcases, result_queue, timeout))
-        for tc in testcases:
-            testcase_map[tc.getParam('_unique_id')] = tc
-
-    while any(not tc.finished for tc in testcase_map.values()):#len(testcase_map) > 0:
-        _running_results(testcase_map, result_queue)
-        _running_progress(testcase_map, futures, progress_interval, max_fails)
-
-    print(formatter.formatComplete(testcase_map.values(), duration=time.time() - start_time))
-
-    # TODO: return 0/1 based on error level (default to TIMEOUT)
 
 if  __name__ == '__main__':
     import logging
@@ -158,4 +193,4 @@ if  __name__ == '__main__':
 
     groups = [grp_a, grp_b, grp_c, grp_d]
 
-    sys.exit(run(groups, controllers, formatter, n_threads=4, timeout=10, max_fails=5, progress_interval=4))
+    sys.exit(run(groups, controllers, formatter, n_threads=4, timeout=10, max_fails=5))

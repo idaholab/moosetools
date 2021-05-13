@@ -49,7 +49,7 @@ class Runner(MooseObject):
     def validParams():
         params = MooseObject.validParams()
         params.setRequired('name', True)
-        params.add('differs', vtype=list, default=list(),# array=True,
+        params.add('differs', vtype=Differ, array=True,
                    doc="The 'Differ' object(s) to execute after execution of this object.")
         return params
 
