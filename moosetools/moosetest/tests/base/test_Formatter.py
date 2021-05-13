@@ -163,16 +163,15 @@ class TestFormatter(unittest.TestCase):
         self.assertEqual(kwargs['reasons'], ["all the reasons"])
         self.assertIsInstance(kwargs['duration'], float) # exact number can't be tested
         self.assertIsInstance(kwargs['percent'], float)
-        self.assertEqual(kwargs['prefix'], '')
 
         rr.parameters().add('_hit_filename', default='path/filename')
         fm._printState(tc, rr, TestCase.Progress.RUNNING, ["all the reasons"])
         kwargs = r_state.call_args.kwargs
-        self.assertEqual(kwargs['prefix'], 'path/filename:')
+        self.assertEqual(kwargs['name'], 'path/filename:r')
         fm.parameters().add('root_test_dir', default='path/')
         fm._printState(tc, rr, TestCase.Progress.RUNNING, ["all the reasons"])
         kwargs = r_state.call_args.kwargs
-        self.assertEqual(kwargs['prefix'], 'filename:')
+        self.assertEqual(kwargs['name'], 'filename:r')
 
         # Differ, progress
         tc.setProgress(TestCase.Progress.FINISHED) # call this to use execute time
@@ -183,7 +182,6 @@ class TestFormatter(unittest.TestCase):
         self.assertEqual(kwargs['reasons'], ["all the reasons"])
         self.assertIsInstance(kwargs['duration'], float) # exact number can't be tested
         self.assertIsInstance(kwargs['percent'], float)
-        self.assertEqual(kwargs['prefix'], '')
 
         # Runner, results
         tc.setProgress(TestCase.Progress.FINISHED)
@@ -197,7 +195,6 @@ class TestFormatter(unittest.TestCase):
         self.assertEqual(kwargs['reasons'], None)
         self.assertIsInstance(kwargs['duration'], float) # exact number can't be tested
         self.assertIsInstance(kwargs['percent'], float)
-        self.assertEqual(kwargs['prefix'], '')
         self.assertEqual(kwargs['stdout'], 'r_out')
         self.assertEqual(kwargs['stderr'], 'r_err')
 
@@ -212,10 +209,8 @@ class TestFormatter(unittest.TestCase):
         self.assertEqual(kwargs['reasons'], None)
         self.assertIsInstance(kwargs['duration'], float) # exact number can't be tested
         self.assertIsInstance(kwargs['percent'], float)
-        self.assertEqual(kwargs['prefix'], '')
         self.assertEqual(kwargs['stdout'], 'd_out')
         self.assertEqual(kwargs['stderr'], 'd_err')
-
 
     def testTime(self):
         fm = Formatter()

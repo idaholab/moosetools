@@ -115,7 +115,6 @@ class BasicFormatter(Formatter):
         state = kwargs.get('state')
         status = f"{state.text:<{self._max_state_width}}"
 
-        prefix = kwargs.get('prefix', '')
         name = kwargs.get('name')
 
         # Create reasons and handle long reasons
@@ -126,13 +125,11 @@ class BasicFormatter(Formatter):
             reasons = textwrap.shorten(reasons, width_avail - 6, placeholder='...')
         reasons = "[{}] ".format(reasons) if reasons else ''
 
-        fill = self.fill(prefix, indent, name, reasons, status)
-        msg = f"{indent}{prefix}{state.format(name)}{fill}{state.format(reasons)}{state.format(status)}{suffix}"
+        fill = self.fill(indent, name, reasons, status)
+        msg = f"{indent}{state.format(name)}{fill}{state.format(reasons)}{state.format(status)}{suffix}"
         return msg
 
     def _formatResult(self, indent='', **kwargs):
-
-
         state = kwargs.get('state')
         name = kwargs.get('name')
         max_state = self.getParam('print_state')

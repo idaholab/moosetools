@@ -121,11 +121,10 @@ class Formatter(MooseObject):
         if obj.parameters().hasParameter('_hit_filename') and obj.isParamValid('_hit_filename'):
             specfile = obj.getParam('_hit_filename')
             if self.parameters().hasParameter('root_test_dir'):
-                kwargs['prefix'] = '{}:'.format(specfile.replace(self.getParam('root_test_dir'), ''))
-            else:
-                kwargs['prefix'] = f"{specfile}:"
+                specfile = specfile.replace(self.getParam('root_test_dir'), '')
+            kwargs['name'] = f"{specfile}:{obj.name()}"
         else:
-            kwargs['prefix'] = ''
+            kwargs['name'] = obj.name()
 
         if obj is tc_obj.runner:
             txt = self.formatRunnerState(**kwargs)
