@@ -164,15 +164,6 @@ class TestFormatter(unittest.TestCase):
         self.assertIsInstance(kwargs['duration'], float) # exact number can't be tested
         self.assertIsInstance(kwargs['percent'], float)
 
-        rr.parameters().add('_hit_filename', default='path/filename')
-        fm._printState(tc, rr, TestCase.Progress.RUNNING, ["all the reasons"])
-        kwargs = r_state.call_args.kwargs
-        self.assertEqual(kwargs['name'], 'path/filename:r')
-        fm.parameters().add('root_test_dir', default='path/')
-        fm._printState(tc, rr, TestCase.Progress.RUNNING, ["all the reasons"])
-        kwargs = r_state.call_args.kwargs
-        self.assertEqual(kwargs['name'], 'filename:r')
-
         # Differ, progress
         tc.setProgress(TestCase.Progress.FINISHED) # call this to use execute time
         fm._printState(tc, dr, TestCase.Progress.FINISHED, ["all the reasons"])

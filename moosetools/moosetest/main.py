@@ -201,7 +201,6 @@ def make_controllers(filename, root, plugin_dirs):
 
 def make_formatter(filename, root, plugin_dirs):
 
-
     # Locate/create the [Formatter] node
     f_node = moosetree.find(root, func=lambda n: n.fullpath == '/Formatter')
     if f_node is None:

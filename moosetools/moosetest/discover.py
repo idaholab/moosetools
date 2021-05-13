@@ -36,6 +36,8 @@ class MooseTestWarehouse(factory.Warehouse):
     @staticmethod
     def validParams():
         params = factory.Warehouse.validParams()
+        params.add('root_dir', vtype=str, doc="The root directory for loading test specification files.")
+        params.add('specfile', vtype=str, doc="The test specification file.")
         return params
 
     def append(self, obj):
@@ -45,10 +47,12 @@ class MooseTestWarehouse(factory.Warehouse):
             differs.append(obj)
             self.objects[-1].parameters().setValue('differs', tuple(differs))
         else:
-            obj.parameters().setValue('name', obj.getParam('_hit_path'))
+            base = obj.getParam('_hit_path')
+            prefix = obj.getParam('specfile').replace(obj.getParam('root_dir'), '')
+            obj.parameters().setValue('name', f"{prefix}:{base}")
             factory.Warehouse.append(self, obj)
 
-def create_runners(filename, spec_file_blocks, obj_factory):
+def create_runners(root_dir, filename, spec_file_blocks, obj_factory):
 
     root = pyhit.load(filename)
     wh = MooseTestWarehouse()
@@ -79,7 +83,7 @@ def discover(start, spec_file_names, spec_file_blocks, plugin_dirs=None, control
     obj_factory.load()
 
     with concurrent.futures.ThreadPoolExecutor(n_threads) as pool:
-        futures = [pool.submit(create_runners, filename, spec_file_blocks, obj_factory) for filename in spec_files]
+        futures = [pool.submit(create_runners, root_dir, filename, spec_file_blocks, obj_factory) for filename in spec_files]
 
     #testcases = [f.result() for f in futures]
 

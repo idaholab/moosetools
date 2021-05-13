@@ -118,14 +118,6 @@ class Formatter(MooseObject):
         kwargs['duration'] = tc_obj.time
         kwargs['percent'] = TestCase.__FINISHED__ / TestCase.__TOTAL__ * 100
 
-        if obj.parameters().hasParameter('_hit_filename') and obj.isParamValid('_hit_filename'):
-            specfile = obj.getParam('_hit_filename')
-            if self.parameters().hasParameter('root_test_dir'):
-                specfile = specfile.replace(self.getParam('root_test_dir'), '')
-            kwargs['name'] = f"{specfile}:{obj.name()}"
-        else:
-            kwargs['name'] = obj.name()
-
         if obj is tc_obj.runner:
             txt = self.formatRunnerState(**kwargs)
         else:
