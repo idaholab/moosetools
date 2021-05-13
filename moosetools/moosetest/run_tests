@@ -1,2 +1,2 @@
-coverage run --omit "./tests/**" --include "./*" -m unittest discover --verbose --start-directory "./tests"
+coverage run --omit "./tests/**" --include "./*" -m unittest discover --verbose --start-directory "./tests" --buffer
 coverage report -m --fail-under=100

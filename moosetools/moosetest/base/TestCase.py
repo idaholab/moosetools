@@ -369,20 +369,20 @@ class TestCase(MooseObject):
         if not isinstance(results, dict):
             with RedirectOutput() as out:
                 self.critical("The supplied result must be of type `dict`.")
-            result = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
+            results = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
             self.setState(TestCase.Result.FATAL)
 
         if any(not isinstance(val, TestCase.Data) for val in results.values()):
             with RedirectOutput() as out:
                 self.critical("The supplied result values must be of type `TestCase.Data`.")
-            result = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
+            results = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
             self.setState(TestCase.Result.FATAL)
 
         names = [self._runner.name()] + [d.name() for d in self._differs]
         if any(key not in names for key in results.keys()):
             with RedirectOutput() as out:
                 self.critical("The supplied result keys must be the names of the `Runner` or `Differ` object(s).")
-            result = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
+            results = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
             self.setState(TestCase.Result.FATAL)
 
         self.__results = results

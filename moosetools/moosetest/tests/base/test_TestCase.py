@@ -99,7 +99,6 @@ class TestState(unittest.TestCase):
         self.assertEqual(m.display, '\x1b[38;5;252mMARCO\x1b[0m')
         self.assertEqual(m.format('foo'), '\x1b[38;5;252mfoo\x1b[0m')
 
-
 class TestRedirectOutput(unittest.TestCase):
     def testSysRedirect(self):
         out = collections.defaultdict(io.StringIO)
@@ -114,8 +113,8 @@ class TestRedirectOutput(unittest.TestCase):
         with RedirectOutput() as out:
             print("test print")
             logging.error("test log")
-        self.assertEqual("test print\n", out.stdout)
-        self.assertEqual("ERROR:root:test log\n", out.stderr)
+        self.assertIn("test print\n", out.stdout)
+        self.assertIn("test log\n", out.stderr)
 
         # Without logging configured, this adds a handler
         logging.basicConfig()
@@ -123,11 +122,13 @@ class TestRedirectOutput(unittest.TestCase):
         with RedirectOutput() as out:
             print("test print")
             l.error("test log")
-        self.assertEqual("test print\n", out.stdout)
-        self.assertEqual("test log\n", out.stderr)
+        self.assertIn("test print\n", out.stdout)
+        self.assertIn("test log\n", out.stderr)
 
 class TestTestCase(unittest.TestCase):
     def testCounts(self):
+        TestCase.__TOTAL__ = 0
+        TestCase.__FINISHED__ = 0
         self.assertEqual(TestCase.__TOTAL__, 0)
         self.assertEqual(TestCase.__FINISHED__, 0)
 
@@ -185,7 +186,7 @@ class TestTestCase(unittest.TestCase):
         tc.setProgress("wrong")
         self.assertEqual(tc.progress, TestCase.Progress.FINISHED)
         self.assertEqual(tc.state, TestCase.Result.FATAL)
-        r = tc.result
+        r = tc.results
         self.assertEqual(r['a'].state, TestCase.Result.FATAL)
         self.assertEqual(r['a'].returncode, None)
         self.assertEqual(r['a'].stdout, '')
@@ -203,7 +204,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(tc.state, TestCase.Result.PASS)
 
         tc.setState("wrong")
-        r = tc.result
+        r = tc.results
         self.assertEqual(tc.progress, TestCase.Progress.FINISHED)
         self.assertEqual(tc.state, TestCase.Result.FATAL)
         self.assertEqual(r['a'].state, TestCase.Result.FATAL)
@@ -622,217 +623,49 @@ class TestTestCase(unittest.TestCase):
         self.assertIn("An exception occurred during execution of the 'd' object", r['d'].stderr)
         self.assertEqual(r['d'].reasons, None)
 
-    def testSetResult(self):
+    def testSetResults(self):
         ct = TestController()
         dr = make_differ(TestDiffer, [ct], name='d')
         rr = make_runner(TestRunner, [ct], differs=(dr,), name='r')
         tc = TestCase(runner=rr, controllers=(ct,))
 
         # Wrong type
-        tc.setResult('wrong')
+        tc.setResults('wrong')
         self.assertEqual(tc.state, TestCase.Result.FATAL)
-        r = tc.result
+        r = tc.results
         self.assertEqual(r['r'].state, TestCase.Result.FATAL)
         self.assertEqual(r['r'].returncode, None)
         self.assertEqual(r['r'].stdout, '')
         self.assertIn("The supplied result must be of type `dict`.", r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
 
-        tc.setResult({'r':'wrong'})
+        tc.setResults({'r':'wrong'})
         self.assertEqual(tc.state, TestCase.Result.FATAL)
-        r = tc.result
+        r = tc.results
         self.assertEqual(r['r'].state, TestCase.Result.FATAL)
         self.assertEqual(r['r'].returncode, None)
         self.assertEqual(r['r'].stdout, '')
         self.assertIn("The supplied result values must be of type `TestCase.Data`.", r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
 
-        tc.setResult({'wrong':TestCase.Data()})
+        tc.setResults({'wrong':TestCase.Data()})
         self.assertEqual(tc.state, TestCase.Result.FATAL)
-        r = tc.result
+        r = tc.results
         self.assertEqual(r['r'].state, TestCase.Result.FATAL)
         self.assertEqual(r['r'].returncode, None)
         self.assertEqual(r['r'].stdout, '')
         self.assertIn("The supplied result keys must be the names of the `Runner` or `Differ` object(s).", r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
 
-        tc.setResult({'r': TestCase.Data(TestCase.Result.PASS, None, 'out', 'err', None)})
+        tc.setResults({'r': TestCase.Data(TestCase.Result.PASS, None, 'out', 'err', None)})
         self.assertEqual(tc.state, TestCase.Result.FATAL)
-        r = tc.result
+        r = tc.results
         self.assertEqual(r['r'].state, TestCase.Result.PASS)
         self.assertEqual(r['r'].returncode, None)
         self.assertEqual(r['r'].stdout, 'out')
         self.assertEqual(r['r'].stderr, 'err')
         self.assertEqual(r['r'].reasons, None)
 
-    @mock.patch("moosetools.moosetest.base.TestCase._printResult")
-    @mock.patch("moosetools.moosetest.base.TestCase._printState")
-    def testReportResults(self, pstate, presult):
-
-        # Runner
-        ct = TestController()
-        rr = make_runner(TestRunner, [ct], name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
-
-        tc.setResult({'r':TestCase.Data(TestCase.Result.ERROR, None, 'out', 'err', None)})
-        tc.setProgress(TestCase.Progress.FINISHED)
-        tc.setState(TestCase.Result.PASS)
-        tc.reportResult()
-
-        pstate.assert_called_with(rr, tc.state, None)
-        presult.assert_called_with(rr, tc.result['r'])
-
-        # Differ
-        dr = make_differ(TestDiffer, [ct], name='d')
-        rr = make_runner(TestRunner, [ct], differs=(dr,), name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
-        tc.setProgress(TestCase.Progress.FINISHED)
-        tc.setState(TestCase.Result.PASS)
-        tc.setResult({'r':TestCase.Data(TestCase.Result.ERROR, None, 'r_out', 'r_err', None),
-                      'd':TestCase.Data(TestCase.Result.TIMEOUT, None, 'd_out', 'd_err', None)})
-
-        tc.reportResult()
-        pstate.assert_called_with(dr, tc.result['d'].state, None)
-        presult.assert_called_with(dr, tc.result['d'])
-
-        # Errors
-        ct = TestController()
-        rr = make_runner(TestRunner, [ct], name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
-        tc.reportResult()
-        self.assertEqual(tc.progress, TestCase.Progress.FINISHED)
-        self.assertEqual(tc.state, TestCase.Result.FATAL)
-        r = tc.result
-        self.assertEqual(r['r'].state, TestCase.Result.FATAL)
-        self.assertEqual(r['r'].returncode, None)
-        self.assertEqual(r['r'].stdout, '')
-        self.assertIn("The state has not been set via the `setState` method.", r['r'].stderr)
-        self.assertEqual(r['r'].reasons, None)
-
-        ct = TestController()
-        rr = make_runner(TestRunner, [ct], name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
-        tc.setState(TestCase.Result.PASS)
-        tc.reportResult()
-        self.assertEqual(tc.progress, TestCase.Progress.FINISHED)
-        self.assertEqual(tc.state, TestCase.Result.FATAL)
-        r = tc.result
-        self.assertEqual(r['r'].state, TestCase.Result.FATAL)
-        self.assertEqual(r['r'].returncode, None)
-        self.assertEqual(r['r'].stdout, '')
-        self.assertIn("The results have not been set via the `setResults` method.", r['r'].stderr)
-        self.assertEqual(r['r'].reasons, None)
-
-        ct = TestController()
-        rr = make_runner(TestRunner, [ct], name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
-        tc.setState(TestCase.Result.PASS)
-        tc.setResult({'r':TestCase.Data(TestCase.Result.ERROR, None, 'r_out', 'r_err', None)})
-        tc.reportResult()
-        self.assertEqual(tc.progress, TestCase.Progress.FINISHED)
-        self.assertEqual(tc.state, TestCase.Result.FATAL)
-        r = tc.result
-        self.assertEqual(r['r'].state, TestCase.Result.FATAL)
-        self.assertEqual(r['r'].returncode, None)
-        self.assertEqual(r['r'].stdout, '')
-        self.assertIn("The execution has not finished, so results cannot be reported.", r['r'].stderr)
-        self.assertEqual(r['r'].reasons, None)
-
-
-    @mock.patch("moosetools.moosetest.base.TestCase._printState")
-    def testReportProgress(self, pstate):
-
-        # Runner
-        ct = TestController()
-        rr = make_runner(TestRunner, [ct], name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
-
-        tc.reportProgress()
-        pstate.assert_called_with(rr, TestCase.Progress.WAITING, None)
-
-        tc.setProgress(TestCase.Progress.RUNNING)
-        tc.reportProgress()
-        pstate.assert_called_with(rr, TestCase.Progress.RUNNING, None)
-
-        tc.setProgress(TestCase.Progress.FINISHED)
-        tc.reportProgress()
-        pstate.assert_called_with(rr, TestCase.Progress.FINISHED, None)
-
-        # Error
-        tc._TestCase__progress = None
-        tc.reportProgress()
-        pstate.assert_called_with(rr, TestCase.Progress.FINISHED, None)
-        self.assertEqual(tc.progress, TestCase.Progress.FINISHED)
-        self.assertEqual(tc.state, TestCase.Result.FATAL)
-        r = tc.result
-        self.assertEqual(r['r'].state, TestCase.Result.FATAL)
-        self.assertEqual(r['r'].returncode, None)
-        self.assertEqual(r['r'].stdout, '')
-        self.assertIn("The progress has not been set via the `setProgress` method.", r['r'].stderr)
-        self.assertEqual(r['r'].reasons, None)
-
-
-    @mock.patch("moosetools.moosetest.base.Formatter.formatDifferResult")
-    @mock.patch("moosetools.moosetest.base.Formatter.formatRunnerResult")
-    @mock.patch("moosetools.moosetest.base.Formatter.formatDifferState")
-    @mock.patch("moosetools.moosetest.base.Formatter.formatRunnerState")
-    def testPrintState(self, r_state, d_state, r_result, d_result):
-
-        # Runner
-        ct = TestController()
-        fm = Formatter()
-        dr = make_differ(TestDiffer, [ct], name='d')
-        rr = make_runner(TestRunner, [ct], differs=(dr,), name='r')
-        tc = TestCase(runner=rr, controllers=(ct,), formatter=fm)
-        tc.setProgress(TestCase.Progress.RUNNING)
-
-        # Runner, progress
-        tc._printState(rr, TestCase.Progress.RUNNING, ["all the reasons"])
-        kwargs = r_state.call_args.kwargs
-        self.assertEqual(kwargs['name'], 'r')
-        self.assertEqual(kwargs['state'], TestCase.Progress.RUNNING)
-        self.assertEqual(kwargs['reasons'], ["all the reasons"])
-        self.assertIsInstance(kwargs['duration'], float) # exact number can't be tested
-        self.assertIsInstance(kwargs['percent'], float)
-
-        # Differ, progress
-        tc.setProgress(TestCase.Progress.FINISHED) # call this to use execute time
-        tc._printState(dr, TestCase.Progress.FINISHED, ["all the reasons"])
-        kwargs = d_state.call_args.kwargs
-        self.assertEqual(kwargs['name'], 'd')
-        self.assertEqual(kwargs['state'], TestCase.Progress.FINISHED)
-        self.assertEqual(kwargs['reasons'], ["all the reasons"])
-        self.assertIsInstance(kwargs['duration'], float) # exact number can't be tested
-        self.assertIsInstance(kwargs['percent'], float)
-
-        # Runner, results
-        tc.setProgress(TestCase.Progress.FINISHED)
-        tc.setState(TestCase.Result.PASS)
-        tc.setResult({'r':TestCase.Data(TestCase.Result.PASS, None, 'r_out', 'r_err', None),
-                      'd':TestCase.Data(TestCase.Result.PASS, None, 'd_out', 'd_err', None)})
-        tc._printResult(rr, tc.result['r'])
-        kwargs = r_result.call_args.kwargs
-        self.assertEqual(kwargs['name'], 'r')
-        self.assertEqual(kwargs['state'], TestCase.Result.PASS)
-        self.assertEqual(kwargs['reasons'], None)
-        self.assertIsInstance(kwargs['duration'], float) # exact number can't be tested
-        self.assertIsInstance(kwargs['percent'], float)
-        self.assertEqual(kwargs['stdout'], 'r_out')
-        self.assertEqual(kwargs['stderr'], 'r_err')
-
-        # Differ, results
-        tc.setState(TestCase.Result.PASS)
-        tc.setResult({'r':TestCase.Data(TestCase.Result.PASS, None, 'r_out', 'r_err', None),
-                      'd':TestCase.Data(TestCase.Result.PASS, None, 'd_out', 'd_err', None)})
-        tc._printResult(dr, tc.result['d'])
-        kwargs = d_result.call_args.kwargs
-        self.assertEqual(kwargs['name'], 'd')
-        self.assertEqual(kwargs['state'], TestCase.Result.PASS)
-        self.assertEqual(kwargs['reasons'], None)
-        self.assertIsInstance(kwargs['duration'], float) # exact number can't be tested
-        self.assertIsInstance(kwargs['percent'], float)
-        self.assertEqual(kwargs['stdout'], 'd_out')
-        self.assertEqual(kwargs['stderr'], 'd_err')
 
 
 if __name__ == '__main__':

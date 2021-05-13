@@ -1,6 +1,6 @@
 import time
 from moosetools.base import MooseObject
-from .TestCase import TestCase
+from .TestCase import TestCase, RedirectOutput
 
 class Formatter(MooseObject):
     """
@@ -16,7 +16,7 @@ class Formatter(MooseObject):
     @staticmethod
     def validParams():
         params = MooseObject.validParams()
-        params.add('progress_interval', default=10., vtype=float, mutable=False,
+        params.add('progress_interval', default=10., vtype=(int, float), mutable=False,
                    doc="Number of seconds in between progress updates for a test case.")
         return params
 
@@ -57,7 +57,7 @@ class Formatter(MooseObject):
         if (time.time() - self.__progress_time) > self.__progress_interval:
 
             if tc_obj.progress is None:
-                with TestCase.RedirectOutput() as out:
+                with RedirectOutput() as out:
                     tc_obj.critical("The progress has not been set via the `setProgress` method.")
                 tc_obj.setProgress(TestCase.Progress.FINISHED)
                 tc_obj.setState(TestCase.Result.FATAL)
@@ -66,7 +66,7 @@ class Formatter(MooseObject):
             self._printState(tc_obj, tc_obj.runner, tc_obj.progress, None)
             self.__progress_time = time.time()
 
-    def reportResult(self, tc_obj):
+    def reportResults(self, tc_obj):
         """
         Print the results of the `TestCase` in *tc_obj*.
 
@@ -75,21 +75,21 @@ class Formatter(MooseObject):
         # Attempt to avoid unexpected calls to this function, these should not be hit unless
         # something has gone wrong.
         if tc_obj.state is None:
-            with TestCase.RedirectOutput() as out:
+            with RedirectOutput() as out:
                 tc_obj.critical("The state has not been set via the `setState` method.")
             tc_obj.setProgress(TestCase.Progress.FINISHED)
             tc_obj.setState(TestCase.Result.FATAL)
             tc_obj.setResults({tc_obj.runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)})
 
         elif tc_obj.results is None:
-            with TestCase.RedirectOutput() as out:
+            with RedirectOutput() as out:
                 tc_obj.critical("The results have not been set via the `setResults` method.")
             tc_obj.setProgress(TestCase.Progress.FINISHED)
             tc_obj.setState(TestCase.Result.FATAL)
-            tc_obj.setResults({self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)})
+            tc_obj.setResults({tc_obj.runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)})
 
         elif tc_obj.progress != TestCase.Progress.FINISHED:
-            with TestCase.RedirectOutput() as out:
+            with RedirectOutput() as out:
                 tc_obj.critical("The execution has not finished, so results cannot be reported.")
             tc_obj.setProgress(TestCase.Progress.FINISHED)
             tc_obj.setState(TestCase.Result.FATAL)
@@ -110,19 +110,22 @@ class Formatter(MooseObject):
         """
         Helper to prepare information for passing to the Formatter state printing methods.
         """
-        #if state == TestCase.Progress.RUNNING:
-        #    duration = time.time() - self.__start_time
-        #else:
-        #    duration = self.__execute_time
 
-        # Documented in `moosetools.base.Formatter`
         kwargs = dict()
         kwargs['name'] = obj.name()
-        kwargs['object'] = obj
         kwargs['state'] = state
         kwargs['reasons'] = reasons
         kwargs['duration'] = tc_obj.time
         kwargs['percent'] = TestCase.__FINISHED__ / TestCase.__TOTAL__ * 100
+
+        if obj.parameters().hasParameter('_hit_filename') and obj.isParamValid('_hit_filename'):
+            specfile = obj.getParam('_hit_filename')
+            if self.parameters().hasParameter('root_test_dir'):
+                kwargs['prefix'] = '{}:'.format(specfile.replace(self.getParam('root_test_dir'), ''))
+            else:
+                kwargs['prefix'] = f"{specfile}:"
+        else:
+            kwargs['prefix'] = ''
 
         if obj is tc_obj.runner:
             txt = self.formatRunnerState(**kwargs)
@@ -136,15 +139,13 @@ class Formatter(MooseObject):
         Helper to prepare information for passing to the Formatter result printing methods.
         """
         kwargs = dict()
-
-        # Documented in `moosetools.base.Formatter`
         kwargs['name'] = obj.name()
-        kwargs['object'] = obj
         kwargs['state'] = data.state
         kwargs['reasons'] = data.reasons
         kwargs['returncode'] = data.returncode
-        kwargs['duration'] = tc_obj.time#self.__execute_time
+        kwargs['duration'] = tc_obj.time
         kwargs['percent'] = TestCase.__FINISHED__ / TestCase.__TOTAL__ * 100
+        kwargs['prefix'] = ''
 
         kwargs['stdout'] = data.stdout
         kwargs['stderr'] = data.stderr

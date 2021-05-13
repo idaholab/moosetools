@@ -118,7 +118,7 @@ def _running_results(testcase_map, formatter, result_queue):
         if progress == TestCase.Progress.FINISHED:
             tc.setState(state)
             tc.setResults(results)
-            formatter.reportResult(tc)
+            formatter.reportResults(tc)
         result_queue.task_done()
 
     except queue.Empty:
@@ -142,7 +142,7 @@ def _running_progress(testcase_map, formatter, futures, max_fails):
             tc.setProgress(TestCase.Progress.FINISHED)
             tc.setState(TestCase.Result.SKIP)
             tc.setResults({tc.name(): TestCase.Data(TestCase.Result.SKIP, 0, '', f"Max failures of {max_fails} exceeded.", ['max failures reached'])})
-            formatter.reportResult(tc)
+            formatter.reportResults(tc)
 
         if tc.running:
             formatter.reportProgress(tc)

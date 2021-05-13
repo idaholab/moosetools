@@ -73,17 +73,11 @@ class BasicFormatter(Formatter):
         return shorten_text(content, n, replace=f'...OUTPUT REMOVED (MAX LINES: {n})...')
 
     def formatRunnerState(self, **kwargs):
-        obj = kwargs.get('object')
-
-        if obj.parameters().hasParameter('_hit_filename') and obj.isParamValid('_hit_filename'):
-            specfile = obj.getParam('_hit_filename')
-            kwargs['prefix'] = '{}:'.format(specfile.replace(self.getParam('root_test_dir'), ''))
         return self._formatState('', **kwargs)
 
     def formatDifferState(self, **kwargs):
         kwargs.pop('percent')
         kwargs.pop('duration')
-        kwargs['prefix'] = ''
         return self._formatState(self.getParam('differ_indent'), **kwargs)
 
     def formatRunnerResult(self, **kwargs):
@@ -137,7 +131,6 @@ class BasicFormatter(Formatter):
         return msg
 
     def _formatResult(self, indent='', **kwargs):
-        # TODO: Add shorten_text function here and remove from TextDiff
 
 
         state = kwargs.get('state')
