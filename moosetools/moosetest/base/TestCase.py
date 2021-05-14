@@ -443,6 +443,11 @@ class TestCase(MooseObject):
         # instance of the `TestCase` object. Unexpected problems result in a FATAL status being
         # returned.
 
+        # All output from the various calls are accumulated so that all output is returned to the
+        # stored in the object on the main process
+        stdout = ''
+        stderr = ''
+
         # Reset the state of supplied "obj". The status of the object will be checked after all
         # calls that could lead the object to produce an error are completed. The object status at
         # this point indicates if the objected execution succeeded.
@@ -452,6 +457,10 @@ class TestCase(MooseObject):
             except Exception as ex:
                 self.exception("An exception occurred while calling the `reset` method of the '{}' object.", obj.name())
                 return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+
+            finally:
+                stdout += out.stdout
+                stderr += out.stderr
 
         # Loop through each `Controller` object
         for controller in self._controllers:
@@ -480,6 +489,10 @@ class TestCase(MooseObject):
                     self.error("An exception occurred during execution of the {} controller with '{}' object.\n{}", type(controller).__name__, obj.name(), traceback.format_exc())
                     return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
 
+                finally:
+                    stdout += out.stdout
+                    stderr += out.stderr
+
         # Execute the object
         with RedirectOutput() as out:
             try:
@@ -495,4 +508,8 @@ class TestCase(MooseObject):
                 self.exception("An exception occurred during execution of the '{}' object.", obj.name())
                 return TestCase.Data(TestCase.Result.EXCEPTION, None, out.stdout, out.stderr, None)
 
-        return TestCase.Data(TestCase.Result.PASS, rcode, out.stdout, out.stderr, None)
+            finally:
+                stdout += out.stdout
+                stderr += out.stderr
+
+        return TestCase.Data(TestCase.Result.PASS, rcode, stdout, stderr, None)

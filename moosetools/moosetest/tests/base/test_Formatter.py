@@ -13,8 +13,8 @@ from moosetools.moosetest.base import make_runner, Runner, make_differ, Differ
 from moosetools.moosetest.base import Controller, Formatter, TestCase, State, RedirectOutput
 
 # I do not want the tests directory to be packages with __init__.py, so load from file
-sys.path.append(os.path.join(os.path.dirname(__file__)))
-from test_TestCase import TestController, TestRunner, TestDiffer
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from _helpers import TestController, TestRunner, TestDiffer
 
 class TestFormatter(unittest.TestCase):
     def testDefault(self):

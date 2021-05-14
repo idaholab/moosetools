@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import sys
 import io
 import time
@@ -10,79 +11,9 @@ from unittest import mock
 from moosetools.moosetest.base import make_runner, Runner, make_differ, Differ
 from moosetools.moosetest.base import Controller, Formatter, TestCase, State, RedirectOutput
 
-class TestController(Controller):
-    @staticmethod
-    def validParams():
-        params = Controller.validParams()
-        params.setValue('prefix', 'ctrl')
-        return params
-
-    @staticmethod
-    def validObjectParams():
-        params = Controller.validObjectParams()
-        params.add('platform')
-        return params
-
-    def __init__(self, *args, **kwargs):
-        Controller.__init__(self, *args, **kwargs)
-        self._skip = False
-        self._print = False
-        self._stderr = False
-        self._error = False
-        self._raise = False
-        self._type = None
-
-    def execute(self, obj, *args):
-        if (self._type is None) or isinstance(obj, self._type):
-            if self._skip:
-                self.skip("a reason")
-            if self._print:
-                print("controller print")
-            if self._stderr:
-                logging.error("controller stderr")
-            if self._error:
-                self.error("controller error")
-            if self._raise:
-                raise Exception("controller raise")
-        return 1980
-
-class TestRunner(Runner):
-    def __init__(self, *args, **kwargs):
-        Runner.__init__(self, *args, **kwargs)
-        self._print = False
-        self._stderr = False
-        self._error = False
-        self._raise = False
-
-    def execute(self, *args):
-        if self._print:
-            print("runner print")
-        if self._stderr:
-            logging.error("runner stderr")
-        if self._error:
-            self.error("runner error")
-        if self._raise:
-            raise Exception("runner raise")
-        return 2011
-
-class TestDiffer(Differ):
-    def __init__(self, *args, **kwargs):
-        Differ.__init__(self, *args, **kwargs)
-        self._print = False
-        self._stderr = False
-        self._error = False
-        self._raise = False
-
-    def execute(self, *args):
-        if self._print:
-            print("differ print")
-        if self._stderr:
-            logging.error("differ stderr")
-        if self._error:
-            self.error("differ error")
-        if self._raise:
-            raise Exception("differ raise")
-        return 2013
+# I do not want the tests directory to be packages with __init__.py, so load from file
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from _helpers import TestController, TestRunner, TestDiffer
 
 class TestState(unittest.TestCase):
     def testDefault(self):
@@ -227,8 +158,8 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.reasons, None)
 
         # No error, with stdout and stderr
-        obj._print = True
-        obj._stderr = True
+        obj.setValue('print', True)
+        obj.setValue('stderr', True)
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.PASS)
         self.assertEqual(out.returncode, 2011)
@@ -237,7 +168,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.reasons, None)
 
         # Error
-        obj._error = True
+        obj.setValue('error', True)
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.ERROR)
         self.assertEqual(out.returncode, 2011)
@@ -248,7 +179,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.reasons, None)
 
         # Exception
-        obj._raise = True
+        obj.setValue('raise', True)
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.EXCEPTION)
         self.assertEqual(out.returncode, None)
@@ -287,8 +218,8 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.reasons, None)
 
         # No error, with stdout and stderr
-        obj._print = True
-        obj._stderr = True
+        obj.setValue('print', True)
+        obj.setValue('stderr', True)
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.PASS)
         self.assertEqual(out.returncode, 2013)
@@ -297,7 +228,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.reasons, None)
 
         # Error
-        obj._error = True
+        obj.setValue('error', True)
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.DIFF)
         self.assertEqual(out.returncode, 2013)
@@ -308,7 +239,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.reasons, None)
 
         # Exception
-        obj._raise = True
+        obj.setValue('raise', True)
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.EXCEPTION)
         self.assertEqual(out.returncode, None)
@@ -358,7 +289,7 @@ class TestTestCase(unittest.TestCase):
         self.assertIn("An exception occurred during execution of the TestController controller with 'a' object.", out.stderr)
         self.assertEqual(out.reasons, None)
 
-        ctrl._raise = True
+        ctrl.setValue('raise', True)
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.FATAL)
         self.assertEqual(out.returncode, None)
@@ -367,7 +298,7 @@ class TestTestCase(unittest.TestCase):
         self.assertIn("An exception occurred during execution of the TestController controller with 'a' object.", out.stderr)
         self.assertEqual(out.reasons, None)
 
-        ctrl._raise = False
+        ctrl.setValue('raise', False)
         with mock.patch("moosetools.moosetest.base.Controller.status") as func:
             func.return_value = 1
             out = tc._executeObject(obj)
@@ -386,7 +317,7 @@ class TestTestCase(unittest.TestCase):
         self.assertIn("An error occurred, on the object, during execution of the TestController controller with 'a' object.", out.stderr)
         self.assertEqual(out.reasons, None)
 
-        ctrl._skip = True
+        ctrl.setValue('skip', True)
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.SKIP)
         self.assertEqual(out.returncode, None)
@@ -403,6 +334,7 @@ class TestTestCase(unittest.TestCase):
 
         # No error, no output
         s, r = tc.execute()
+        print(s, r)
         self.assertEqual(s, TestCase.Result.PASS)
         self.assertEqual(list(r.keys()), ['r', 'd'])
         self.assertEqual(r['r'], TestCase.Data(TestCase.Result.PASS, 2011, '', '', None))
@@ -436,7 +368,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].reasons, None)
 
         # Execute Exception, Controller with Runner
-        ct._raise = True
+        ct.setValue('raise', True)
         s, r = tc.execute()
         self.assertEqual(s, TestCase.Result.FATAL)
         self.assertEqual(list(r.keys()), ['r'])
@@ -448,7 +380,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].reasons, None)
 
         # Error Object, Controller with Runner
-        ct._raise = False
+        ct.setValue('raise', False)
         with mock.patch("moosetools.moosetest.base.Runner.status") as func:
             func.return_value = 1
             s, r = tc.execute()
@@ -461,7 +393,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].reasons, None)
 
         # Skip, Controller with Runner
-        ct._skip = True
+        ct.setValue('skip', True)
         s, r = tc.execute()
         self.assertEqual(s, TestCase.Result.SKIP)
         self.assertEqual(list(r.keys()), ['r'])
@@ -470,10 +402,10 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].stdout, '')
         self.assertEqual(r['r'].stderr, '')
         self.assertEqual(r['r'].reasons, ['a reason'])
-        ct._skip = False
+        ct.setValue('skip', False)
 
         # Error on Runner
-        rr._error = True
+        rr.setValue('error', True)
         s, r = tc.execute()
         self.assertEqual(s, TestCase.Result.ERROR)
         self.assertEqual(list(r.keys()), ['r'])
@@ -483,10 +415,10 @@ class TestTestCase(unittest.TestCase):
         self.assertIn("runner error", r['r'].stderr)
         self.assertIn("An error occurred during execution of the 'r' object", r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
-        rr._error = False
+        rr.setValue('error', False)
 
         # Exception on Runner
-        rr._raise = True
+        rr.setValue('raise', True)
         s, r = tc.execute()
         self.assertEqual(s, TestCase.Result.EXCEPTION)
         self.assertEqual(list(r.keys()), ['r'])
@@ -496,7 +428,7 @@ class TestTestCase(unittest.TestCase):
         self.assertIn("runner raise", r['r'].stderr)
         self.assertIn("An exception occurred during execution of the 'r' object", r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
-        rr._raise = False
+        rr.setValue('raise', False)
 
         ## DIFFER ################################
         # Reset Exception, Differ
@@ -535,8 +467,8 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['d'].reasons, None)
 
         # Execute Exception, Controller with Differ
-        ct._raise = True
-        ct._type = Differ
+        ct.setValue('raise', True)
+        ct.setValue('type', Differ)
         s, r = tc.execute()
         self.assertEqual(list(r.keys()), ['r', 'd'])
         self.assertEqual(r['r'].state, TestCase.Result.PASS)
@@ -550,8 +482,8 @@ class TestTestCase(unittest.TestCase):
         self.assertIn("An exception occurred during execution of the TestController controller with 'd' object.", r['d'].stderr)
         self.assertIn("controller raise", r['d'].stderr)
         self.assertEqual(r['d'].reasons, None)
-        ct._raise = False
-        ct._type = None
+        ct.setValue('raise', False)
+        ct.setValue('type', None)
 
         # Error Object, Controller with Differ
         with mock.patch("moosetools.moosetest.base.Differ.status") as func:
@@ -570,8 +502,8 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['d'].reasons, None)
 
         # Skip, Controller with Differ
-        ct._skip = True
-        ct._type = Differ
+        ct.setValue('skip', True)
+        ct.setValue('type', Differ)
         s, r = tc.execute()
         self.assertEqual(s, TestCase.Result.SKIP)
         self.assertEqual(list(r.keys()), ['r', 'd'])
@@ -585,11 +517,11 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['d'].stdout, '')
         self.assertEqual(r['d'].stderr, '')
         self.assertEqual(r['d'].reasons, ['a reason'])
-        ct._skip = False
-        ct._type = None
+        ct.setValue('skip', False)
+        ct.setValue('type', None)
 
         # Error on Differ
-        dr._error = True
+        dr.setValue('error', True)
         s, r = tc.execute()
         self.assertEqual(s, TestCase.Result.DIFF)
         self.assertEqual(list(r.keys()), ['r', 'd'])
@@ -604,10 +536,10 @@ class TestTestCase(unittest.TestCase):
         self.assertIn("differ error", r['d'].stderr)
         self.assertIn("An error occurred during execution of the 'd' object", r['d'].stderr)
         self.assertEqual(r['d'].reasons, None)
-        dr._error = False
+        dr.setValue('error', False)
 
         # Exception on Differ
-        dr._raise = True
+        dr.setValue('raise', True)
         s, r = tc.execute()
         self.assertEqual(s, TestCase.Result.EXCEPTION)
         self.assertEqual(list(r.keys()), ['r', 'd'])
@@ -666,7 +598,5 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].stderr, 'err')
         self.assertEqual(r['r'].reasons, None)
 
-
-
 if __name__ == '__main__':
-    unittest.main(module=__name__, verbosity=2)
+    unittest.main(module=__name__, verbosity=2, buffer=True)

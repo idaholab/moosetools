@@ -48,6 +48,17 @@ class Formatter(MooseObject):
     def formatComplete(self, complete, **kwargs):
         raise NotImplementedError("The 'formatComplete' method must be overridden.")
 
+    def reportComplete(self, complete, start_time):
+        """
+        Print information at conclusion of the test case execution.
+
+        The completed `TestCase` objects are provided in the `list` *complete* along with the
+        starting time (in seconds) of the run in *start_time*.
+
+        See `moosetools.run` for use.
+        """
+        return self.formatComplete(complete, duration=time.time() - start_time)
+
     def reportProgress(self, tc_obj):
         """
         Print the results of the `TestCase` in *tc_obj*.
@@ -110,7 +121,6 @@ class Formatter(MooseObject):
         """
         Helper to prepare information for passing to the Formatter state printing methods.
         """
-
         kwargs = dict()
         kwargs['name'] = obj.name()
         kwargs['state'] = state

@@ -1,18 +1,37 @@
 import os
-import io
 import sys
-import copy
 import time
 import traceback
 import queue
 import concurrent.futures
 import multiprocessing
+import time
 
-from moosetools.mooseutils import color_text
 from moosetools.moosetest.base import TestCase
 
 def run(groups, controllers, formatter, n_threads=None, timeout=None, max_fails=None, min_fail_state=TestCase.Result.TIMEOUT):
+    """
+    Primary function for running tests.
 
+    The *groups* is a `list` of `list` of `Runner` object to be executed. The outer list is
+    distributed for execution using a process pool. The inner list is executed sequentially within
+    that pool.
+
+    The *controllers* is a list of `Controller` objects to be used during execution. The
+    sub-parameters for each should already be injected into the `Runner` objects (i.e., they
+    should be created with the `make_runner` function).
+
+    The *formatter* is a `Formatter` object used to format all output of progress and results.
+
+    The process pool will execute with *n_threads*, if provided, otherwise it will utilize the
+    number returned by `os.cpu_count`. Each `Runner` object will execute and wait for *timeout*
+    seconds to complete, before a timeout error is produced. Execution will continue until all
+    objects had executed or timeout, unless the number of failures exceeds *max_fails*. If this
+    is triggered all running objects will continue to run and all objects waiting will be canceled.
+
+    The function will return 1 if any test case has a state with a level greater than
+    *min_fail*state*, otherwise a 0 is returned.
+    """
     start_time = time.time()
 
     tc_kwargs = dict()
@@ -34,11 +53,16 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, max_fails=
     while any(not tc.finished for tc in testcase_map.values()):
         _running_results(testcase_map, formatter, result_queue)
         _running_progress(testcase_map, formatter, futures, max_fails)
+        #time.sleep(0.1) # no reason to hammer the main process, you can wait 0.1 sec...
 
-    print(formatter.formatComplete(testcase_map.values(), duration=time.time() - start_time))
+    # TODO: Perform some error checking on Queue...
+    result_queue.join() # This shouldn't be needed
 
-    failed = sum(tc.state.level > min_fail_state.level for tc in testcase_map.values())
+    print(formatter.reportComplete(testcase_map.values(), start_time))
+
+    failed = sum(tc.state.level >= min_fail_state.level for tc in testcase_map.values())
     return 1 if failed > 0 else 0
+
 
 def _execute_testcase(tc, conn):
     """
@@ -54,7 +78,7 @@ def _execute_testcase(tc, conn):
         state, results = tc.execute()
     except Exception:
         state = TestCase.Result.FATAL
-        results = {tc.name(): TestCase.Data(TestCase.Result.FATAL, 1, '', traceback.format_exc(), None)}
+        results = {tc.name(): TestCase.Data(TestCase.Result.FATAL, None, '', traceback.format_exc(), None)}
     conn.send((state, results))
     conn.close()
 
@@ -79,7 +103,7 @@ def _execute_testcases(testcases, q, timeout):
         unique_id = tc.getParam('_unique_id')
         if skip_message:
             state = TestCase.Result.SKIP
-            results = {tc.name(): TestCase.Data(TestCase.Result.SKIP, 0, '', skip_message, ['dependency'])}
+            results = {tc.name(): TestCase.Data(TestCase.Result.SKIP, None, '', skip_message, ['dependency'])}
             q.put((unique_id, TestCase.Progress.FINISHED, state, results))
             continue
 
@@ -94,7 +118,7 @@ def _execute_testcases(testcases, q, timeout):
         else:
             proc.terminate()
             state = TestCase.Result.TIMEOUT
-            results = {tc.name(): TestCase.Data(TestCase.Result.TIMEOUT, 1, '', '', [f'max time ({timeout}) exceeded'])}
+            results = {tc.name(): TestCase.Data(TestCase.Result.TIMEOUT, None, '', '', [f'max time ({timeout}) exceeded'])}
 
         q.put((unique_id, TestCase.Progress.FINISHED, state, results))
 
@@ -138,7 +162,7 @@ def _running_progress(testcase_map, formatter, futures, max_fails):
         if tc.finished and tc.state.level > 1: # above skip
             num_fail += 1
 
-        if (num_fail >= max_fails) and tc.waiting:
+        if (max_fails is not None) and (num_fail >= max_fails) and tc.waiting:
             tc.setProgress(TestCase.Progress.FINISHED)
             tc.setState(TestCase.Result.SKIP)
             tc.setResults({tc.name(): TestCase.Data(TestCase.Result.SKIP, 0, '', f"Max failures of {max_fails} exceeded.", ['max failures reached'])})
@@ -147,7 +171,7 @@ def _running_progress(testcase_map, formatter, futures, max_fails):
         if tc.running:
             formatter.reportProgress(tc)
 
-    if num_fail >= max_fails:
+    if (max_fails is not None) and (num_fail >= max_fails):
         for f in futures:
             f.cancel()
 
