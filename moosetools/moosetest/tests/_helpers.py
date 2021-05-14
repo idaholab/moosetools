@@ -59,8 +59,14 @@ class TestRunner(Runner):
         params.add('stderr', default=False)
         params.add('error', default=False)
         params.add('raise', default=False)
+        params.add('fatal', default=False)
         params.add('sleep', vtype=(int, float), default=0)
         return params
+
+    def status(self):
+        if self.getParam('fatal'):
+            raise Exception("runner fatal")
+        return Runner.status(self)
 
     def setValue(self, name, value):
         self.parameters().setValue(name, value)
@@ -86,8 +92,14 @@ class TestDiffer(Differ):
         params.add('stderr', default=False)
         params.add('error', default=False)
         params.add('raise', default=False)
+        params.add('fatal', default=False)
         params.add('sleep', vtype=(int, float), default=0)
         return params
+
+    def status(self):
+        if self.getParam('fatal'):
+            raise Exception("differ fatal")
+        return Runner.status(self)
 
     def setValue(self, name, value):
         self.parameters().setValue(name, value)

@@ -215,10 +215,11 @@ def _running_progress(testcase_map, formatter):
 
 
 
-def fuzzer(seed=1980,
-           num_groups=(10,20), num_runners=(6,17), num_differs=(0,3), num_controllers=(1,6),
-           len_runner_name=(10,17), len_differ_name=(6,15),
-           runner_sleep=(0.5,10)):
+def fuzzer(seed=1980, timeout=(3,10), max_fails=(15,100), progress_interval=(3,15),
+           group_num=(15,50), group_name_len=(6,25),
+           controller_num=(1,6), controller_skip=0.05, controller_raise=0.05, controller_error=0.1,
+           differ_num=(0,3), differ_raise=0.01, differ_error=0.1, differ_fatal=0.1, differ_platform=0.1, differ_name_len=(6,15),
+           runner_num=(1,3), runner_raise=0.01, runner_error=0.1, runner_fatal=0.05, runner_sleep=(0.5,10), runner_platform=0.1, runner_name_len=(4,29)):
 
     import random
     import string
@@ -231,54 +232,72 @@ def fuzzer(seed=1980,
     def gen_name(rng):
         return ''.join(random.sample(string.ascii_letters, random.randint(*rng)))
 
-    def gen_platform(ctrls, kwargs):
-        if random.randint(0,1):
+    def gen_platform(ctrls, prob, kwargs):
+        if random.uniform(0,1) < prob:
             prefix = "{}_platform".format(random.choice(ctrls).getParam('prefix'))
             value = tuple(set(random.choices(['Darwin', 'Linux', 'Windows'], k=random.randint(1,3))))
             kwargs[prefix] = value
 
+    def gen_bool_with_odds(prob):
+        return random.uniform(0,1) < prob
+
     # Controller objects
     controllers = list()
-    for i, n_controllers in enumerate(range(random.randint(*num_controllers))):
+    for i, n_controllers in enumerate(range(random.randint(*controller_num))):
         name_start = random.choice(string.ascii_letters)
         kwargs = dict()
+        kwargs['stdout'] = True
+        kwargs['stderr'] = True
         kwargs['prefix'] = "ctrl{:0.0f}".format(i)
-        for key in ['skip', 'stdout', 'stderr', 'error', 'raise']:
-            kwargs[key] = bool(random.randint(0,1))
+        kwargs['skip'] = gen_bool_with_odds(controller_skip)
+        kwargs['error'] = gen_bool_with_odds(controller_error)
+        kwargs['raise'] = gen_bool_with_odds(controller_raise)
         controllers.append(TestController(object_name=name_start, **kwargs))
     controllers = tuple(controllers)
 
     # Runners/Differs
     groups = list()
-    for n_groups in range(random.randint(*num_groups)):
+    for n_groups in range(random.randint(*group_num)):
         runners = list()
-        for n_runners in range(random.randint(*num_runners)):
+        group_name = gen_name(group_name_len)
+        for n_runners in range(random.randint(*runner_num)):
             differs = list()
-            for n_differs in range(random.randint(*num_differs)):
-                name_diff = gen_name(len_differ_name)
+            for n_differs in range(random.randint(*differ_num)):
                 kwargs = dict()
-                for key in ['stdout', 'stderr', 'error', 'raise']:
-                    kwargs[key] = bool(random.randint(0,1))
-                gen_platform(controllers, kwargs)
-                differs.append(make_differ(TestDiffer, controllers, name=name_diff, **kwargs))
+                kwargs['name'] = gen_name(differ_name_len)
+                kwargs['stdout'] = True
+                kwargs['stderr'] = True
+                kwargs['error'] = gen_bool_with_odds(differ_error)
+                kwargs['raise'] = gen_bool_with_odds(differ_raise)
+                kwargs['fatal'] = gen_bool_with_odds(differ_fatal)
+                gen_platform(controllers, differ_platform, kwargs)
+                differs.append(make_differ(TestDiffer, controllers, **kwargs))
 
-            name_runner = gen_name(len_runner_name)
             kwargs = dict()
-            for key in ['stdout', 'stderr', 'error', 'raise']:
-                kwargs[key] = bool(random.randint(0,1))
+            kwargs['name'] = f"{group_name}/{gen_name(runner_name_len)}"
+            kwargs['differs'] = tuple(differs)
+            kwargs['stdout'] = True
+            kwargs['stderr'] = True
+            kwargs['error'] = gen_bool_with_odds(runner_error)
+            kwargs['raise'] = gen_bool_with_odds(runner_raise)
+            kwargs['fatal'] = gen_bool_with_odds(runner_fatal)
             kwargs['sleep'] = random.uniform(*runner_sleep)
-            gen_platform(controllers, kwargs)
-            runners.append(make_runner(TestRunner, controllers, name=name_runner, **kwargs))
+            gen_platform(controllers, runner_platform, kwargs)
+            runners.append(make_runner(TestRunner, controllers, **kwargs))
 
         groups.append(runners)
 
-    # Run it
-    return run(groups, controllers, BasicFormatter())
+    # Formatter
+    kwargs = dict()
+    kwargs['progress_interval'] = random.randint(*progress_interval)
+    formatter = BasicFormatter(**kwargs)
 
-
-#def run(groups, controllers, formatter, n_threads=None, timeout=None, max_fails=sys.maxsize,
-#        min_fail_state=TestCase.Result.TIMEOUT):
-
+    # Run
+    kwargs = dict()
+    kwargs['timeout'] = random.randint(*timeout)
+    kwargs['max_fails'] = random.randint(*max_fails)
+    kwargs['min_fail_state'] = random.choice([r for r in TestCase.Result])
+    return run(groups, controllers, formatter, **kwargs)
 
 if __name__ == '__main__':
     sys.exit(fuzzer())
