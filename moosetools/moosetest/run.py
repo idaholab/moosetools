@@ -212,3 +212,73 @@ def _running_progress(testcase_map, formatter):
     for tc in testcase_map.values():
         if tc.running:
             formatter.reportProgress(tc)
+
+
+
+def fuzzer(seed=1980,
+           num_groups=(10,20), num_runners=(6,17), num_differs=(0,3), num_controllers=(1,6),
+           len_runner_name=(10,17), len_differ_name=(6,15),
+           runner_sleep=(0.5,10)):
+
+    import random
+    import string
+
+    from moosetools.moosetest.formatters import BasicFormatter
+    from moosetools.moosetest.base import make_runner, make_differ
+    sys.path.append(os.path.join(os.path.dirname(__file__), 'tests'))
+    from _helpers import TestController, TestRunner, TestDiffer
+
+    def gen_name(rng):
+        return ''.join(random.sample(string.ascii_letters, random.randint(*rng)))
+
+    def gen_platform(ctrls, kwargs):
+        if random.randint(0,1):
+            prefix = "{}_platform".format(random.choice(ctrls).getParam('prefix'))
+            value = tuple(set(random.choices(['Darwin', 'Linux', 'Windows'], k=random.randint(1,3))))
+            kwargs[prefix] = value
+
+    # Controller objects
+    controllers = list()
+    for i, n_controllers in enumerate(range(random.randint(*num_controllers))):
+        name_start = random.choice(string.ascii_letters)
+        kwargs = dict()
+        kwargs['prefix'] = "ctrl{:0.0f}".format(i)
+        for key in ['skip', 'stdout', 'stderr', 'error', 'raise']:
+            kwargs[key] = bool(random.randint(0,1))
+        controllers.append(TestController(object_name=name_start, **kwargs))
+    controllers = tuple(controllers)
+
+    # Runners/Differs
+    groups = list()
+    for n_groups in range(random.randint(*num_groups)):
+        runners = list()
+        for n_runners in range(random.randint(*num_runners)):
+            differs = list()
+            for n_differs in range(random.randint(*num_differs)):
+                name_diff = gen_name(len_differ_name)
+                kwargs = dict()
+                for key in ['stdout', 'stderr', 'error', 'raise']:
+                    kwargs[key] = bool(random.randint(0,1))
+                gen_platform(controllers, kwargs)
+                differs.append(make_differ(TestDiffer, controllers, name=name_diff, **kwargs))
+
+            name_runner = gen_name(len_runner_name)
+            kwargs = dict()
+            for key in ['stdout', 'stderr', 'error', 'raise']:
+                kwargs[key] = bool(random.randint(0,1))
+            kwargs['sleep'] = random.uniform(*runner_sleep)
+            gen_platform(controllers, kwargs)
+            runners.append(make_runner(TestRunner, controllers, name=name_runner, **kwargs))
+
+        groups.append(runners)
+
+    # Run it
+    return run(groups, controllers, BasicFormatter())
+
+
+#def run(groups, controllers, formatter, n_threads=None, timeout=None, max_fails=sys.maxsize,
+#        min_fail_state=TestCase.Result.TIMEOUT):
+
+
+if __name__ == '__main__':
+    sys.exit(fuzzer())

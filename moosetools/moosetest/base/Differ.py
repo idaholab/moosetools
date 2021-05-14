@@ -1,4 +1,5 @@
 import io
+import copy
 import platform
 import logging
 from moosetools.base import MooseObject
@@ -11,10 +12,8 @@ def make_differ(cls, controllers=None, **kwargs):
     """
     params = cls.validParams()
     for ctrl in controllers or []:
-        for ctrl in controllers or []:
-            params.add(ctrl.getParam('prefix'), default=ctrl.validObjectParams())
+        params.add(ctrl.getParam('prefix'), default=ctrl.validObjectParams())
     return cls(params, **kwargs)
-
 
 class Differ(MooseObject):
     """

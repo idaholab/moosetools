@@ -683,10 +683,9 @@ class TestRun(unittest.TestCase):
 
         self.assertIn('Unexpected progress/result', str(ex.exception))
 
-
-
 if __name__ == '__main__':
-    unittest.main(module=__name__, verbosity=2, buffer=True)
+    #unittest.main(module=__name__, verbosity=2, buffer=True)
+
 
     """
     from moosetools.moosetest.formatters import BasicFormatter
