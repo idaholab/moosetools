@@ -11,7 +11,7 @@ import concurrent.futures
 
 from moosetools.moosetest.base import make_runner, make_differ, TestCase, State, Formatter, Runner, Differ
 from moosetools.moosetest.runners import RunCommand
-from moosetools.moosetest import run
+from moosetools.moosetest import run, fuzzer
 from moosetools.moosetest.run import _execute_testcase, _execute_testcases
 from moosetools.moosetest.run import _running_results, _running_progress
 
@@ -683,39 +683,10 @@ class TestRun(unittest.TestCase):
 
         self.assertIn('Unexpected progress/result', str(ex.exception))
 
+    def testFuzzer(self):
+        rcode = fuzzer()
+        self.assertIn(rcode, (0, 1))
+
+
 if __name__ == '__main__':
-    #unittest.main(module=__name__, verbosity=2, buffer=True)
-
-
-    """
-    from moosetools.moosetest.formatters import BasicFormatter
-    r0 = make_runner(TestRunner, name='Andrew', error=True)
-    r1 = make_runner(TestRunner, name='Other Andrew', sleep=0.5)
-    r2 = make_runner(TestRunner, name='Best Andrew')
-    fm = BasicFormatter()
-
-    rcode = run([[r0, r1, r2]], tuple(), fm, None, None, 1)
-    """
-
-    # TODO: Create a fuzzer, with test objects
-    # seed = 1980
-    # num_groups = [1, 10]
-    # runners_per_group = [1,10]
-    # differs_per_runner = [1, 10]
-
-    """
-    from moosetools.moosetest.formatters import BasicFormatter
-
-    groups = list()
-    for i in range(5):
-        r = make_runner(TestRunner, name=str(i), sleep=1)
-        groups.append([r])
-
-    groups[0][0].setValue('error', True)
-    groups[0][0].setValue('sleep', 0)
-
-    #groups[3][0].setValue('error', True)
-
-    fm = BasicFormatter()
-    rcode = run(groups, tuple(), fm, n_threads=1, max_fails=1)
-    """
+    unittest.main(module=__name__, verbosity=2, buffer=True)

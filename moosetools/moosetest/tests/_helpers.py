@@ -99,7 +99,7 @@ class TestDiffer(Differ):
     def status(self):
         if self.getParam('fatal'):
             raise Exception("differ fatal")
-        return Runner.status(self)
+        return Differ.status(self)
 
     def setValue(self, name, value):
         self.parameters().setValue(name, value)

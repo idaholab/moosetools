@@ -8,7 +8,7 @@ from moosetools import pyhit
 from moosetools import factory
 from moosetools import base
 from moosetools.moosetest.base import Controller, Formatter, make_runner, make_differ
-from moosetools.moosetest import discover, run
+from moosetools.moosetest import discover, run, fuzzer
 
 
 from moosetools.moosetest.base import make_runner, make_differ
@@ -29,6 +29,10 @@ LOCAL_DIR = os.path.abspath(os.path.dirname(__file__))
 
 def cli_args():
     parser = argparse.ArgumentParser(description='Testing system inspired by MOOSE')
+
+    parser.add_argument('--demo', action='store_true',
+                        help="Ignore all other arguments and run a demonstration.")
+
     parser.add_argument('--config', default=os.getcwd(), type=str,
                         help="The configuration file or directory. If a directory is provided a " \
                              "'.moosetest' file is searched up the directory tree beginning at " \
@@ -104,6 +108,10 @@ def main():
     # Extract command-line arguments
     args = cli_args()
 
+    if args.demo:
+        return fuzzer()
+
+
     # Locate the config
     filename = _locate_config(args.config)
 
@@ -128,14 +136,14 @@ def main():
                       controllers,
                       harness.getParam('n_threads'))
 
-    run(groups,
-        controllers,
-        formatter,
-        harness.getParam('n_threads'),
-        harness.getParam('timeout'),
-        harness.getParam('max_failures'))
+    rcode = run(groups,
+                controllers,
+                formatter,
+                harness.getParam('n_threads'),
+                harness.getParam('timeout'),
+                harness.getParam('max_failures'))
 
-    # return 0|1
+    return rcode
 
 def make_harness(filename, root):
     """

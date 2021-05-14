@@ -298,6 +298,3 @@ def fuzzer(seed=1980, timeout=(3,10), max_fails=(15,100), progress_interval=(3,1
     kwargs['max_fails'] = random.randint(*max_fails)
     kwargs['min_fail_state'] = random.choice([r for r in TestCase.Result])
     return run(groups, controllers, formatter, **kwargs)
-
-if __name__ == '__main__':
-    sys.exit(fuzzer())
