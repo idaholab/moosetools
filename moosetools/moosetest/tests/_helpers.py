@@ -12,8 +12,8 @@ class TestController(Controller):
         params.add('stderr', default=False)
         params.add('error', default=False)
         params.add('raise', default=False)
-        params.add('sleep', vtype=int, default=0)
-        params.add('type')
+        params.add('sleep', vtype=(int, float), default=0)
+        params.add('object_name')
         return params
 
     @staticmethod
@@ -28,8 +28,8 @@ class TestController(Controller):
     def execute(self, obj, *args):
         time.sleep(self.getParam('sleep'))
 
-        obj_type = self.getParam('type')
-        if (obj_type is None) or isinstance(obj, obj_type):
+        obj_name = self.getParam('object_name')
+        if (obj_name is None) or (obj.name() == obj_name):
             if self.getParam('skip'):
                 self.skip("a reason")
             if self.getParam('stdout'):
@@ -49,7 +49,7 @@ class TestRunner(Runner):
         params.add('stderr', default=False)
         params.add('error', default=False)
         params.add('raise', default=False)
-        params.add('sleep', vtype=int, default=0)
+        params.add('sleep', vtype=(int, float), default=0)
         return params
 
     def setValue(self, name, value):
@@ -76,7 +76,7 @@ class TestDiffer(Differ):
         params.add('stderr', default=False)
         params.add('error', default=False)
         params.add('raise', default=False)
-        params.add('sleep', vtype=int, default=0)
+        params.add('sleep', vtype=(int, float), default=0)
         return params
 
     def setValue(self, name, value):

@@ -201,6 +201,8 @@ class TestCase(MooseObject):
         params.add('controllers', vtype=Controller, array=True, mutable=False,
                    doc="`Controller` object(s) that dictate if the Runner should run.")
 
+        params.add('min_fail_state', vtype=TestCase.Result, mutable=False, default=TestCase.Result.TIMEOUT,
+                   doc="The minimum state considered a failure for the entire test case.")
         params.add('_unique_id', vtype=uuid.UUID, mutable=True, private=True,
                    doc="A unique id used for collecting data returned from sub-processes.")
         return params
@@ -212,6 +214,7 @@ class TestCase(MooseObject):
         self._runner = self.getParam('runner')
         self._differs = self._runner.getParam('differs') or tuple()
         self._controllers = self.getParam('controllers') or tuple()
+        self._min_fail_state = self.getParam('min_fail_state')
         self.parameters().setValue('name', self._runner.name())
 
         self.__results = None  # results from the Runner/Differ objects
@@ -415,7 +418,7 @@ class TestCase(MooseObject):
         for obj in self._differs:
             d_data = self._executeObject(obj, r_data.returncode, r_data.stdout, r_data.stderr)
             results[obj.name()] = d_data
-            if d_data.state.level > state.level:
+            if (d_data.state.level >= self._min_fail_state.level) and (d_data.state.level > state.level):
                 state = d_data.state
 
         return state, results

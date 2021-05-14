@@ -158,12 +158,12 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.reasons, None)
 
         # No error, with stdout and stderr
-        obj.setValue('print', True)
+        obj.setValue('stdout', True)
         obj.setValue('stderr', True)
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.PASS)
         self.assertEqual(out.returncode, 2011)
-        self.assertEqual(out.stdout, 'runner print\n')
+        self.assertEqual(out.stdout, 'runner stdout\n')
         self.assertIn('runner stderr\n', out.stderr)
         self.assertEqual(out.reasons, None)
 
@@ -172,7 +172,7 @@ class TestTestCase(unittest.TestCase):
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.ERROR)
         self.assertEqual(out.returncode, 2011)
-        self.assertEqual(out.stdout, 'runner print\n')
+        self.assertEqual(out.stdout, 'runner stdout\n')
         self.assertIn('runner stderr\n', out.stderr)
         self.assertIn('runner error', out.stderr)
         self.assertIn("An error occurred during execution of the 'a' object.", out.stderr)
@@ -183,7 +183,7 @@ class TestTestCase(unittest.TestCase):
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.EXCEPTION)
         self.assertEqual(out.returncode, None)
-        self.assertEqual(out.stdout, 'runner print\n')
+        self.assertEqual(out.stdout, 'runner stdout\n')
         self.assertIn('runner stderr\n', out.stderr)
         self.assertIn('runner error', out.stderr)
         self.assertIn('runner raise', out.stderr)
@@ -218,12 +218,12 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.reasons, None)
 
         # No error, with stdout and stderr
-        obj.setValue('print', True)
+        obj.setValue('stdout', True)
         obj.setValue('stderr', True)
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.PASS)
         self.assertEqual(out.returncode, 2013)
-        self.assertEqual(out.stdout, 'differ print\n')
+        self.assertEqual(out.stdout, 'differ stdout\n')
         self.assertIn('differ stderr\n', out.stderr)
         self.assertEqual(out.reasons, None)
 
@@ -232,7 +232,7 @@ class TestTestCase(unittest.TestCase):
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.DIFF)
         self.assertEqual(out.returncode, 2013)
-        self.assertEqual(out.stdout, 'differ print\n')
+        self.assertEqual(out.stdout, 'differ stdout\n')
         self.assertIn('differ stderr\n', out.stderr)
         self.assertIn('differ error', out.stderr)
         self.assertIn("An error occurred during execution of the 'a' object.", out.stderr)
@@ -243,7 +243,7 @@ class TestTestCase(unittest.TestCase):
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.EXCEPTION)
         self.assertEqual(out.returncode, None)
-        self.assertEqual(out.stdout, 'differ print\n')
+        self.assertEqual(out.stdout, 'differ stdout\n')
         self.assertIn('differ stderr\n', out.stderr)
         self.assertIn('differ error', out.stderr)
         self.assertIn('differ raise', out.stderr)
@@ -468,7 +468,7 @@ class TestTestCase(unittest.TestCase):
 
         # Execute Exception, Controller with Differ
         ct.setValue('raise', True)
-        ct.setValue('type', Differ)
+        ct.setValue('object_name', 'd')
         s, r = tc.execute()
         self.assertEqual(list(r.keys()), ['r', 'd'])
         self.assertEqual(r['r'].state, TestCase.Result.PASS)
@@ -483,7 +483,7 @@ class TestTestCase(unittest.TestCase):
         self.assertIn("controller raise", r['d'].stderr)
         self.assertEqual(r['d'].reasons, None)
         ct.setValue('raise', False)
-        ct.setValue('type', None)
+        ct.setValue('object_name', None)
 
         # Error Object, Controller with Differ
         with mock.patch("moosetools.moosetest.base.Differ.status") as func:
@@ -503,9 +503,9 @@ class TestTestCase(unittest.TestCase):
 
         # Skip, Controller with Differ
         ct.setValue('skip', True)
-        ct.setValue('type', Differ)
+        ct.setValue('object_name', 'd')
         s, r = tc.execute()
-        self.assertEqual(s, TestCase.Result.SKIP)
+        self.assertEqual(s, TestCase.Result.PASS)
         self.assertEqual(list(r.keys()), ['r', 'd'])
         self.assertEqual(r['r'].state, TestCase.Result.PASS)
         self.assertEqual(r['r'].returncode, 2011)
@@ -518,7 +518,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['d'].stderr, '')
         self.assertEqual(r['d'].reasons, ['a reason'])
         ct.setValue('skip', False)
-        ct.setValue('type', None)
+        ct.setValue('object_name', None)
 
         # Error on Differ
         dr.setValue('error', True)

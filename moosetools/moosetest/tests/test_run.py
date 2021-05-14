@@ -5,10 +5,11 @@ import unittest
 from unittest import mock
 import queue
 import dataclasses
+import uuid
 import logging
 import concurrent.futures
 
-from moosetools.moosetest.base import make_runner, make_differ, TestCase, State, Formatter
+from moosetools.moosetest.base import make_runner, make_differ, TestCase, State, Formatter, Runner, Differ
 from moosetools.moosetest.runners import RunCommand
 from moosetools.moosetest import run
 from moosetools.moosetest.run import _execute_testcase, _execute_testcases
@@ -199,7 +200,7 @@ class TestRunningHelpers(unittest.TestCase):
         tc_prog.reset_mock()
 
         q.put((get_uid(tc0), TestCase.Progress.RUNNING, None, None))
-        _running_results(tc_map, fm, q)
+        _running_results(tc_map, q, fm)
         tc_prog.assert_called_with(TestCase.Progress.RUNNING)
         tc_state.assert_not_called()
         tc_results.assert_not_called()
@@ -207,14 +208,14 @@ class TestRunningHelpers(unittest.TestCase):
         tc_prog.reset_mock()
 
         q.put((get_uid(tc0), TestCase.Progress.FINISHED, TestCase.Result.FATAL, 'data'))
-        _running_results(tc_map, fm, q)
+        _running_results(tc_map, q, fm)
         tc_prog.assert_called_with(TestCase.Progress.FINISHED)
         tc_state.assert_called_with(TestCase.Result.FATAL)
         tc_results.assert_called_with('data')
         fm_results.assert_called_with(tc0)
 
         # tests that the queue.Empty exception is handled
-        _running_results(tc_map, fm, queue.Queue())
+        _running_results(tc_map, queue.Queue(), fm)
 
     @mock.patch('moosetools.moosetest.base.TestCase.setResults')
     @mock.patch('moosetools.moosetest.base.TestCase.setState')
@@ -223,9 +224,7 @@ class TestRunningHelpers(unittest.TestCase):
     @mock.patch('moosetools.moosetest.base.Formatter.reportProgress')
     def test_running_progress(self, fm_progress, fm_results, tc_prog, tc_state, tc_results):
 
-        future = concurrent.futures.Future()
         fm = Formatter()
-        q = queue.Queue()
 
         r0 = make_runner(RunCommand, name='test0', command=('sleep', '0.2'))
         r1 = make_runner(RunCommand, name='test0', command=('sleep', '0.1'))
@@ -236,7 +235,7 @@ class TestRunningHelpers(unittest.TestCase):
         tc_map = make_testcase_map(tc0, tc1)
 
         # Make sure nothing is called
-        _running_progress(tc_map, fm, [future], 1)
+        _running_progress(tc_map, fm)
         tc_prog.assert_not_called()
         tc_state.assert_not_called()
         tc_results.assert_not_called()
@@ -245,24 +244,13 @@ class TestRunningHelpers(unittest.TestCase):
 
         # Running should report progress (function is mocked)
         tc0._TestCase__progress = TestCase.Progress.RUNNING
-        _running_progress(tc_map, fm, [future], 1)
+        _running_progress(tc_map, fm)
         tc_prog.assert_not_called()
         tc_state.assert_not_called()
         tc_results.assert_not_called()
         fm_progress.assert_called_with(tc0)
         fm_results.assert_not_called()
         fm_progress.reset_mock()
-
-        # Failure of tc0 should trigger tc2 to cancel
-        tc0._TestCase__progress = TestCase.Progress.FINISHED
-        tc0._TestCase__state = TestCase.Result.ERROR
-        tc1._TestCase__progress = TestCase.Progress.WAITING
-        _running_progress(tc_map, fm, [future], 1)
-        tc_prog.assert_called_with(TestCase.Progress.FINISHED)
-        tc_state.assert_called_with(TestCase.Result.SKIP)
-        tc_results.assert_called_with({tc1.name(): TestCase.Data(TestCase.Result.SKIP, 0, '', f"Max failures of 1 exceeded.", ['max failures reached'])})
-        fm_progress.assert_not_called()
-        fm_results.assert_called_with(tc1)
 
 class TestRun(unittest.TestCase):
     ANY = 42
@@ -292,6 +280,9 @@ class TestRun(unittest.TestCase):
 
         self._complete = complete_mock.start()
         self.addCleanup(complete_mock.stop)
+
+        TestCase.__TOTAL__ = 0
+        TestCase.__FINISHED__ = 0
 
     def resetMockObjects(self):
         self._r_state.reset_mock()
@@ -502,17 +493,230 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr='')
 
         self.assertCall(self._d_state.call_args_list[0], name='a', state=TestCase.Result.DIFF, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._d_state.call_args_list[1], name='b', state=TestCase.Result.SKIP, reasons=['dependency'], percent=100, duration=TestRun.ANY)
+        self.assertCall(self._d_state.call_args_list[1], name='b', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY)
 
         self.assertCall(self._d_results.call_args_list[0], name='a', state=TestCase.Result.DIFF, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr=TestRun.IN('differ error'))
-        self.assertCall(self._d_results.call_args_list[1], name='b', state=TestCase.Result.SKIP, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr='')
+        self.assertCall(self._d_results.call_args_list[1], name='b', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr='')
 
-#differs
-#differs w/controllers
+        # EXCEPTION, DIFFER 1
+        self.resetMockObjects()
+        d0.setValue('error', False)
+        d1.setValue('raise', True)
+        rcode = run([[r]], tuple(), fm)
+        self.assertEqual(rcode, 1)
+        self._r_state.assert_called_once()
+        self._r_results.assert_called_once()
+        self.assertEqual(self._d_state.call_count, 2)
+        self.assertEqual(self._d_results.call_count, 2)
+        self._complete.assert_called_once()
+        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.EXCEPTION, reasons=None, percent=100, duration=TestRun.ANY)
+        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr='')
 
-# max fails
-# group skip
-# return level
+        self.assertCall(self._d_state.call_args_list[0], name='a', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY)
+        self.assertCall(self._d_state.call_args_list[1], name='b', state=TestCase.Result.EXCEPTION, reasons=None, percent=100, duration=TestRun.ANY)
+
+        self.assertCall(self._d_results.call_args_list[0], name='a', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr='')
+        self.assertCall(self._d_results.call_args_list[1], name='b', state=TestCase.Result.EXCEPTION, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr=TestRun.IN('differ raise'))
+
+        # TIMEOUT, DIFFER 1
+        self.resetMockObjects()
+        d1.setValue('sleep', 1)
+        d1.setValue('raise', False)
+        rcode = run([[r]], tuple(), fm, None, 0.5)
+        self.assertEqual(rcode, 1)
+        self._r_state.assert_called_once()
+        self._r_results.assert_called_once()
+        self.assertEqual(self._d_state.call_count, 0)
+        self.assertEqual(self._d_results.call_count, 0)
+        self._complete.assert_called_once()
+        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.TIMEOUT, reasons=['max time (0.5) exceeded'], percent=100, duration=TestRun.ANY)
+        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.TIMEOUT, reasons=['max time (0.5) exceeded'], percent=100, duration=TestRun.ANY, stdout='', stderr='')
+
+    def testRunnerWithDiffersWithControllers(self):
+        c = TestController()
+        d0 = make_differ(TestDiffer, (c,), name='a')
+        d1 = make_differ(TestDiffer, (c,), name='b')
+        r = make_runner(TestRunner, (c,), name='Andrew', differs=(d0,d1))
+        fm = Formatter()
+
+        # SKIP, RUNNER
+        c.setValue('skip', True)
+        rcode = run([[r]], (c,), fm)
+        self.assertEqual(rcode, 0)
+        self._r_state.assert_called_once()
+        self._r_results.assert_called_once()
+        self._d_state.assert_not_called()
+        self._d_results.assert_not_called()
+        self._complete.assert_called_once()
+        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.SKIP, reasons=['a reason'], percent=100, duration=TestRun.ANY)
+        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.SKIP, reasons=['a reason'], percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr='')
+
+        # SKIP, DIFFER
+        self.resetMockObjects()
+        c.setValue('object_name', d0.name())
+        rcode = run([[r]], (c,), fm)
+        self.assertEqual(rcode, 0)
+        self._r_state.assert_called_once()
+        self._r_results.assert_called_once()
+        self.assertEqual(self._d_state.call_count, 2)
+        self.assertEqual(self._d_results.call_count, 2)
+        self._complete.assert_called_once()
+        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY)
+        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, returncode=2011, stdout='', stderr='')
+
+        self.assertCall(self._d_state.call_args_list[0], name='a', state=TestCase.Result.SKIP, reasons=['a reason'], percent=100, duration=TestRun.ANY)
+        self.assertCall(self._d_state.call_args_list[1], name='b', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY)
+
+        self.assertCall(self._d_results.call_args_list[0], name='a', state=TestCase.Result.SKIP, reasons=['a reason'], percent=100, duration=TestRun.ANY, stdout='', stderr='')
+        self.assertCall(self._d_results.call_args_list[1], name='b', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr='')
+
+    def testMaxFail(self):
+        r0 = make_runner(TestRunner, name='Just Andrew', error=True)
+        r1 = make_runner(TestRunner, name='Other Andrew', sleep=0.5)
+        r2 = make_runner(TestRunner, name='Best Andrew')
+        fm = Formatter()
+
+        # This test helped me catch a logic bug. This is a single group, so only a single worker
+        # is created. Thus, even if max fail is hit the worker should finish, thus nothing reported
+        # as max failed. At one point both the max fail and dependency message were being dumped
+        # with this test, but it should only be the dependency.
+        rcode = run([[r0, r1, r2]], tuple(), fm, max_fails=1)
+        self.assertEqual(rcode, 1)
+        self.assertEqual(self._r_state.call_count, 3)
+        self.assertEqual(self._r_results.call_count, 3)
+
+        self.assertCall(self._r_state.call_args_list[0], name='Just Andrew', state=TestCase.Result.ERROR, reasons=None, percent=TestRun.ANY, duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[0], name='Just Andrew', state=TestCase.Result.ERROR, reasons=None, percent=TestRun.ANY, duration=TestRun.ANY, returncode=2011, stdout='', stderr=TestRun.IN('runner error'))
+
+        self.assertCall(self._r_state.call_args_list[1], name='Other Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=TestRun.ANY, duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[1], name='Other Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=TestRun.ANY, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN("A previous test case (Just Andrew)"))
+
+        self.assertCall(self._r_state.call_args_list[2], name='Best Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=100, duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[2], name='Best Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN("A previous test case (Just Andrew)"))
+
+        # Similar to above, but with individual groups
+        groups = list()
+        for i in range(5):
+            r = make_runner(TestRunner, name=str(i), sleep=1)
+            groups.append([r])
+
+        groups[0][0].setValue('error', True)
+        groups[0][0].setValue('sleep', 0)
+
+        self.resetMockObjects()
+        rcode = run(groups, tuple(), fm, n_threads=1, max_fails=1)
+
+        self.assertEqual(rcode, 1)
+        self.assertEqual(self._r_state.call_count, 5)
+        self.assertEqual(self._r_results.call_count, 5)
+
+        print(self._r_state.call_args_list)
+        print(self._r_results.call_args_list)
+
+        # Only look at first and last, the middle can change depending how fast works fire up
+        self.assertCall(self._r_state.call_args_list[0], name='0', state=TestCase.Result.ERROR, reasons=None, percent=TestRun.ANY, duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[0], name='0', state=TestCase.Result.ERROR, reasons=None, percent=TestRun.ANY, duration=TestRun.ANY, returncode=2011, stdout='', stderr=TestRun.IN('runner error'))
+
+        self.assertCall(self._r_state.call_args_list[-1], name='4', state=TestCase.Result.SKIP, reasons=['max failures reached'], percent=100, duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[-1], name='4', state=TestCase.Result.SKIP, reasons=['max failures reached'], percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN("Max failures of 1 exceeded."))
+
+    def testMinFailState(self):
+        # SKIP as failure
+        c = TestController(skip=True)
+        r = make_runner(TestRunner, (c,), name='Andrew')
+        fm = Formatter()
+
+        rcode = run([[r]], (c,), fm, min_fail_state=TestCase.Result.SKIP)
+        self.assertEqual(rcode, 1) # this is what is being tested
+        self.assertEqual(self._r_state.call_count, 1)
+        self.assertEqual(self._r_results.call_count, 1)
+
+        self.assertCall(self._r_state.call_args_list[0], name='Andrew', state=TestCase.Result.SKIP, reasons=['a reason'], percent=TestRun.ANY, duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[0], name='Andrew', state=TestCase.Result.SKIP, reasons=['a reason'], percent=TestRun.ANY, duration=TestRun.ANY, returncode=None, stdout='', stderr='')
+
+    def testGroupSkip(self):
+        # Same as first test in testMaxFails, but without the max fails
+
+        r0 = make_runner(TestRunner, name='Just Andrew', error=True)
+        r1 = make_runner(TestRunner, name='Other Andrew', sleep=0.5)
+        r2 = make_runner(TestRunner, name='Best Andrew')
+        fm = Formatter()
+
+        rcode = run([[r0, r1, r2]], tuple(), fm)
+        self.assertEqual(rcode, 1)
+        self.assertEqual(self._r_state.call_count, 3)
+        self.assertEqual(self._r_results.call_count, 3)
+
+        self.assertCall(self._r_state.call_args_list[0], name='Just Andrew', state=TestCase.Result.ERROR, reasons=None, percent=TestRun.ANY, duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[0], name='Just Andrew', state=TestCase.Result.ERROR, reasons=None, percent=TestRun.ANY, duration=TestRun.ANY, returncode=2011, stdout='', stderr=TestRun.IN('runner error'))
+
+        self.assertCall(self._r_state.call_args_list[1], name='Other Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=TestRun.ANY, duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[1], name='Other Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=TestRun.ANY, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN("A previous test case (Just Andrew)"))
+
+        self.assertCall(self._r_state.call_args_list[2], name='Best Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=100, duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[2], name='Best Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN("A previous test case (Just Andrew)"))
+
+    def testFailSafe(self):
+        uid = uuid.uuid4()
+        r = make_runner(TestRunner, name='Just Andrew')
+        fm = Formatter()
+
+        @dataclasses.dataclass
+        class QueueProxy(object):
+            def __init__(self):
+                self._count = 0
+
+            def get_nowait(self):
+                return uid, None, None, None
+
+            def task_done(self):
+                pass
+
+            def empty(self):
+                self._count += 1
+                return self._count not in (2, 3) # false on 2nd and 3rd call
+
+        with mock.patch('uuid.uuid4', return_value=uid):
+            with mock.patch('multiprocessing.managers.SyncManager.Queue', return_value=QueueProxy()):
+                with self.assertRaises(RuntimeError) as ex:
+                    rcode = run([[r]], tuple(), fm)
+
+        self.assertIn('Unexpected progress/result', str(ex.exception))
+
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)
+
+    """
+    from moosetools.moosetest.formatters import BasicFormatter
+    r0 = make_runner(TestRunner, name='Andrew', error=True)
+    r1 = make_runner(TestRunner, name='Other Andrew', sleep=0.5)
+    r2 = make_runner(TestRunner, name='Best Andrew')
+    fm = BasicFormatter()
+
+    rcode = run([[r0, r1, r2]], tuple(), fm, None, None, 1)
+    """
+
+    # TODO: Create a fuzzer, with test objects
+    # seed = 1980
+    # num_groups = [1, 10]
+    # runners_per_group = [1,10]
+    # differs_per_runner = [1, 10]
+
+    """
+    from moosetools.moosetest.formatters import BasicFormatter
+
+    groups = list()
+    for i in range(5):
+        r = make_runner(TestRunner, name=str(i), sleep=1)
+        groups.append([r])
+
+    groups[0][0].setValue('error', True)
+    groups[0][0].setValue('sleep', 0)
+
+    #groups[3][0].setValue('error', True)
+
+    fm = BasicFormatter()
+    rcode = run(groups, tuple(), fm, n_threads=1, max_fails=1)
+    """

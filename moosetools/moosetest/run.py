@@ -7,9 +7,10 @@ import concurrent.futures
 import multiprocessing
 import time
 
-from moosetools.moosetest.base import TestCase
+from moosetools.moosetest.base import TestCase, RedirectOutput
 
-def run(groups, controllers, formatter, n_threads=None, timeout=None, max_fails=None, min_fail_state=TestCase.Result.TIMEOUT):
+def run(groups, controllers, formatter, n_threads=None, timeout=None, max_fails=sys.maxsize,
+        min_fail_state=TestCase.Result.TIMEOUT):
     """
     Primary function for running tests.
 
@@ -32,33 +33,86 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, max_fails=
     The function will return 1 if any test case has a state with a level greater than
     *min_fail*state*, otherwise a 0 is returned.
     """
+
+    # NOTE: This function is the heart of moosetest. Significant effort went into the design,
+    #       including getting 100% test coverage and handling all the corner cases found during
+    #       that process. If you are going to change this function make sure you test the changes
+    #       thoroughly. If something does not work, please be kind...this was non-trivial (at least
+    #       for Andrew).
+
+    # Capture for computing the total execution time for all test cases
     start_time = time.time()
 
+    # Arguments that will be passed to the `TestCase` object created
     tc_kwargs = dict()
     tc_kwargs['controllers'] = controllers
+    tc_kwargs['min_fail_state'] = min_fail_state
 
+    # Setup process pool, the result_queue is used to collecting results returned from workers
     executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
     manager = multiprocessing.Manager()
     result_queue = manager.Queue()
 
-    futures = list()
-    testcase_map = dict()
+    futures = list() # pool workers
+    testcase_map = dict() # individual cases to allow report while others run
+
     for runners in groups:
         testcases = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
-        #_execute_testcases(testcases, result_queue, timeout)
         futures.append(executor.submit(_execute_testcases, testcases, result_queue, timeout))
         for tc in testcases:
             testcase_map[tc.getParam('_unique_id')] = tc
 
-    while any(not tc.finished for tc in testcase_map.values()):
-        _running_results(testcase_map, formatter, result_queue)
-        _running_progress(testcase_map, formatter, futures, max_fails)
+    # Loop until all the test cases are finished or the number of failures is reached
+    while any(not tc.finished for tc in testcase_map.values()):#
         #time.sleep(0.1) # no reason to hammer the main process, you can wait 0.1 sec...
+        _running_results(testcase_map, result_queue, formatter)
+        _running_progress(testcase_map, formatter)
 
-    # TODO: Perform some error checking on Queue...
-    result_queue.join() # This shouldn't be needed
+        # If the number of failures has been reached, exit the loop early
+        n_fails = sum(tc.state.level >= min_fail_state.level for tc in testcase_map.values() if tc.finished)
+        if n_fails >= max_fails:
+            break
+
+    # Cancel all workers. There is only something to cancel if the previous loop exited early
+    # because of hitting the max failures. After canceling, continue reporting progress/results
+    # until all the workers are finished. It is also possible that the queue contains data that
+    # was present
+    for f in futures: f.cancel()
+    while any(f.running() for f in futures) or not result_queue.empty():
+        _running_results(testcase_map, result_queue, formatter)
+        _running_progress(testcase_map, formatter)
+
+    # Any test cases that are not finished have been skipped because of the early max failures exit
+    # of the first loop. So, mark them as finished and report.
+    for tc in filter(lambda tc: not tc.finished, testcase_map.values()):
+        tc.setProgress(TestCase.Progress.FINISHED)
+        tc.setState(TestCase.Result.SKIP)
+        tc.setResults({tc.name(): TestCase.Data(TestCase.Result.SKIP, None, '', f"Max failures of {max_fails} exceeded.", ['max failures reached'])})
+        formatter.reportProgress(tc)
+        formatter.reportResults(tc)
+
+    # At this point all the workers should be done and the data collected from the result_queue.
+    # Just to be sure catch the case where there is still data hanging around. This shouldn't be
+    # possible to trigger, but it helped catch some bugs when writing and testing the function so
+    # is should stay.
+    if not result_queue.empty():
+        with RedirectOutput() as out:
+            while not result_queue.empty():
+                _running_results(testcase_map, result_queue, formatter)
+                _running_progress(testcase_map, formatter)
+        msg = "Unexpected progress/result output found.\nsys.stdout:\n{}\nsys.stderr:\n{}"
+        raise RuntimeError(msg.format(out.stdout, out.stderr))
 
     print(formatter.reportComplete(testcase_map.values(), start_time))
+
+    # When running the tests, there were cases that gave the an error that ended with:
+    #
+    #     File "/Users/.../lib/python3.8/multiprocessing/popen_fork.py", line 69, in _launch
+    #       child_r, parent_w = os.pipe()
+    # OSError: [Errno 24] Too many open files
+    #
+    # Adding a call to shutdown the pool of workers seems to get rid of that problem.
+    executor.shutdown()
 
     failed = sum(tc.state.level >= min_fail_state.level for tc in testcase_map.values())
     return 1 if failed > 0 else 0
@@ -123,10 +177,10 @@ def _execute_testcases(testcases, q, timeout):
         q.put((unique_id, TestCase.Progress.FINISHED, state, results))
 
         if (state.level > 0):
-            skip_message = f"A previous `TestCase` ({tc.name()}) in the group returned a non-zero state of {state}."
+            skip_message = f"A previous test case ({tc.name()}) in the group returned a non-zero state of {state}."
 
 
-def _running_results(testcase_map, formatter, result_queue):
+def _running_results(testcase_map, result_queue, formatter):
     """
     Helper function for reporting results as obtained during a call to `run` function.
 
@@ -148,73 +202,13 @@ def _running_results(testcase_map, formatter, result_queue):
     except queue.Empty:
         pass
 
-
-def _running_progress(testcase_map, formatter, futures, max_fails):
+def _running_progress(testcase_map, formatter):
     """
     Helper function for reporting state of the `TestCase` objects.
 
     The supplied `TestCase` objects *testcase_map* are each checked, if the case is running the
-    progress is reporte. If more than *max_fails* is reached the processes in *futures* are canceled.
+    progress is reported. If more than *max_fails* is reached the processes in *futures* are canceled.
     """
-
-    num_fail = 0
     for tc in testcase_map.values():
-        if tc.finished and tc.state.level > 1: # above skip
-            num_fail += 1
-
-        if (max_fails is not None) and (num_fail >= max_fails) and tc.waiting:
-            tc.setProgress(TestCase.Progress.FINISHED)
-            tc.setState(TestCase.Result.SKIP)
-            tc.setResults({tc.name(): TestCase.Data(TestCase.Result.SKIP, 0, '', f"Max failures of {max_fails} exceeded.", ['max failures reached'])})
-            formatter.reportResults(tc)
-
         if tc.running:
             formatter.reportProgress(tc)
-
-    if (max_fails is not None) and (num_fail >= max_fails):
-        for f in futures:
-            f.cancel()
-
-
-if  __name__ == '__main__':
-    import logging
-    from moosetools.moosetest.base import make_runner, make_differ
-    from moosetools.moosetest.runners import RunCommand
-    from moosetools.moosetest.differs import ConsoleDiff
-    from moosetools.moosetest.formatters import BasicFormatter
-    from moosetools.moosetest.controllers import EnvironmentController
-    logging.basicConfig()
-
-    controllers = (EnvironmentController(),)
-    formatter = BasicFormatter()
-
-    grp_a = [None]*3
-    grp_a[0] = make_runner(RunCommand, controllers, name='A:test/with/a/long/name/1', command=('sleep', '4'),
-                          differs=(make_differ(ConsoleDiff, controllers, name='diff', text_in_stderr='sleep'),
-                                   make_differ(ConsoleDiff, controllers, name='diff2', text_in_stderr='2')))
-    grp_a[1] = make_runner(RunCommand, controllers, name='A:test/with/a/long/name/2', command=('sleep', '2'))
-    grp_a[2] = make_runner(RunCommand, controllers, name='A:test/with/a/long/name/3', command=('sleep', '1'))
-
-    grp_b = [None]*5
-    grp_b[0] = make_runner(RunCommand, controllers, name='B:test/1', command=('sleep', '3'),
-                             differs=(make_differ(ConsoleDiff, controllers, name='diff', text_in_stderr='sleep'),
-                                      make_differ(ConsoleDiff, controllers, name='diff2', text_in_stderr='3')))
-    grp_b[1] = make_runner(RunCommand, controllers, name='B:test/2', command=('sleep', '5'),
-                             differs=(make_differ(ConsoleDiff, controllers, name='diff', text_in_stderr='sleep'),
-                                      make_differ(ConsoleDiff, controllers, name='diff2', text_in_stderr='2')))
-    grp_b[2] = make_runner(RunCommand, controllers, name='B:test/3', command=('sleep', '1'))
-    grp_b[3] = make_runner(RunCommand, controllers, name='B:test/4', command=('wrong', ))
-    grp_b[4] = make_runner(RunCommand, controllers, name='B:test/5', command=('sleep', '3'))
-
-    grp_c = [None]*2
-    grp_c[0] = make_runner(RunCommand, controllers, name='C:test/1', command=('sleep', '13'))
-    grp_c[1] = make_runner(RunCommand, controllers, name='C:test/2', command=('sleep', '1'), env_platform=('Linux',))
-
-    grp_d = [None]*2
-    grp_d[0] = make_runner(RunCommand, controllers, name='D:test/1', command=('sleep', '2'))
-    grp_d[1] = make_runner(RunCommand, controllers, name='D:test/2', command=('sleep', '1'), env_platform=('Linux',))
-
-
-    groups = [grp_a, grp_b, grp_c, grp_d]
-
-    sys.exit(run(groups, controllers, formatter, n_threads=4, timeout=10, max_fails=5))
