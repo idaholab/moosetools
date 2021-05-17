@@ -220,10 +220,13 @@ def fuzzer(seed=1980, timeout=(3,10), max_fails=(15,100), progress_interval=(3,1
            controller_num=(1,6), controller_skip=0.05, controller_raise=0.05, controller_error=0.1,
            differ_num=(0,3), differ_raise=0.01, differ_error=0.1, differ_fatal=0.1, differ_platform=0.1, differ_name_len=(6,15),
            runner_num=(1,3), runner_raise=0.01, runner_error=0.1, runner_fatal=0.05, runner_sleep=(0.5,10), runner_platform=0.1, runner_name_len=(4,29)):
-
+    """
+    A tool for calling `run` function with randomized test cases.
+    """
+    # This is more of a test object, so I wanted to keep the testing related import out of the
+    # main functions for the run command.
     import random
     import string
-
     from moosetools.moosetest.formatters import BasicFormatter
     from moosetools.moosetest.base import make_runner, make_differ
     sys.path.append(os.path.join(os.path.dirname(__file__), 'tests'))

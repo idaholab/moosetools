@@ -1,6 +1,7 @@
 colored
 coverage
 deepdiff
+packaging
 pandas
 pyyaml
 sympy
