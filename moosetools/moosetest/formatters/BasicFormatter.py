@@ -174,7 +174,7 @@ class BasicFormatter(Formatter):
             for tc in reversed(sorted(complete, key=lambda tc: tc.time)):
                 if shown > longest:
                     break
-                out.append(f'  {tc.name()}: {tc.time}s')
+                out.append(f'  {tc.time}s: {tc.name()}')
                 shown += 1
 
         return '\n'.join(out)
