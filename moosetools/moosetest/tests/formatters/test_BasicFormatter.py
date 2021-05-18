@@ -166,6 +166,33 @@ class TestBasicFormatter(unittest.TestCase):
             obj.formatDifferResult(name='Andrew')
         fm.assert_called_once_with(indent=' '*4, name='Andrew')
 
+    def test_formatComplete(self):
+        obj = BasicFormatter()
+
+        class TestCaseProxy(object):
+            def __init__(self, name, state, t):
+                self._name = name
+                self.state = state
+                self.time = t
+            def name(self):
+                return self._name
+
+        complete = [TestCaseProxy('A', TestCase.Result.PASS, 10), TestCaseProxy('B', TestCase.Result.FATAL,20)]
+        with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
+            text = obj.formatComplete(complete)
+        self.assertIn("Executed 2 tests", text)
+        self.assertNotIn("in 40.0 seconds", text)
+        self.assertIn("OK:1 SKIP:0 TIMEOUT:0 DIFF:0 ERROR:0 EXCEPTION:0 FATAL:1", text)
+
+        kwargs = {'duration':40}
+        with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
+            text = obj.formatComplete(complete, **kwargs)
+
+        self.assertIn("Executed 2 tests in 40.0 seconds", text)
+        self.assertIn("OK:1 SKIP:0 TIMEOUT:0 DIFF:0 ERROR:0 EXCEPTION:0 FATAL:1", text)
+
+        self.assertIn('Longest running tests(s)', text)
+        self.assertIn('\n  B: 20s\n  A: 10s', text)
 
 
 if __name__ == '__main__':

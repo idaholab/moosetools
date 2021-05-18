@@ -4,7 +4,6 @@ import collections
 import time
 import shutil
 import textwrap
-from moosetools.mooseutils import color_text
 from moosetools.moosetest.base import Formatter, TestCase
 
 
@@ -74,6 +73,8 @@ class BasicFormatter(Formatter):
                    doc="The text to use for indenting the differ state/result output.")
         params.add('max_lines', default=500, vtype=int,
                    doc="Maximum number of lines to show in sys.stdout/sys.stderr in result output.")
+        params.add('print_longest_running_tests', default=5, vtype=int,
+                   doc="Print the given number of the longest running test cases.")
         return params
 
     def __init__(self, *args, **kwargs):
@@ -146,18 +147,36 @@ class BasicFormatter(Formatter):
 
     def formatComplete(self, complete, **kwargs):
         """
-        Return the output after all `TestCase` objects in *complete* have finished.
+        Return the output after all `TestCase` objects in *complete* have finished. (override)
         """
-        counts = collections.defaultdict(int)
-        for tc in complete:
-            counts[tc.state] += 1
-
+        # Add visible break for summary
         out = list()
         out.append("-"*self.width())
+
+        # Number of tests executed
         t = kwargs.get('duration', None)
         if t is not None:
             out.append(f"Executed {len(complete)} tests in {t:.1f} seconds.")
-        out.append(' '.join(f"{color_text(s.display, *s.color)}:{counts[s]}" for s in TestCase.Result))
+        else:
+            out.append(f"Executed {len(complete)} tests.")
+
+        # Display the TestCase result counts
+        counts = collections.defaultdict(int)
+        for tc in complete:
+            counts[tc.state] += 1
+        out.append(' '.join(f"{s.display}:{counts[s]}" for s in TestCase.Result))
+
+        # Longest running tests
+        longest = self.getParam('print_longest_running_tests')
+        if (longest is not None) and (longest > 0):
+            shown = 0
+            out.append('\nLongest running tests(s):')
+            for tc in reversed(sorted(complete, key=lambda tc: tc.time)):
+                if shown > longest:
+                    break
+                out.append(f'  {tc.name()}: {tc.time}s')
+                shown += 1
+
         return '\n'.join(out)
 
     def _formatState(self, **kwargs):
