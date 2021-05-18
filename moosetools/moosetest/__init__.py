@@ -23,5 +23,5 @@ logging.basicConfig()
 #
 # If we use the default "spawn" I get some strange behavior and the system locks up, with "fork" it
 # all works great :shrug:
-#import multiprocessing
-#multiprocessing.set_start_method('spawn', force=True)
+import multiprocessing
+multiprocessing.set_start_method('spawn', force=True)
