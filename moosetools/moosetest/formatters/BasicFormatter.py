@@ -13,80 +13,141 @@ class ShortenMode(enum.Enum):
     MIDDLE = 1
     END = 2
 
+def shorten_line(text, max_length, mode=ShortenMode.MIDDLE, replace='...'):
+    """
+    Function for shortening single lines of content in *text*.
+
+    The *text* string will be shortened to the length provided in *max_length* when the removed
+    content replaced with the string in *replace*. The shortened string is returned and will have
+    a total length of *max_length* plus the length of *replace*. Any leading or trailing white space
+    surrounding the replaced text will be removed.
+
+    The *mode* dictates where the replacement will happen, the begging, middle, or end of the string.
+    """
+    if '\n' in text:
+        raise RuntimeError("The supplied text must be a single line, thus should not include '\n'.")
+    if len(text) < max_length:
+        return text
+
+    if mode == ShortenMode.BEGIN:
+        return '{}{}'.format(replace, text[-max_length:].lstrip())
+    elif mode == ShortenMode.END:
+        return '{}{}'.format(text[:max_length].rstrip(), replace)
+    elif mode == ShortenMode.MIDDLE:
+        n = math.floor(max_length/2)
+        return '{}{}{}'.format(text[:n].rstrip(), replace, text[-n:].lstrip())
+
 def shorten_text(text, max_lines=10, mode=ShortenMode.MIDDLE, replace='...'):
+    """
+    Function for shortening multiple lines of text.
+
+    The multiline *text* will be shortened to the *max_lines*. The removed content is replaced with
+    the string in *replace*. The *mode* dictates where the replacement occurs: beginning, middle, or
+    end.
+    """
     lines = text.splitlines()
     if len(lines) < max_lines:
         return text
 
     if mode == ShortenMode.BEGIN:
-        return '{replace}\n{}'.format('\n'.join(lines[:max_lines], replace=replace))
+        return '{replace}\n{}'.format('\n'.join(lines[-max_lines:]), replace=replace)
     elif mode == ShortenMode.END:
-        return '{}\n{replace}'.format('\n'.join(lines[max_lines:], replace=replace))
+        return '{}\n{replace}'.format('\n'.join(lines[:max_lines]), replace=replace)
     elif mode == ShortenMode.MIDDLE:
         n = math.floor(max_lines/2)
         return '{}\n{replace}\n{}'.format('\n'.join(lines[:n]), '\n'.join(lines[-n:]), replace=replace)
 
 class BasicFormatter(Formatter):
-
     """
+    The default `Formatter` for reporting progress and results of test cases.
     """
-
 
     @staticmethod
     def validParams():
         params = Formatter.validParams()
         params.add('width', vtype=int,
                    doc="The width of the state output (the results output is not altered), if not " \
-                       "provided terminal width is inferred with a default width of 80.")
+                       "provided terminal width is inferred, if possible, otherwise a default width of 80 is utilized.")
         params.add('print_state', vtype=TestCase.Result, default=TestCase.Result.TIMEOUT,
                    doc="The minimum state of results to display.")
         params.add('differ_indent', default=' '*4, vtype=str,
                    doc="The text to use for indenting the differ state/result output.")
-
-        params.add('root_test_dir', vtype=str,
-                   doc="The starting location for the test harness, typically the location of the configuration file.")
-
         params.add('max_lines', default=500, vtype=int,
                    doc="Maximum number of lines to show in sys.stdout/sys.stderr in result output.")
         return params
 
     def __init__(self, *args, **kwargs):
         Formatter.__init__(self, *args, **kwargs)
-
         max_state = max([len(e.text) for e in list(TestCase.Progress)])
         max_result = max([len(e.text) for e in list(TestCase.Result)])
         self._max_state_width = max(max_state, max_result)
-        self._extra_width = 16 # Extract width for percent complete and duration
+        self._extra_width = 16 # extract width for percent complete and duration
 
     def width(self):
+        """
+        Return the character line width to use for reporting progress.
+        """
         width = self.getParam('width')
         if width is None:
             width, _ = shutil.get_terminal_size()
         return width
 
     def fill(self, *args):
+        """
+        Return a string of dots ('.') with a length based on the width less any space to be occupied
+        by items in *\*args* and any extra width.
+        """
         width = self.width() - self._extra_width
         return '.' * (width - sum([len(a) for a in args]))
 
     def shortenLines(self, content):
+        """
+        Return the supplied *content* shortened to the number of lines as defined in 'max_lines'
+        parameter.
+        """
         n = self.getParam('max_lines')
         return shorten_text(content, n, replace=f'...OUTPUT REMOVED (MAX LINES: {n})...')
 
+    def shortenLine(self, content, max_length, **kwargs):
+        """
+        Return the supplied *line* shortened to the number to *max_length*.
+
+        The *\*\*kwargs* are keyword arguments passed the `shorten_line` function.
+        """
+        return shorten_line(content, max_length, **kwargs)
+
     def formatRunnerState(self, **kwargs):
-        return self._formatState('', **kwargs)
+        """
+        Return the progress line from a `Runner` object. (override)
+        """
+        return self._formatState(**kwargs)
 
     def formatDifferState(self, **kwargs):
+        """
+        Return the progress line from a `Differ` object. (override)
+        """
         kwargs.pop('percent')
         kwargs.pop('duration')
-        return self._formatState(self.getParam('differ_indent'), **kwargs)
+        kwargs['indent'] = self.getParam('differ_indent')
+        return self._formatState(**kwargs)
 
     def formatRunnerResult(self, **kwargs):
+        """
+        Return the results text from a `Runner` object. (override)
+        """
         return self._formatResult(**kwargs)
 
     def formatDifferResult(self, **kwargs):
-        return self._formatResult(self.getParam('differ_indent'), **kwargs)
+        """
+        Return the results text from a `Differ` object. (override)
+        """
+        kwargs['indent'] = self.getParam('differ_indent')
+        return self._formatResult(**kwargs)
 
     def formatComplete(self, complete, **kwargs):
+        """
+        Return the output after all `TestCase` objects in *complete* have finished.
+        """
         counts = collections.defaultdict(int)
         for tc in complete:
             counts[tc.state] += 1
@@ -99,9 +160,12 @@ class BasicFormatter(Formatter):
         out.append(' '.join(f"{color_text(s.display, *s.color)}:{counts[s]}" for s in TestCase.Result))
         return '\n'.join(out)
 
-    def _formatState(self, indent, **kwargs):
+    def _formatState(self, **kwargs):
+        """
+        Helper method for printing the progress line.
+        """
 
-        # Build suffix string that contains precent/duration information
+        # Build suffix string that contains percent/duration information
         percent = kwargs.get('percent', None)
         percent = f"{percent:>3.0f}%" if (percent is not None) else ''
 
@@ -111,25 +175,31 @@ class BasicFormatter(Formatter):
         suffix = " {:<{width}}".format(percent + ' ' + duration, width=self._extra_width - 1)
 
         # Build the main status line
-        # TODO: Handle long name and long reasons
+        indent = kwargs.get('indent', '')
         state = kwargs.get('state')
         status = f"{state.text:<{self._max_state_width}}"
-
-        name = kwargs.get('name')
+        width_avail = self.width() - sum(len(x) for x in [indent, status]) - self._extra_width
+        name = self.shortenLine(kwargs.get('name'), math.floor(0.66 * width_avail))
 
         # Create reasons and handle long reasons
-        width_avail = self.width() - sum(len(x) for x in [indent, status, name])
-        reasons = kwargs.get('reasons', None)
-        reasons = '; '.join(reasons) if (reasons is not None) else ''
-        if len(reasons) > (width_avail - 3):
-            reasons = textwrap.shorten(reasons, width_avail - 6, placeholder='...')
-        reasons = "[{}] ".format(reasons) if reasons else ''
+        width_avail = self.width() - sum(len(x) for x in [indent, status, name]) - self._extra_width
+        reasons = kwargs.get('reasons') or '' # use or to account for `None` being passed in
+        if reasons:
+            reasons = '; '.join(reasons)
+            if len(reasons) > width_avail - 8:
+                reasons = self.shortenLine(reasons, width_avail - 8, mode=ShortenMode.BEGIN)
+            reasons = f"[{reasons}] "
+
 
         fill = self.fill(indent, name, reasons, status)
         msg = f"{indent}{state.format(name)}{fill}{state.format(reasons)}{state.format(status)}{suffix}"
         return msg
 
-    def _formatResult(self, indent='', **kwargs):
+    def _formatResult(self, **kwargs):
+        """
+        Helper method for printing the results.
+        """
+        indent = kwargs.get('indent', '')
         state = kwargs.get('state')
         name = kwargs.get('name')
         max_state = self.getParam('print_state')

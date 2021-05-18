@@ -214,7 +214,6 @@ def _running_progress(testcase_map, formatter):
             formatter.reportProgress(tc)
 
 
-
 def fuzzer(seed=1980, timeout=(3,10), max_fails=(15,100), progress_interval=(3,15),
            group_num=(15,50), group_name_len=(6,25),
            controller_num=(1,6), controller_skip=0.05, controller_raise=0.05, controller_error=0.1,
