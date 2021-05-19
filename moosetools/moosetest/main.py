@@ -20,29 +20,22 @@ from moosetools.moosetest.formatters import BasicFormatter
 
 # TODO:
 # - check status() of factory after factory calls
-# - change ProcessRunner to RunCommand
 
 
 # Local directory, to be used for getting the included Controller/Formatter objects
 LOCAL_DIR = os.path.abspath(os.path.dirname(__file__))
 
-
 def cli_args():
+    """
+    Return command line arguments.
+    """
     parser = argparse.ArgumentParser(description='Testing system inspired by MOOSE')
-
     parser.add_argument('--demo', action='store_true',
                         help="Ignore all other arguments and run a demonstration.")
-
     parser.add_argument('--config', default=os.getcwd(), type=str,
                         help="The configuration file or directory. If a directory is provided a " \
                              "'.moosetest' file is searched up the directory tree beginning at " \
                              "the supplied location (default: %(default)s).")
-
-    # TODO: Add valid_params to this and then apply cli_args to valid_params via the Parser?
-    # This would probably be overkill, the --help should probably just refer to the ability to
-    # configure things with .moosetest file. The _locate_and_load_config should just accept the
-    # complete argparse and update what is needed.
-
     return parser.parse_args()
 
 
@@ -50,7 +43,6 @@ class TestHarness(base.MooseObject):
     """
     Object for extracting general configuration options from a HIT file.
     """
-
     @staticmethod
     def validParams():
         params = base.MooseObject.validParams()
@@ -62,55 +54,43 @@ class TestHarness(base.MooseObject):
 
         params.add('n_threads', default=os.cpu_count(), vtype=int,
                    doc="The number of threads to utilize when running tests.")
-
         params.add('spec_file_names', vtype=str, array=True, default=('tests',),
                    doc="List of file names (e.g., 'tests') that contain test specifications to run.")
         params.add('spec_file_blocks', vtype=str, array=True, default=('Tests',),
                    doc="List of top-level test specifications (e.g., `[Tests]`) HIT blocks to run.")
-
         params.add('timeout', default=300., vtype=float,
                    doc="Number of seconds allowed for the execution of a test case.")
         params.add('max_failures', default=50, vtype=int,
                    doc="The maximum number of failures allowed before terminating all test cases.")
 
-
-        params.add('controllers', vtype=Controller, array=True,
-                   doc="Controller objects to utilize for test case creation.")
-
-        params.add('formatter', vtype=Formatter,
-                   doc="Formatter object to utilize for test case output.")
-
+        # params.add('controllers', vtype=Controller, array=True,
+        #            doc="Controller objects to utilize for test case creation.")
+        # params.add('formatter', vtype=Formatter,
+        #            doc="Formatter object to utilize for test case output.")
         return params
 
     def __init__(self, *args, **kwargs):
         base.MooseObject.__init__(self, *args, **kwargs)
         logging.basicConfig(level=self.getParam('log_level'))
 
-    #def applyArguments(self, args):
-    #    pass
-
-
-
-
+    def applyCommandLineArguments(self, args):
+        """
+        Apply options provided via the command line to the object.
+        """
+        pass
 
 def main():
     """
+    Complete function for automatically detecting and performing tests based on test specifications.
 
-    Give some notes about mockable/testable functions and avoiding classes
-
-
-    discover: should be able to operate without any need for config stuff
-    run: should be able to operate without any need for HIT files
-
-
+    This function exists for the use by the `moosetest` executable in the bin directory of the
+    moosetools repository.
     """
 
     # Extract command-line arguments
     args = cli_args()
-
     if args.demo:
         return fuzzer()
-
 
     # Locate the config
     filename = _locate_config(args.config)
@@ -118,15 +98,15 @@ def main():
     # Load the config (pyhit.Node)
     root = _load_config(filename)
 
-    # Create the TestHarness object from the configuration
-    harness = make_harness(filename, root)
-    #harness.applyArguments(filename, args)
+    # Create the TestHarness object from the configuration, after this point the cli_args should
+    # no longer be used. They are applied to the TestHarness object in this function by calling
+    # the TestHarness.applyCommandLineArguments method.
+    harness = make_harness(filename, root, args)
+    del args # just to avoid accidental use in the future
+
 
     controllers = make_controllers(filename, root, harness.getParam('plugin_dirs'))
-
     formatter = make_formatter(filename, root, harness.getParam('plugin_dirs'))
-
-
 
 
     groups = discover(os.getcwd(),
@@ -145,14 +125,22 @@ def main():
 
     return rcode
 
-def make_harness(filename, root):
+def make_harness(filename, root, cli_args):
     """
+    Create the `TestHarness` object from top-level parameters in the `pyhit.Node` of *root*.
 
+    The *filename* is provided for error reporting and should be the file used for generating
+    the tree structure in *root*. The *cli_args* input is passed to the created `TestHarness` object
+    via the `applyCommandLineArguments` method.
+
+    It is expected that the file that produced *root* has top-level parameters, which are used to
+    create a `TestHarness` object.
     """
     # Top-level parameters are used to build the TestHarness object. Creating custom `TestHarness`
     # objects is not-supported, so don't allow "type" to be set.
     if 'type' in root:
         msg = "The 'type' parameter must NOT be defined in the top-level of the configuration."
+        raise RuntimeError(msg)
     root['type'] = 'TestHarness'
 
     plugin_dirs = list()
@@ -163,25 +151,29 @@ def make_harness(filename, root):
             plugin_dirs.append(os.path.abspath(os.path.join(base_dir, p_dir)))
         root['plugin_dirs'] = ' '.join(plugin_dirs)
 
-    # Create the TestHarness object, the Parser is used to correctly convert HIT to InputParameters
+    # Build a factory capable of creating the TestHarness object
     f = factory.Factory()
     f.register('TestHarness', TestHarness)
+    if f.status() > 0:
+        msg = "An error occurred during registration of the TestHarness type, see console message(s) for details."
+        raise RuntimeError(msg)
+
+    # Use the Parser is used to correctly convert HIT to InputParameters
     w = list()
     p = factory.Parser(f, w)
     p._parseNode(filename, root)
+    if p.status() > 0:
+        msg = "An error occurred during parsing of the root level parameters for creation of the TestHarness obj, see console message(s) for details."
+        raise RuntimeError(msg)
+
+    # Apply the command line arguments to update TestHarness object parameters
     harness = w[0]
-
-    #harness.parameters().setValue('plugin_dirs', tuple(plugin_dirs))
-
-    #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'controllers')))
-    #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'formatters')))
-    #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'runners')))
-    #plugin_dirs.append(os.path.abspath(os.path.join(LOCAL_DIR, 'differs')))
-    #harness.parameters().setValue('plugin_dirs', tuple(plugin_dirs))
-
+    harness.applyCommandLineArguments(cli_args)
+    if p.status() > 0:
+        msg = "An error occurred applying the command line arguments to the TestHarness obj, see console message(s) for details."
+        raise RuntimeError(msg)
 
     return harness
-
 
 def make_controllers(filename, root, plugin_dirs):
 
@@ -248,7 +240,6 @@ def _load_config(filename):
         msg =  "The configuration file, '{}', does not exist."
         raise RuntimeError(msg.format(filename))
     root = pyhit.load(filename)
-
     return root
 
 def _locate_and_load_config(location=os.getcwd()):

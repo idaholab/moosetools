@@ -172,7 +172,7 @@ class BasicFormatter(Formatter):
             shown = 0
             out.append('\nLongest running tests(s):')
             for tc in reversed(sorted(complete, key=lambda tc: tc.time)):
-                if shown > longest:
+                if shown >= longest:
                     break
                 out.append(f'  {tc.time:.2f}s {tc.name()}')
                 shown += 1
