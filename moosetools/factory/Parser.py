@@ -30,6 +30,9 @@ class Parser(base.MooseObject):
         params = base.MooseObject.validParams()
         params.add('_factory', private=True, required=True, vtype=Factory)
         params.add('_warehouse', private=True, required=True, vtype=(Warehouse, list))
+        params.add('iteration_method', vtype=moosetree.IterMethod,
+                   default=moosetree.IterMethod.PRE_ORDER,
+                   doc="Iteration method to utilize when traversing HIT tree.")
         return params
 
     def __init__(self, factory, warehouse, **kwargs):
@@ -66,7 +69,7 @@ class Parser(base.MooseObject):
         error occurred.
         """
         self.reset()  # zero all logging counts
-        if not os.path.exists(filename):
+        if not os.path.isfile(filename):
             self.error("The filename '{}' does not exist.".format(filename))
             return 1
 
@@ -77,11 +80,11 @@ class Parser(base.MooseObject):
                 self.exception("Failed to load filename with pyhit: {}", filename)
                 return 1
 
-        # Iterate of all childless nodes, those should contain a 'type = ...' parameter for building
+        # Iterate of all  nodes with "type = ..."
         paths = set()
         for node in moosetree.findall(root,
-                                      func=lambda n: len(n) == 0,
-                                      method=moosetree.IterMethod.PRE_ORDER):
+                                      func=lambda n: 'type' in n ,
+                                      method=self.getParam('iteration_method')):
             self._checkDuplicates(filename, paths, node)
             self._parseNode(filename, node)
         return self.status()

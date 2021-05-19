@@ -86,8 +86,8 @@ class TestHarness(base.MooseObject):
         base.MooseObject.__init__(self, *args, **kwargs)
         logging.basicConfig(level=self.getParam('log_level'))
 
-    def applyArguments(self, args):
-        pass
+    #def applyArguments(self, args):
+    #    pass
 
 
 
