@@ -6,3 +6,4 @@ packaging
 pandas
 pyyaml
 sympy
+yapf
