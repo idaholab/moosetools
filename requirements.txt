@@ -1,6 +1,7 @@
 colored
 coverage
 deepdiff
+matplotlib
 packaging
 pandas
 pyyaml

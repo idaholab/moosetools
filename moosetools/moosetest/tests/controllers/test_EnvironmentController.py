@@ -57,9 +57,10 @@ class TestEnvironmentController(unittest.TestCase):
         self.assertEqual(ctrl.isRunnable(), True)
         self.assertEqual(ctrl.reasons(), [])
 
-        ctrl.execute(obj, obj.getParam('env'))
+        with mock.patch('platform.python_version', return_value='1949.8.27'):
+            ctrl.execute(obj, obj.getParam('env'))
         self.assertEqual(ctrl.isRunnable(), False)
-        self.assertEqual(ctrl.reasons(), ['1980.6.24 > 3.8.8'])
+        self.assertEqual(ctrl.reasons(), ['1980.6.24 > 1949.8.27'])
 
     def testMaxVersion(self):
         ctrl = EnvironmentController()

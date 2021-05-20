@@ -316,11 +316,11 @@ class TestRun(unittest.TestCase):
 
         for key, value in kwargs.items():
             if value is TestRun.ANY:
-                self.assertIn(key, call.kwargs)
+                self.assertIn(key, call[1])  # call.kwargs[key] in python > 3.7
             elif isinstance(value, TestRun.IN):
-                self.assertIn(value.value, call.kwargs[key])
+                self.assertIn(value.value, call[1][key])  # call.kwargs[key] in python > 3.7
             else:
-                self.assertEqual(call.kwargs[key], value)
+                self.assertEqual(call[1][key], value)  # call.kwargs[key] in python > 3.7
 
     def testRunnerOnly(self):
         r = TestRunner(name='Andrew', stderr=True, stdout=True)

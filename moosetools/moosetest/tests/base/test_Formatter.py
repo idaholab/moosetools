@@ -170,7 +170,7 @@ class TestFormatter(unittest.TestCase):
 
         # Runner, progress
         fm._printState(tc, rr, TestCase.Progress.RUNNING, ["all the reasons"])
-        kwargs = r_state.call_args.kwargs
+        kwargs = r_state.call_args[1]  # .call_args.kwargs (python > 3.7)
         self.assertEqual(kwargs['name'], 'r')
         self.assertEqual(kwargs['state'], TestCase.Progress.RUNNING)
         self.assertEqual(kwargs['reasons'], ["all the reasons"])
@@ -180,7 +180,7 @@ class TestFormatter(unittest.TestCase):
         # Differ, progress
         tc.setProgress(TestCase.Progress.FINISHED)  # call this to use execute time
         fm._printState(tc, dr, TestCase.Progress.FINISHED, ["all the reasons"])
-        kwargs = d_state.call_args.kwargs
+        kwargs = d_state.call_args[1]  # .call_args.kwargs (python > 3.7)
         self.assertEqual(kwargs['name'], 'd')
         self.assertEqual(kwargs['state'], TestCase.Progress.FINISHED)
         self.assertEqual(kwargs['reasons'], ["all the reasons"])
@@ -195,7 +195,7 @@ class TestFormatter(unittest.TestCase):
             'd': TestCase.Data(TestCase.Result.PASS, None, 'd_out', 'd_err', None)
         })
         fm._printResult(tc, rr, tc.results['r'])
-        kwargs = r_result.call_args.kwargs
+        kwargs = r_result.call_args[1]  # .call_args.kwargs (python > 3.7)
         self.assertEqual(kwargs['name'], 'r')
         self.assertEqual(kwargs['state'], TestCase.Result.PASS)
         self.assertEqual(kwargs['reasons'], None)
@@ -211,7 +211,7 @@ class TestFormatter(unittest.TestCase):
             'd': TestCase.Data(TestCase.Result.PASS, None, 'd_out', 'd_err', None)
         })
         fm._printResult(tc, dr, tc.results['d'])
-        kwargs = d_result.call_args.kwargs
+        kwargs = d_result.call_args[1]  # .call_args.kwargs (python > 3.7)
         self.assertEqual(kwargs['name'], 'd')
         self.assertEqual(kwargs['state'], TestCase.Result.PASS)
         self.assertEqual(kwargs['reasons'], None)
