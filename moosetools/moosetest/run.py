@@ -59,21 +59,11 @@ def run(groups,
     The function will return 1 if any test case has a state with a level greater than
     *min_fail*state*, otherwise a 0 is returned.
     """
-    multiprocessing.set_start_method('fork', force=True)
-
     # NOTE: This function is the heart of moosetest. Significant effort went into the design,
     #       including getting 100% test coverage and handling all the corner cases found during
     #       that process. If you are going to change this function make sure you test the changes
     #       thoroughly. If something does not work, please be kind...this was non-trivial (at least
     #       for Andrew).
-
-    # Fix python 3.8/3.9 on MacOS due to this https://github.com/python/cpython/pull/13603
-    # There is some more information here:
-    #   https://github.com/ansible/ansible/issues/63973#issuecomment-546995228
-    #
-    # If we use the default "spawn" I get some strange behavior and the system locks up, with "fork" it
-    # all works great :shrug:
-    multiprocessing.set_start_method('fork', force=True)
 
     # Determine the default method. Originally this function only operated using a Process pool, but
     # in python 3.6 there was a problem with pickling the Queue. However, using a Thread pool does

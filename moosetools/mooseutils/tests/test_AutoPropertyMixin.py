@@ -15,12 +15,6 @@ import pickle
 import multiprocessing
 from moosetools import mooseutils
 
-# Fix python 3.8/3.9 on MacOS due to this https://github.com/python/cpython/pull/13603
-# There is some more information here:
-#   https://github.com/ansible/ansible/issues/63973#issuecomment-546995228
-if (platform.system() == 'Darwin') and platform.python_version_tuple() >= ('3', '8', '0'):
-    multiprocessing.set_start_method('fork', force=True)
-
 
 @mooseutils.addProperty('prop')
 class MyNode(mooseutils.AutoPropertyMixin):
