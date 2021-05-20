@@ -32,7 +32,7 @@ class RunMethod(enum.Enum):
 def run(groups,
         controllers,
         formatter,
-        n_threads=None,
+        n_threads=os.cpu_count(),
         timeout=None,
         max_fails=sys.maxsize,
         min_fail_state=TestCase.Result.TIMEOUT,
@@ -59,6 +59,7 @@ def run(groups,
     The function will return 1 if any test case has a state with a level greater than
     *min_fail*state*, otherwise a 0 is returned.
     """
+    multiprocessing.set_start_method('fork', force=True)
 
     # NOTE: This function is the heart of moosetest. Significant effort went into the design,
     #       including getting 100% test coverage and handling all the corner cases found during
@@ -66,12 +67,20 @@ def run(groups,
     #       thoroughly. If something does not work, please be kind...this was non-trivial (at least
     #       for Andrew).
 
+    # Fix python 3.8/3.9 on MacOS due to this https://github.com/python/cpython/pull/13603
+    # There is some more information here:
+    #   https://github.com/ansible/ansible/issues/63973#issuecomment-546995228
+    #
+    # If we use the default "spawn" I get some strange behavior and the system locks up, with "fork" it
+    # all works great :shrug:
+    multiprocessing.set_start_method('fork', force=True)
+
     # Determine the default method. Originally this function only operated using a Process pool, but
     # in python 3.6 there was a problem with pickling the Queue. However, using a Thread pool does
     # work in 3.6.
     # https://stackoverflow.com/questions/44144584/typeerror-cant-pickle-thread-lock-objects
     #
-    # Given that switching between them is trivial, it might be a nice option to have imporove
+    # Given that switching between them is trivial, it might be a nice option to have improve
     # performance depending on the type of testing being performed.
     if method is None:
         method = RunMethod.PROCESS_POOL if platform.python_version(
@@ -108,7 +117,6 @@ def run(groups,
 
     # Loop until all the test cases are finished or the number of failures is reached
     while any(not tc.finished for tc in testcase_map.values()):  #
-        #time.sleep(0.1) # no reason to hammer the main process, you can wait 0.1 sec...
         _running_results(testcase_map, result_queue, formatter)
         _running_progress(testcase_map, formatter)
 
@@ -378,4 +386,5 @@ def fuzzer(seed=1980,
     kwargs['timeout'] = random.randint(*timeout)
     kwargs['max_fails'] = random.randint(*max_fails)
     kwargs['min_fail_state'] = random.choice([r for r in TestCase.Result])
+    kwargs['method'] = RunMethod.THREAD_POOL
     return run(groups, controllers, formatter, **kwargs)
