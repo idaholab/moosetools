@@ -12,7 +12,7 @@ from . import controllers
 from . import runners
 from . import differs
 from .discover import discover
-from .run import run, fuzzer
+from .run import run, fuzzer, RunMethod
 from .main import main
 
 import logging

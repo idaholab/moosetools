@@ -360,7 +360,6 @@ class TestTestCase(unittest.TestCase):
 
         # No error, no output
         s, r = tc.execute()
-        print(s, r)
         self.assertEqual(s, TestCase.Result.PASS)
         self.assertEqual(list(r.keys()), ['r', 'd'])
         self.assertEqual(r['r'], TestCase.Data(TestCase.Result.PASS, 2011, '', '', None))

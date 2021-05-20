@@ -13,14 +13,14 @@ import sys
 import unittest
 from unittest import mock
 import queue
-import dataclasses
 import uuid
+import platform
 import logging
 import concurrent.futures
 
 from moosetools.moosetest.base import make_runner, make_differ, TestCase, State, Formatter, Runner, Differ
 from moosetools.moosetest.runners import RunCommand
-from moosetools.moosetest import run, fuzzer
+from moosetools.moosetest import run, fuzzer, RunMethod
 from moosetools.moosetest.run import _execute_testcase, _execute_testcases
 from moosetools.moosetest.run import _running_results, _running_progress
 
@@ -29,10 +29,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__)))
 from _helpers import TestController, TestRunner, TestDiffer
 
 
-@dataclasses.dataclass
 class PipeProxy(object):
-    state: State = None
-    result: dict = None
+    def __init__(self):
+        self.state = None
+        self.result = None
 
     def send(self, data):
         self.state = data[0]
@@ -62,6 +62,7 @@ class TestRunExecuteHelpers(unittest.TestCase):
         conn = PipeProxy()
         _execute_testcase(tc, conn)
 
+        print(conn.result['test'].stderr)
         self.assertEqual(conn.state, TestCase.Result.PASS)
         self.assertIn('test', conn.result)
 
@@ -321,6 +322,22 @@ class TestRun(unittest.TestCase):
                 self.assertIn(value.value, call[1][key])  # call.kwargs[key] in python > 3.7
             else:
                 self.assertEqual(call[1][key], value)  # call.kwargs[key] in python > 3.7
+
+    def testMethod(self):
+        r = make_runner(TestRunner, name='Just Andrew')
+        fm = Formatter()
+
+        with mock.patch('platform.python_version', return_value='3.6.0'):
+            with self.assertRaises(RuntimeError) as ex:
+                rcode = run([[r]], tuple(), fm, method=RunMethod.PROCESS_POOL)
+            self.assertIn("Using a Process pool with python 3.6", str(ex.exception))
+
+        rcode = run([[r]], tuple(), fm, method=RunMethod.THREAD_POOL)
+        self.assertEqual(rcode, 0)
+
+        if platform.python_version() >= "3.7":
+            rcode = run([[r]], tuple(), fm, method=RunMethod.PROCESS_POOL)
+            self.assertEqual(rcode, 0)
 
     def testRunnerOnly(self):
         r = TestRunner(name='Andrew', stderr=True, stdout=True)
@@ -1090,7 +1107,6 @@ class TestRun(unittest.TestCase):
         r = make_runner(TestRunner, name='Just Andrew')
         fm = Formatter()
 
-        @dataclasses.dataclass
         class QueueProxy(object):
             def __init__(self):
                 self._count = 0
@@ -1101,13 +1117,15 @@ class TestRun(unittest.TestCase):
             def task_done(self):
                 pass
 
+            def put(self, *args):
+                pass
+
             def empty(self):
                 self._count += 1
                 return self._count not in (2, 3)  # false on 2nd and 3rd call
 
         with mock.patch('uuid.uuid4', return_value=uid):
-            with mock.patch('multiprocessing.managers.SyncManager.Queue',
-                            return_value=QueueProxy()):
+            with mock.patch('queue.Queue', return_value=QueueProxy()):
                 with self.assertRaises(RuntimeError) as ex:
                     rcode = run([[r]], tuple(), fm)
 

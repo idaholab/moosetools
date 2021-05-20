@@ -17,8 +17,10 @@ import logging
 import collections
 import multiprocessing
 import traceback
-from dataclasses import dataclass
 import textwrap
+import platform
+if platform.python_version() >= "3.7":
+    import dataclasses
 
 from moosetools import mooseutils
 from moosetools.base import MooseObject
@@ -118,6 +120,10 @@ class RedirectOutput(object):
                 self._logging_handlers.append((h, h.formatter))
                 h.setStream(sys.stderr)
                 h.setFormatter(logging.Formatter())
+            elif hasattr(h, 'stream'):  # python 3.6 only
+                self._logging_handlers.append((h, h.formatter))
+                h.stream = sys.stderr
+                h.setFormatter(logging.Formatter())
 
         return self
 
@@ -129,7 +135,10 @@ class RedirectOutput(object):
         sys.stderr = self._sys_stderr
 
         for h, f in self._logging_handlers:
-            h.setStream(self._sys_stderr)
+            if hasattr(h, 'setStream'):
+                h.setStream(self._sys_stderr)
+            else:
+                h.stream = self._sys_stdout  # python 3.6 only
             h.setFormatter(f)
 
 
@@ -182,21 +191,38 @@ class TestCase(MooseObject):
         EXCEPTION = (15, 5, 'EXCEPTION', ('magenta_1', ))  # exception raised by Runner/Differ
         FATAL = (16, 6, 'FATAL', ('white', 'red_1'))  # internal error (see, run.py)
 
-    @dataclass
-    class Data:
-        """
-        Data from execution of a `Runner` or `Differ` is returned from a process in this structure.
+    if platform.python_version() >= "3.7":
 
-        This is mainly for convenience for accessing the results related data to allow for the API
-        to return a single data object for all result related items and should allow for new items
-        to be added if needed as the system expands.
-        """
-        state: State = None
-        returncode: int = None
-        stdout: str = None
-        stderr: str = None
-        #reasons: list[str] = None #Py3.9 only
-        reasons: list = None
+        @dataclasses.dataclass
+        class Data(object):
+            """
+            Data from execution of a `Runner` or `Differ` is returned from a process in this structure.
+
+            This is mainly for convenience for accessing the results related data to allow for the API
+            to return a single data object for all result related items and should allow for new items
+            to be added if needed as the system expands.
+            """
+            state: State = None
+            returncode: int = None
+            stdout: str = None
+            stderr: str = None
+            #reasons: list[str] = None #Py3.9 only
+            reasons: list = None
+
+    else:
+
+        class Data(object):
+            def __init__(self, state=None, returncode=None, stdout=None, stderr=None, reasons=None):
+                self.state = state
+                self.returncode = returncode
+                self.stdout = stdout
+                self.stderr = stderr
+                self.reasons = reasons
+
+            def __eq__(self, other):
+                return self.state == other.state and self.returncode == other.returncode and \
+                    self.stdout == other.stdout and self.stderr == other.stderr and \
+                    self.reasons == other.reasons
 
     @staticmethod
     def validParams():

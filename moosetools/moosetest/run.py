@@ -12,11 +12,21 @@ import sys
 import time
 import traceback
 import queue
+import platform
 import concurrent.futures
 import multiprocessing
 import time
+import enum
 
 from moosetools.moosetest.base import TestCase, RedirectOutput
+
+
+class RunMethod(enum.Enum):
+    """
+    The run method to utilize: ThreadPool or ProcessPool
+    """
+    THREAD_POOL = 0
+    PROCESS_POOL = 1
 
 
 def run(groups,
@@ -25,7 +35,8 @@ def run(groups,
         n_threads=None,
         timeout=None,
         max_fails=sys.maxsize,
-        min_fail_state=TestCase.Result.TIMEOUT):
+        min_fail_state=TestCase.Result.TIMEOUT,
+        method=None):
     """
     Primary function for running tests.
 
@@ -55,6 +66,20 @@ def run(groups,
     #       thoroughly. If something does not work, please be kind...this was non-trivial (at least
     #       for Andrew).
 
+    # Determine the default method. Originally this function only operated using a Process pool, but
+    # in python 3.6 there was a problem with pickling the Queue. However, using a Thread pool does
+    # work in 3.6.
+    # https://stackoverflow.com/questions/44144584/typeerror-cant-pickle-thread-lock-objects
+    #
+    # Given that switching between them is trivial, it might be a nice option to have imporove
+    # performance depending on the type of testing being performed.
+    if method is None:
+        method = RunMethod.PROCESS_POOL if platform.python_version(
+        ) >= "3.7" else RunMethod.THREAD_POOL
+
+    if method == RunMethod.PROCESS_POOL and platform.python_version() < "3.7":
+        raise RuntimeError("Using a Process pool with python 3.6 is not supported.")
+
     # Capture for computing the total execution time for all test cases
     start_time = time.time()
 
@@ -63,10 +88,14 @@ def run(groups,
     tc_kwargs['controllers'] = controllers
     tc_kwargs['min_fail_state'] = min_fail_state
 
-    # Setup process pool, the result_queue is used to collecting results returned from workers
-    executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
-    manager = multiprocessing.Manager()
-    result_queue = manager.Queue()
+    # Setup process/thread pool, the result_queue is used to collecting results returned from workers
+    if method == RunMethod.PROCESS_POOL:
+        executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
+        manager = multiprocessing.Manager()
+        result_queue = manager.Queue()
+    elif method == RunMethod.THREAD_POOL:
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=n_threads)
+        result_queue = queue.Queue()
 
     futures = list()  # pool workers
     testcase_map = dict()  # individual cases to allow report while others run

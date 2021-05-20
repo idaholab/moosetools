@@ -123,7 +123,6 @@ class TestFormatter(unittest.TestCase):
 
     @mock.patch("moosetools.moosetest.base.Formatter._printState")
     def testReportProgress(self, pstate):
-
         # Runner
         fm = Formatter(progress_interval=0)
         ct = TestController()

@@ -13,7 +13,7 @@ import sys
 import unittest
 from unittest import mock
 import queue
-import dataclasses
+import platform
 import uuid
 import logging
 import concurrent.futures
