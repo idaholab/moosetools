@@ -136,24 +136,6 @@ class Factory(MooseObject):
             except ModuleNotFoundError:
                 continue
 
-        # Load classes that do
-        #def predicate2(otype):
-        #    inspect.isclass(otype) and (otype.__module__ == module.__name__) and (name not in self._registered_types) and any(p in inspect.getmro(otype) for p in plugin_types)
-        """
-        for info in pkgutil.iter_modules(plugin_dirs):
-            print(info)
-            loader = info.module_finder.find_module(info.name)
-            try:
-                module = loader.load_module()
-            except Exception:
-                self.exception("Failed to load module '{}' in file '{}'", info.name,
-                               info.module_finder.path)
-                continue
-
-            for name, otype in inspect.getmembers(module, predicate):
-                self.register(name, otype)
-        """
-
         return self.status()
 
     def _getObjectType(self, name):

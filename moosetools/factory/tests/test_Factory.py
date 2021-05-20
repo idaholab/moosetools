@@ -135,7 +135,7 @@ class TestFactory(unittest.TestCase):
             f.load()
         self.assertEqual(f.status(), 1)
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The supplied plugin directory", log.output[0])
+        self.assertIn("the 'plugin_dirs' parameter is not a python package", log.output[0])
 
 
 if __name__ == '__main__':

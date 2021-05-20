@@ -149,17 +149,6 @@ class TestParser(unittest.TestCase):
             self.assertEqual(len(log.output), 1)
             self.assertIn("Failed to load filename with pyhit: test0.hit", log.output[0])
 
-        # MISSING TYPE
-        root = pyhit.Node(None, 'Tests')
-        root.append('obj0', raise_on_init='True')
-        with mock.patch('moosetools.pyhit.load') as load:
-            load.return_value = root
-            with self.assertLogs(level='ERROR') as log:
-                p.parse('test0.hit')
-            self.assertEqual(p.status(), 1)
-            self.assertEqual(len(log.output), 1)
-            self.assertIn("Missing 'type' in block 'Tests/obj0'", log.output[0])
-
         # OBJECT FAILS VALIDPARAMS
         root = pyhit.Node(None, 'Tests')
         root.append('obj0', type='TestObjectBadParams')
