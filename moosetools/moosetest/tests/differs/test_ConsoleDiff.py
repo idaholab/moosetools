@@ -23,7 +23,8 @@ class TestConsoleDiff(unittest.TestCase):
         with self.assertLogs(level='ERROR') as log:
             obj.execute(0, '', '')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The content of 'text_in' parameter, 'andrew', was not located in the output", log.output[0])
+        self.assertIn("The content of 'text_in' parameter, 'andrew', was not located in the output",
+                      log.output[0])
         self.assertEqual(obj.status(), 1)
 
     def testTextNotIn(self):
@@ -34,14 +35,16 @@ class TestConsoleDiff(unittest.TestCase):
         with self.assertLogs(level='ERROR') as log:
             obj.execute(0, 'andrew', '')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The content of 'text_not_in' parameter, 'andrew', was located in the output", log.output[0])
+        self.assertIn("The content of 'text_not_in' parameter, 'andrew', was located in the output",
+                      log.output[0])
         self.assertEqual(obj.status(), 1)
 
         obj.reset()
         with self.assertLogs(level='ERROR') as log:
             obj.execute(0, '', 'andrew')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The content of 'text_not_in' parameter, 'andrew', was located in the output", log.output[0])
+        self.assertIn("The content of 'text_not_in' parameter, 'andrew', was located in the output",
+                      log.output[0])
         self.assertEqual(obj.status(), 1)
 
     def testTextInStdout(self):
@@ -52,7 +55,9 @@ class TestConsoleDiff(unittest.TestCase):
         with self.assertLogs(level='ERROR') as log:
             obj.execute(0, '', 'andrew')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The content of 'text_in_stdout' parameter, 'andrew', was not located in the output", log.output[0])
+        self.assertIn(
+            "The content of 'text_in_stdout' parameter, 'andrew', was not located in the output",
+            log.output[0])
         self.assertEqual(obj.status(), 1)
 
     def testTextNotInStdout(self):
@@ -63,7 +68,9 @@ class TestConsoleDiff(unittest.TestCase):
         with self.assertLogs(level='ERROR') as log:
             obj.execute(0, 'andrew', 'andrew')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The content of 'text_not_in_stdout' parameter, 'andrew', was located in the output", log.output[0])
+        self.assertIn(
+            "The content of 'text_not_in_stdout' parameter, 'andrew', was located in the output",
+            log.output[0])
         self.assertEqual(obj.status(), 1)
 
     def testTextInStderr(self):
@@ -74,7 +81,9 @@ class TestConsoleDiff(unittest.TestCase):
         with self.assertLogs(level='ERROR') as log:
             obj.execute(0, 'andrew', '')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The content of 'text_in_stderr' parameter, 'andrew', was not located in the output", log.output[0])
+        self.assertIn(
+            "The content of 'text_in_stderr' parameter, 'andrew', was not located in the output",
+            log.output[0])
         self.assertEqual(obj.status(), 1)
 
     def testTextNotInStderr(self):
@@ -85,7 +94,9 @@ class TestConsoleDiff(unittest.TestCase):
         with self.assertLogs(level='ERROR') as log:
             obj.execute(0, 'andrew', 'andrew')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The content of 'text_not_in_stderr' parameter, 'andrew', was located in the output", log.output[0])
+        self.assertIn(
+            "The content of 'text_not_in_stderr' parameter, 'andrew', was located in the output",
+            log.output[0])
         self.assertEqual(obj.status(), 1)
 
     def testReMatch(self):
@@ -99,14 +110,18 @@ class TestConsoleDiff(unittest.TestCase):
         with self.assertLogs(level='ERROR') as log:
             obj.execute(0, '198-06-24', '')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The regular expression of 're_match' parameter, '\d{4}-\d{2}-\d{2}', did not produce a match in the output", log.output[0])
+        self.assertIn(
+            "The regular expression of 're_match' parameter, '\d{4}-\d{2}-\d{2}', did not produce a match in the output",
+            log.output[0])
         self.assertEqual(obj.status(), 1)
 
         obj.reset()
         with self.assertLogs(level='ERROR') as log:
             obj.execute(0, '', '198-06-24')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The regular expression of 're_match' parameter, '\d{4}-\d{2}-\d{2}', did not produce a match in the output", log.output[0])
+        self.assertIn(
+            "The regular expression of 're_match' parameter, '\d{4}-\d{2}-\d{2}', did not produce a match in the output",
+            log.output[0])
         self.assertEqual(obj.status(), 1)
 
     def testReMatchStdout(self):
@@ -117,7 +132,9 @@ class TestConsoleDiff(unittest.TestCase):
         with self.assertLogs(level='ERROR') as log:
             obj.execute(0, '198-06-24', '1980-06-24')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The regular expression of 're_match' parameter, '\d{4}-\d{2}-\d{2}', did not produce a match in the output", log.output[0])
+        self.assertIn(
+            "The regular expression of 're_match' parameter, '\d{4}-\d{2}-\d{2}', did not produce a match in the output",
+            log.output[0])
         self.assertEqual(obj.status(), 1)
 
     def testReMatchStderr(self):
@@ -128,8 +145,11 @@ class TestConsoleDiff(unittest.TestCase):
         with self.assertLogs(level='ERROR') as log:
             obj.execute(0, '1980-06-24', '198-06-24')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The regular expression of 're_match' parameter, '\d{4}-\d{2}-\d{2}', did not produce a match in the output", log.output[0])
+        self.assertIn(
+            "The regular expression of 're_match' parameter, '\d{4}-\d{2}-\d{2}', did not produce a match in the output",
+            log.output[0])
         self.assertEqual(obj.status(), 1)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

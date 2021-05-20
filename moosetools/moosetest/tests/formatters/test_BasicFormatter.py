@@ -7,6 +7,7 @@ from moosetools.moosetest.base import TestCase
 from moosetools.moosetest.formatters import shorten_line, shorten_text, ShortenMode
 from moosetools.moosetest.formatters import BasicFormatter
 
+
 class TestShorten(unittest.TestCase):
     def test_short_line(self):
         with self.assertRaises(RuntimeError) as e:
@@ -48,6 +49,7 @@ class TestShorten(unittest.TestCase):
         short = shorten_text(text, 3, mode=ShortenMode.END)
         self.assertEqual(short, "This\nthat\nand\n...")
 
+
 class TestBasicFormatter(unittest.TestCase):
     def testDefault(self):
         obj = BasicFormatter()
@@ -68,7 +70,7 @@ class TestBasicFormatter(unittest.TestCase):
     def testFill(self):
         obj = BasicFormatter(width=40)
         dots = obj.fill("andrew", "edward")
-        self.assertEqual(dots, '.'*12)
+        self.assertEqual(dots, '.' * 12)
 
     def testShortenLines(self):
         obj = BasicFormatter(max_lines=2)
@@ -152,7 +154,7 @@ class TestBasicFormatter(unittest.TestCase):
         obj = BasicFormatter()
         with mock.patch('moosetools.moosetest.formatters.BasicFormatter._formatState') as fm:
             obj.formatDifferState(name='Andrew', percent=42, duration=42)
-        fm.assert_called_once_with(indent=' '*4, name='Andrew')
+        fm.assert_called_once_with(indent=' ' * 4, name='Andrew')
 
     def test_formatRunnerResult(self):
         obj = BasicFormatter()
@@ -164,7 +166,7 @@ class TestBasicFormatter(unittest.TestCase):
         obj = BasicFormatter()
         with mock.patch('moosetools.moosetest.formatters.BasicFormatter._formatResult') as fm:
             obj.formatDifferResult(name='Andrew')
-        fm.assert_called_once_with(indent=' '*4, name='Andrew')
+        fm.assert_called_once_with(indent=' ' * 4, name='Andrew')
 
     def test_formatComplete(self):
         obj = BasicFormatter()
@@ -174,17 +176,21 @@ class TestBasicFormatter(unittest.TestCase):
                 self._name = name
                 self.state = state
                 self.time = t
+
             def name(self):
                 return self._name
 
-        complete = [TestCaseProxy('A', TestCase.Result.PASS, 10), TestCaseProxy('B', TestCase.Result.FATAL,20)]
+        complete = [
+            TestCaseProxy('A', TestCase.Result.PASS, 10),
+            TestCaseProxy('B', TestCase.Result.FATAL, 20)
+        ]
         with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
             text = obj.formatComplete(complete)
         self.assertIn("Executed 2 tests", text)
         self.assertNotIn("in 40.0 seconds", text)
         self.assertIn("OK:1 SKIP:0 TIMEOUT:0 DIFF:0 ERROR:0 EXCEPTION:0 FATAL:1", text)
 
-        kwargs = {'duration':40}
+        kwargs = {'duration': 40}
         with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
             text = obj.formatComplete(complete, **kwargs)
 

@@ -3,6 +3,7 @@ import enum
 from moosetools.base import MooseObject
 from .Differ import Differ
 
+
 def make_runner(cls, controllers=None, **kwargs):
     """
     Create a `Runner` object given the *cls* with the `validObjectParams` of the *controllers*.
@@ -37,6 +38,7 @@ def make_runner(cls, controllers=None, **kwargs):
         params.add(ctrl.getParam('prefix'), default=ctrl.validObjectParams())
     return cls(params, **kwargs)
 
+
 class Runner(MooseObject):
     """
     Base class for defining a task to be "run", via the `moosetest.run` function.
@@ -48,7 +50,9 @@ class Runner(MooseObject):
     def validParams():
         params = MooseObject.validParams()
         params.setRequired('name', True)
-        params.add('differs', vtype=Differ, array=True,
+        params.add('differs',
+                   vtype=Differ,
+                   array=True,
                    doc="The 'Differ' object(s) to execute after execution of this object.")
         return params
 

@@ -359,7 +359,7 @@ class Parameter(object):
         if self.__array:
             for v in val:
                 if (v is not None) and (self.__vtype
-                                          is not None) and not isinstance(v, self.__vtype):
+                                        is not None) and not isinstance(v, self.__vtype):
                     msg = "The values within '{}' must be of type {} but {} provided."
                     return 1, msg.format(self.name, self.__vtype, type(v))
 

@@ -11,6 +11,7 @@ from moosetools.moosetest.base import Controller, TestCase, RedirectOutput
 from moosetools.moosetest.main import TestHarness, make_harness, make_controllers, make_formatter, _locate_config, _load_config
 from moosetools.moosetest.formatters import BasicFormatter
 
+
 class TestTestHarness(unittest.TestCase):
     def testDefault(self):
         th = TestHarness()
@@ -37,21 +38,21 @@ class TestMakeHarness(unittest.TestCase):
         with mock.patch('moosetools.factory.Factory.status', return_value=1):
             with self.assertRaises(RuntimeError) as ex:
                 th = make_harness('.moosetest', pyhit.Node(None), None)
-            self.assertIn("An error occurred during registration of the TestHarness", str(ex.exception))
+            self.assertIn("An error occurred during registration of the TestHarness",
+                          str(ex.exception))
 
         with mock.patch('moosetools.factory.Parser.status', return_value=1):
             with self.assertRaises(RuntimeError) as ex:
                 th = make_harness('.moosetest', pyhit.Node(None), None)
             self.assertIn("An error occurred during parsing of the", str(ex.exception))
 
-        with mock.patch('moosetools.base.MooseObject.status', side_effect=(0,0,1)):
+        with mock.patch('moosetools.base.MooseObject.status', side_effect=(0, 0, 1)):
             with self.assertRaises(RuntimeError) as ex:
                 th = make_harness('.moosetest', pyhit.Node(None), None)
             self.assertIn("An error occurred applying the command line", str(ex.exception))
 
 
 class TestMakeControllers(unittest.TestCase):
-
     def testDefault(self):
         root = pyhit.Node(None)
         controllers = make_controllers('.moosetest', root, tuple())
@@ -72,18 +73,17 @@ class TestMakeControllers(unittest.TestCase):
     def testExceptions(self):
         with mock.patch('moosetools.factory.Factory.status', return_value=1):
             with self.assertRaises(RuntimeError) as ex:
-                make_controllers('.moosetest',  pyhit.Node(None), tuple())
+                make_controllers('.moosetest', pyhit.Node(None), tuple())
             self.assertIn("An error occurred registering the Controller type", str(ex.exception))
-
 
         with mock.patch('moosetools.factory.Parser.status', return_value=1):
             with self.assertRaises(RuntimeError) as ex:
-                make_controllers('.moosetest',  pyhit.Node(None), tuple())
-            self.assertIn("An error occurred during parsing of the Controller block", str(ex.exception))
+                make_controllers('.moosetest', pyhit.Node(None), tuple())
+            self.assertIn("An error occurred during parsing of the Controller block",
+                          str(ex.exception))
 
 
 class TestMakeFormatter(unittest.TestCase):
-
     def testDefault(self):
         root = pyhit.Node(None)
         formatter = make_formatter('.moosetest', pyhit.Node(None), tuple())
@@ -106,15 +106,17 @@ class TestMakeFormatter(unittest.TestCase):
         with mock.patch('moosetools.factory.Parser.status', return_value=1):
             with self.assertRaises(RuntimeError) as ex:
                 formatter = make_formatter('.moosetest', pyhit.Node(None), tuple())
-            self.assertIn("An error occurred during parsing of the root level parameters for creation of the Formatter object", str(ex.exception))
+            self.assertIn(
+                "An error occurred during parsing of the root level parameters for creation of the Formatter object",
+                str(ex.exception))
 
 
 class TestLocateConfig(unittest.TestCase):
-
     def testDefault(self):
         demo = os.path.join(os.path.dirname(__file__), 'demo', 'tests', 'folder0')
         name = _locate_config(demo)
-        self.assertEqual(name, os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo', '.moosetest')))
+        self.assertEqual(
+            name, os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo', '.moosetest')))
 
     def testExact(self):
         demo = os.path.join(os.path.dirname(__file__), 'demo', '.moosetest')
@@ -143,9 +145,12 @@ class TestLoadConfig(unittest.TestCase):
             _load_config('wrong')
         self.assertIn("The configuration file, 'wrong'", str(ex.exception))
 
+
 class TestMain(unittest.TestCase):
     @mock.patch('argparse.ArgumentParser.parse_args',
-                return_value=argparse.Namespace(demo=False, config=os.path.join(os.path.dirname(__file__), 'demo', '.moosetest')))
+                return_value=argparse.Namespace(demo=False,
+                                                config=os.path.join(os.path.dirname(__file__),
+                                                                    'demo', '.moosetest')))
     def testDefault(self, mock_cli_args):
         with RedirectOutput() as out:
             rcode = main()
@@ -155,9 +160,10 @@ class TestMain(unittest.TestCase):
     @mock.patch('argparse.ArgumentParser.parse_args', return_value=argparse.Namespace(demo=True))
     def testFuzzer(self, mock_cli_args):
         with RedirectOutput() as out:
-            rcode = main() # TODO: figure out how to mock the fuzzer function
+            rcode = main()  # TODO: figure out how to mock the fuzzer function
         self.assertEqual(rcode, 1)
         self.assertIn('Executed', out.stdout)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)

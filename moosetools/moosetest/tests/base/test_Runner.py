@@ -6,6 +6,7 @@ from moosetools.parameters import InputParameters
 from moosetools.base import MooseException
 from moosetools import moosetest
 
+
 class TestRunner(unittest.TestCase):
     def testDefault(self):
 
@@ -23,7 +24,6 @@ class TestRunner(unittest.TestCase):
 
     def testControllers(self):
         class ProxyController(object):
-
             @staticmethod
             def validObjectParams():
                 params = InputParameters()
@@ -33,14 +33,18 @@ class TestRunner(unittest.TestCase):
             def getParam(self, value):
                 return 'test'
 
-        runner = moosetest.base.make_runner(moosetest.base.Runner, [ProxyController(),], name='name', test_platform='TempleOS')
+        runner = moosetest.base.make_runner(moosetest.base.Runner, [
+            ProxyController(),
+        ],
+                                            name='name',
+                                            test_platform='TempleOS')
         self.assertIn('test', runner.parameters())
         self.assertIn('platform', runner.getParam('test'))
         self.assertEqual(runner.getParam('test_platform'), 'TempleOS')
 
     def testDiffers(self):
         d = moosetest.base.make_differ(moosetest.base.Differ, name='a')
-        runner = moosetest.base.make_runner(moosetest.base.Runner, differs=(d,), name='name')
+        runner = moosetest.base.make_runner(moosetest.base.Runner, differs=(d, ), name='name')
         self.assertIs(runner.getParam('differs')[0], d)
 
 

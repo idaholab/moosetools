@@ -2,31 +2,35 @@ import logging
 import multiprocessing
 from .color_text import color_text
 
+__LOG_COLOR__ = {
+    logging.DEBUG: 'cyan_1',
+    logging.INFO: None,
+    logging.WARNING: 'orange_1',
+    logging.ERROR: 'red_1',
+    logging.CRITICAL: 'magenta_1'
+}
 
-__LOG_COLOR__ = {logging.DEBUG:'cyan_1',
-                 logging.INFO: None,
-                 logging.WARNING:'orange_1',
-                 logging.ERROR:'red_1',
-                 logging.CRITICAL:'magenta_1'}
 
 def color_log(msg, level):
     return color_text(msg, __LOG_COLOR__[level])
 
 
 class MooseDocsFormatter(logging.Formatter):
-
     def format(self, record):
         tid = multiprocessing.current_process().name
         msg = '{} ({}): {}'.format(record.name, tid, logging.Formatter.format(self, record))
         return mooseutils.colorText(msg, self.COLOR[record.levelname])
 
+
 class MultiprocessingHandler(logging.StreamHandler):
 
-    COUNTS = {logging.CRITICAL:multiprocessing.Value('I', 0, lock=True),
-              logging.ERROR:multiprocessing.Value('I', 0, lock=True),
-              logging.WARNING:multiprocessing.Value('I', 0, lock=True),
-              logging.INFO:multiprocessing.Value('I', 0, lock=True),
-              logging.DEBUG:multiprocessing.Value('I', 0, lock=True)}
+    COUNTS = {
+        logging.CRITICAL: multiprocessing.Value('I', 0, lock=True),
+        logging.ERROR: multiprocessing.Value('I', 0, lock=True),
+        logging.WARNING: multiprocessing.Value('I', 0, lock=True),
+        logging.INFO: multiprocessing.Value('I', 0, lock=True),
+        logging.DEBUG: multiprocessing.Value('I', 0, lock=True)
+    }
 
     def getCount(self, level):
         return MultiprocessingHandler.COUNTS[level].value
@@ -56,6 +60,7 @@ class MultiprocessingHandler(logging.StreamHandler):
     def release(self):
         """Disable."""
         pass
+
 
 def init(level=logging.INFO, silent=False):
 

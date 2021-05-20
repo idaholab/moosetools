@@ -9,7 +9,13 @@ import time
 
 from moosetools.moosetest.base import TestCase, RedirectOutput
 
-def run(groups, controllers, formatter, n_threads=None, timeout=None, max_fails=sys.maxsize,
+
+def run(groups,
+        controllers,
+        formatter,
+        n_threads=None,
+        timeout=None,
+        max_fails=sys.maxsize,
         min_fail_state=TestCase.Result.TIMEOUT):
     """
     Primary function for running tests.
@@ -53,8 +59,8 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, max_fails=
     manager = multiprocessing.Manager()
     result_queue = manager.Queue()
 
-    futures = list() # pool workers
-    testcase_map = dict() # individual cases to allow report while others run
+    futures = list()  # pool workers
+    testcase_map = dict()  # individual cases to allow report while others run
 
     for runners in groups:
         testcases = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
@@ -63,13 +69,14 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, max_fails=
             testcase_map[tc.getParam('_unique_id')] = tc
 
     # Loop until all the test cases are finished or the number of failures is reached
-    while any(not tc.finished for tc in testcase_map.values()):#
+    while any(not tc.finished for tc in testcase_map.values()):  #
         #time.sleep(0.1) # no reason to hammer the main process, you can wait 0.1 sec...
         _running_results(testcase_map, result_queue, formatter)
         _running_progress(testcase_map, formatter)
 
         # If the number of failures has been reached, exit the loop early
-        n_fails = sum(tc.state.level >= min_fail_state.level for tc in testcase_map.values() if tc.finished)
+        n_fails = sum(tc.state.level >= min_fail_state.level for tc in testcase_map.values()
+                      if tc.finished)
         if n_fails >= max_fails:
             break
 
@@ -77,7 +84,8 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, max_fails=
     # because of hitting the max failures. After canceling, continue reporting progress/results
     # until all the workers are finished. It is also possible that the queue contains data that
     # was present
-    for f in futures: f.cancel()
+    for f in futures:
+        f.cancel()
     while any(f.running() for f in futures) or not result_queue.empty():
         _running_results(testcase_map, result_queue, formatter)
         _running_progress(testcase_map, formatter)
@@ -87,7 +95,11 @@ def run(groups, controllers, formatter, n_threads=None, timeout=None, max_fails=
     for tc in filter(lambda tc: not tc.finished, testcase_map.values()):
         tc.setProgress(TestCase.Progress.FINISHED)
         tc.setState(TestCase.Result.SKIP)
-        tc.setResults({tc.name(): TestCase.Data(TestCase.Result.SKIP, None, '', f"Max failures of {max_fails} exceeded.", ['max failures reached'])})
+        tc.setResults({
+            tc.name():
+            TestCase.Data(TestCase.Result.SKIP, None, '', f"Max failures of {max_fails} exceeded.",
+                          ['max failures reached'])
+        })
         formatter.reportProgress(tc)
         formatter.reportResults(tc)
 
@@ -132,7 +144,9 @@ def _execute_testcase(tc, conn):
         state, results = tc.execute()
     except Exception:
         state = TestCase.Result.FATAL
-        results = {tc.name(): TestCase.Data(TestCase.Result.FATAL, None, '', traceback.format_exc(), None)}
+        results = {
+            tc.name(): TestCase.Data(TestCase.Result.FATAL, None, '', traceback.format_exc(), None)
+        }
     conn.send((state, results))
     conn.close()
 
@@ -157,7 +171,10 @@ def _execute_testcases(testcases, q, timeout):
         unique_id = tc.getParam('_unique_id')
         if skip_message:
             state = TestCase.Result.SKIP
-            results = {tc.name(): TestCase.Data(TestCase.Result.SKIP, None, '', skip_message, ['dependency'])}
+            results = {
+                tc.name(): TestCase.Data(TestCase.Result.SKIP, None, '', skip_message,
+                                         ['dependency'])
+            }
             q.put((unique_id, TestCase.Progress.FINISHED, state, results))
             continue
 
@@ -172,7 +189,11 @@ def _execute_testcases(testcases, q, timeout):
         else:
             proc.terminate()
             state = TestCase.Result.TIMEOUT
-            results = {tc.name(): TestCase.Data(TestCase.Result.TIMEOUT, None, '', '', [f'max time ({timeout}) exceeded'])}
+            results = {
+                tc.name():
+                TestCase.Data(TestCase.Result.TIMEOUT, None, '', '',
+                              [f'max time ({timeout}) exceeded'])
+            }
 
         q.put((unique_id, TestCase.Progress.FINISHED, state, results))
 
@@ -202,6 +223,7 @@ def _running_results(testcase_map, result_queue, formatter):
     except queue.Empty:
         pass
 
+
 def _running_progress(testcase_map, formatter):
     """
     Helper function for reporting state of the `TestCase` objects.
@@ -214,11 +236,29 @@ def _running_progress(testcase_map, formatter):
             formatter.reportProgress(tc)
 
 
-def fuzzer(seed=1980, timeout=(3,10), max_fails=(15,100), progress_interval=(3,15),
-           group_num=(15,50), group_name_len=(6,25),
-           controller_num=(1,6), controller_skip=0.05, controller_raise=0.05, controller_error=0.1,
-           differ_num=(0,3), differ_raise=0.01, differ_error=0.1, differ_fatal=0.1, differ_platform=0.1, differ_name_len=(6,15),
-           runner_num=(1,3), runner_raise=0.01, runner_error=0.1, runner_fatal=0.05, runner_sleep=(0.5,10), runner_platform=0.1, runner_name_len=(4,29)):
+def fuzzer(seed=1980,
+           timeout=(3, 10),
+           max_fails=(15, 100),
+           progress_interval=(3, 15),
+           group_num=(15, 50),
+           group_name_len=(6, 25),
+           controller_num=(1, 6),
+           controller_skip=0.05,
+           controller_raise=0.05,
+           controller_error=0.1,
+           differ_num=(0, 3),
+           differ_raise=0.01,
+           differ_error=0.1,
+           differ_fatal=0.1,
+           differ_platform=0.1,
+           differ_name_len=(6, 15),
+           runner_num=(1, 3),
+           runner_raise=0.01,
+           runner_error=0.1,
+           runner_fatal=0.05,
+           runner_sleep=(0.5, 10),
+           runner_platform=0.1,
+           runner_name_len=(4, 29)):
     """
     A tool for calling `run` function with randomized test cases.
     """
@@ -235,13 +275,14 @@ def fuzzer(seed=1980, timeout=(3,10), max_fails=(15,100), progress_interval=(3,1
         return ''.join(random.sample(string.ascii_letters, random.randint(*rng)))
 
     def gen_platform(ctrls, prob, kwargs):
-        if random.uniform(0,1) < prob:
+        if random.uniform(0, 1) < prob:
             prefix = "{}_platform".format(random.choice(ctrls).getParam('prefix'))
-            value = tuple(set(random.choices(['Darwin', 'Linux', 'Windows'], k=random.randint(1,3))))
+            value = tuple(
+                set(random.choices(['Darwin', 'Linux', 'Windows'], k=random.randint(1, 3))))
             kwargs[prefix] = value
 
     def gen_bool_with_odds(prob):
-        return random.uniform(0,1) < prob
+        return random.uniform(0, 1) < prob
 
     # Controller objects
     controllers = list()

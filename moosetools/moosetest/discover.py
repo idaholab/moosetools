@@ -6,10 +6,8 @@ from moosetools import factory
 from moosetools.moosetest.base import Controller, TestCase
 from moosetools.moosetest.base import Runner, Differ
 
-
 # TODO:
 # - Perform factory.status() checks() and make sure error messages are usable
-
 
 
 class MooseTestFactory(factory.Factory):
@@ -20,8 +18,11 @@ class MooseTestFactory(factory.Factory):
     @staticmethod
     def validParams():
         params = factory.Factory.validParams()
-        params.add('controllers', vtype=Controller, array=True,
-                   doc="Controller objects for injecting into validParams of Runner/Differ objects.")
+        params.add(
+            'controllers',
+            vtype=Controller,
+            array=True,
+            doc="Controller objects for injecting into validParams of Runner/Differ objects.")
         return params
 
     def params(self, *args, **kwargs):
@@ -30,9 +31,11 @@ class MooseTestFactory(factory.Factory):
         """
         params = factory.Factory.params(self, *args, **kwargs)
         for controller in self.getParam('controllers') or list():
-            params.add(controller.getParam('prefix'),
-                       default=controller.validObjectParams(),
-                       doc="Parameters for determining execute state from the '{}' control object.".format(type(controller).__name__))
+            params.add(
+                controller.getParam('prefix'),
+                default=controller.validObjectParams(),
+                doc="Parameters for determining execute state from the '{}' control object.".format(
+                    type(controller).__name__))
         return params
 
 
@@ -51,7 +54,10 @@ class MooseTestWarehouse(factory.Warehouse):
     @staticmethod
     def validParams():
         params = factory.Warehouse.validParams()
-        params.add('root_dir', vtype=str, required=True, doc="The root directory for loading test specification files.")
+        params.add('root_dir',
+                   vtype=str,
+                   required=True,
+                   doc="The root directory for loading test specification files.")
         params.add('specfile', vtype=str, required=True, doc="The test specification file.")
         return params
 
@@ -74,6 +80,7 @@ class MooseTestWarehouse(factory.Warehouse):
             obj.parameters().setValue('name', f"{prefix}:{base}")
             factory.Warehouse.append(self, obj)
 
+
 def _create_runners(root_dir, filename, spec_file_blocks, obj_factory):
     """
     Return the `Runner` objects, with attached `Differ` objects, as defined in HIT file given in
@@ -93,10 +100,19 @@ def _create_runners(root_dir, filename, spec_file_blocks, obj_factory):
     wh = MooseTestWarehouse(root_dir=root_dir, specfile=filename)
     parser = factory.Parser(obj_factory, wh)
     for node in moosetree.findall(root, func=lambda n: n.name in spec_file_blocks):
-        parser.parse(filename, node, )
+        parser.parse(
+            filename,
+            node,
+        )
     return wh.objects, max(parser.status(), wh.status())
 
-def discover(start, spec_file_names, spec_file_blocks, plugin_dirs=None, controllers=None, n_threads=None):
+
+def discover(start,
+             spec_file_names,
+             spec_file_blocks,
+             plugin_dirs=None,
+             controllers=None,
+             n_threads=None):
     """
     Return groups of `Runner` objects to execute by recursively searching from the *start* directory.
 
@@ -116,16 +132,22 @@ def discover(start, spec_file_names, spec_file_blocks, plugin_dirs=None, control
         spec_files += [os.path.join(root, f) for f in files if f in spec_file_names]
 
     # Factory for creating the test objects
-    obj_factory = MooseTestFactory(plugin_dirs=tuple(plugin_dirs), plugin_types=(Runner, Differ),
+    obj_factory = MooseTestFactory(plugin_dirs=tuple(plugin_dirs),
+                                   plugin_types=(Runner, Differ),
                                    controllers=tuple(controllers or []))
     obj_factory.load()
 
     # Build the objects for each file
     with concurrent.futures.ThreadPoolExecutor(n_threads) as pool:
-        futures = [pool.submit(_create_runners, start, filename, spec_file_blocks, obj_factory) for filename in spec_files]
+        futures = [
+            pool.submit(_create_runners, start, filename, spec_file_blocks, obj_factory)
+            for filename in spec_files
+        ]
 
     # Raise an exception if an error occurred during parsing
     if any(f.result()[1] for f in futures):
-        raise RuntimeError("Errors occurred during parsing of specifications, refer to console output for messages.")
+        raise RuntimeError(
+            "Errors occurred during parsing of specifications, refer to console output for messages."
+        )
 
     return [f.result()[0] for f in futures]

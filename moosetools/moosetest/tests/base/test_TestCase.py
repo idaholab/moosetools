@@ -15,20 +15,22 @@ from moosetools.moosetest.base import Controller, Formatter, TestCase, State, Re
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from _helpers import TestController, TestRunner, TestDiffer
 
+
 class TestState(unittest.TestCase):
     def testDefault(self):
         class MarcoPolo(State):
-            MARCO  = (10, 0, 'MARCO', ('grey_82',))
-            POLO  = (11, 1, 'POLO', ('white', 'red_1'))
+            MARCO = (10, 0, 'MARCO', ('grey_82', ))
+            POLO = (11, 1, 'POLO', ('white', 'red_1'))
 
         m = MarcoPolo.MARCO
         self.assertEqual(m.value, 10)
         self.assertEqual(m.level, 0)
         self.assertEqual(m.text, 'MARCO')
-        self.assertEqual(m.color, ('grey_82',))
+        self.assertEqual(m.color, ('grey_82', ))
 
         self.assertEqual(m.display, '\x1b[38;5;252mMARCO\x1b[0m')
         self.assertEqual(m.format('foo'), '\x1b[38;5;252mfoo\x1b[0m')
+
 
 class TestRedirectOutput(unittest.TestCase):
     def testSysRedirect(self):
@@ -55,6 +57,7 @@ class TestRedirectOutput(unittest.TestCase):
             l.error("test log")
         self.assertIn("test print\n", out.stdout)
         self.assertIn("test log\n", out.stderr)
+
 
 class TestTestCase(unittest.TestCase):
     def testCounts(self):
@@ -92,8 +95,8 @@ class TestTestCase(unittest.TestCase):
         self.assertTrue(tc.waiting)
         self.assertTrue(not tc.running)
         self.assertTrue(not tc.finished)
-        time.sleep(0.5);
-        self.assertTrue(tc.time > 0.5) # waiting time
+        time.sleep(0.5)
+        self.assertTrue(tc.time > 0.5)  # waiting time
 
         tc.setProgress(TestCase.Progress.RUNNING)
         self.assertEqual(tc.progress, TestCase.Progress.RUNNING)
@@ -101,8 +104,8 @@ class TestTestCase(unittest.TestCase):
         self.assertTrue(tc.running)
         self.assertTrue(not tc.finished)
         self.assertTrue(tc.time < 0.01)
-        time.sleep(0.5);
-        self.assertTrue(tc.time > 0.5) # running time
+        time.sleep(0.5)
+        self.assertTrue(tc.time > 0.5)  # running time
 
         tc.setProgress(TestCase.Progress.FINISHED)
         self.assertEqual(tc.progress, TestCase.Progress.FINISHED)
@@ -111,8 +114,8 @@ class TestTestCase(unittest.TestCase):
         self.assertTrue(tc.finished)
         self.assertTrue(tc.time > 0.5)
         t = tc.time
-        time.sleep(0.5);
-        self.assertEqual(tc.time, t) # execute time (should not change)
+        time.sleep(0.5)
+        self.assertEqual(tc.time, t)  # execute time (should not change)
 
         tc.setProgress("wrong")
         self.assertEqual(tc.progress, TestCase.Progress.FINISHED)
@@ -194,6 +197,7 @@ class TestTestCase(unittest.TestCase):
         def side_effect():
             print('print text')
             raise Execption("reset failed")
+
         with mock.patch("moosetools.moosetest.base.Runner.reset") as reset:
             reset.side_effect = side_effect
             out = tc._executeObject(obj)
@@ -201,12 +205,13 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.returncode, None)
         self.assertEqual(out.stdout, 'print text\n')
         self.assertIn('reset failed', out.stderr)
-        self.assertIn("An exception occurred while calling the `reset` method of the 'a' object.", out.stderr)
+        self.assertIn("An exception occurred while calling the `reset` method of the 'a' object.",
+                      out.stderr)
         self.assertEqual(out.reasons, None)
 
     def testExecuteObject_Differ(self):
         obj = make_differ(TestDiffer, name='a')
-        r = make_runner(TestRunner, name='a', differs=(obj,))
+        r = make_runner(TestRunner, name='a', differs=(obj, ))
         tc = TestCase(runner=r)
 
         # No error, no output
@@ -254,6 +259,7 @@ class TestTestCase(unittest.TestCase):
         def side_effect():
             print('print text')
             raise Execption("reset failed")
+
         with mock.patch("moosetools.moosetest.base.Differ.reset") as reset:
             reset.side_effect = side_effect
             out = tc._executeObject(obj)
@@ -261,14 +267,17 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.returncode, None)
         self.assertEqual(out.stdout, 'print text\n')
         self.assertIn('reset failed', out.stderr)
-        self.assertIn("An exception occurred while calling the `reset` method of the 'a' object.", out.stderr)
+        self.assertIn("An exception occurred while calling the `reset` method of the 'a' object.",
+                      out.stderr)
         self.assertEqual(out.reasons, None)
 
     def testExecuteObject_Controller(self):
 
         ctrl = TestController()
-        obj = make_runner(TestRunner, [ctrl,], name='a')
-        tc = TestCase(runner=obj, controllers=(ctrl,))
+        obj = make_runner(TestRunner, [
+            ctrl,
+        ], name='a')
+        tc = TestCase(runner=obj, controllers=(ctrl, ))
 
         # No error, no output
         out = tc._executeObject(obj)
@@ -286,7 +295,9 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.returncode, None)
         self.assertEqual(out.stdout, '')
         self.assertIn('raise', out.stderr)
-        self.assertIn("An exception occurred during execution of the TestController controller with 'a' object.", out.stderr)
+        self.assertIn(
+            "An exception occurred during execution of the TestController controller with 'a' object.",
+            out.stderr)
         self.assertEqual(out.reasons, None)
 
         ctrl.setValue('raise', True)
@@ -295,7 +306,9 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.returncode, None)
         self.assertEqual(out.stdout, '')
         self.assertIn('raise', out.stderr)
-        self.assertIn("An exception occurred during execution of the TestController controller with 'a' object.", out.stderr)
+        self.assertIn(
+            "An exception occurred during execution of the TestController controller with 'a' object.",
+            out.stderr)
         self.assertEqual(out.reasons, None)
 
         ctrl.setValue('raise', False)
@@ -305,7 +318,9 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.state, TestCase.Result.FATAL)
         self.assertEqual(out.returncode, None)
         self.assertEqual(out.stdout, '')
-        self.assertIn("An error occurred, on the controller, during execution of the TestController controller with 'a' object.", out.stderr)
+        self.assertIn(
+            "An error occurred, on the controller, during execution of the TestController controller with 'a' object.",
+            out.stderr)
         self.assertEqual(out.reasons, None)
 
         with mock.patch("moosetools.moosetest.base.Runner.status") as func:
@@ -314,7 +329,9 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.state, TestCase.Result.FATAL)
         self.assertEqual(out.returncode, None)
         self.assertEqual(out.stdout, '')
-        self.assertIn("An error occurred, on the object, during execution of the TestController controller with 'a' object.", out.stderr)
+        self.assertIn(
+            "An error occurred, on the object, during execution of the TestController controller with 'a' object.",
+            out.stderr)
         self.assertEqual(out.reasons, None)
 
         ctrl.setValue('skip', True)
@@ -328,9 +345,9 @@ class TestTestCase(unittest.TestCase):
     def testExecute(self):
         ct = TestController()
         dr = make_differ(TestDiffer, [ct], name='d')
-        rr = make_runner(TestRunner, [ct], differs=(dr,), name='r')
+        rr = make_runner(TestRunner, [ct], differs=(dr, ), name='r')
 
-        tc = TestCase(runner=rr, controllers=(ct,))
+        tc = TestCase(runner=rr, controllers=(ct, ))
 
         # No error, no output
         s, r = tc.execute()
@@ -350,7 +367,8 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].state, TestCase.Result.FATAL)
         self.assertEqual(r['r'].returncode, None)
         self.assertEqual(r['r'].stdout, '')
-        self.assertIn("An exception occurred while calling the `reset` method of the 'r' object.", r['r'].stderr)
+        self.assertIn("An exception occurred while calling the `reset` method of the 'r' object.",
+                      r['r'].stderr)
         self.assertIn("runner reset raise", r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
 
@@ -363,7 +381,9 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].state, TestCase.Result.FATAL)
         self.assertEqual(r['r'].returncode, None)
         self.assertEqual(r['r'].stdout, '')
-        self.assertIn("An exception occurred during execution of the TestController controller with 'r' object.", r['r'].stderr)
+        self.assertIn(
+            "An exception occurred during execution of the TestController controller with 'r' object.",
+            r['r'].stderr)
         self.assertIn("controller reset raise", r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
 
@@ -375,7 +395,9 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].state, TestCase.Result.FATAL)
         self.assertEqual(r['r'].returncode, None)
         self.assertEqual(r['r'].stdout, '')
-        self.assertIn("An exception occurred during execution of the TestController controller with 'r' object.", r['r'].stderr)
+        self.assertIn(
+            "An exception occurred during execution of the TestController controller with 'r' object.",
+            r['r'].stderr)
         self.assertIn("controller raise", r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
 
@@ -389,7 +411,9 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].state, TestCase.Result.FATAL)
         self.assertEqual(r['r'].returncode, None)
         self.assertEqual(r['r'].stdout, '')
-        self.assertIn("An error occurred, on the object, during execution of the TestController controller with 'r' object.", r['r'].stderr)
+        self.assertIn(
+            "An error occurred, on the object, during execution of the TestController controller with 'r' object.",
+            r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
 
         # Skip, Controller with Runner
@@ -445,7 +469,8 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['d'].state, TestCase.Result.FATAL)
         self.assertEqual(r['d'].returncode, None)
         self.assertEqual(r['d'].stdout, '')
-        self.assertIn("An exception occurred while calling the `reset` method of the 'd' object.", r['d'].stderr)
+        self.assertIn("An exception occurred while calling the `reset` method of the 'd' object.",
+                      r['d'].stderr)
         self.assertIn("differ reset raise", r['d'].stderr)
         self.assertEqual(r['d'].reasons, None)
 
@@ -462,7 +487,9 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['d'].state, TestCase.Result.FATAL)
         self.assertEqual(r['d'].returncode, None)
         self.assertEqual(r['d'].stdout, '')
-        self.assertIn("An exception occurred during execution of the TestController controller with 'd' object.", r['d'].stderr)
+        self.assertIn(
+            "An exception occurred during execution of the TestController controller with 'd' object.",
+            r['d'].stderr)
         self.assertIn("controller reset raise", r['d'].stderr)
         self.assertEqual(r['d'].reasons, None)
 
@@ -479,7 +506,9 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['d'].state, TestCase.Result.FATAL)
         self.assertEqual(r['d'].returncode, None)
         self.assertEqual(r['d'].stdout, '')
-        self.assertIn("An exception occurred during execution of the TestController controller with 'd' object.", r['d'].stderr)
+        self.assertIn(
+            "An exception occurred during execution of the TestController controller with 'd' object.",
+            r['d'].stderr)
         self.assertIn("controller raise", r['d'].stderr)
         self.assertEqual(r['d'].reasons, None)
         ct.setValue('raise', False)
@@ -498,7 +527,9 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['d'].state, TestCase.Result.FATAL)
         self.assertEqual(r['d'].returncode, None)
         self.assertEqual(r['d'].stdout, '')
-        self.assertIn("An error occurred, on the object, during execution of the TestController controller with 'd' object.", r['d'].stderr)
+        self.assertIn(
+            "An error occurred, on the object, during execution of the TestController controller with 'd' object.",
+            r['d'].stderr)
         self.assertEqual(r['d'].reasons, None)
 
         # Skip, Controller with Differ
@@ -558,8 +589,8 @@ class TestTestCase(unittest.TestCase):
     def testSetResults(self):
         ct = TestController()
         dr = make_differ(TestDiffer, [ct], name='d')
-        rr = make_runner(TestRunner, [ct], differs=(dr,), name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
+        rr = make_runner(TestRunner, [ct], differs=(dr, ), name='r')
+        tc = TestCase(runner=rr, controllers=(ct, ))
 
         # Wrong type
         tc.setResults('wrong')
@@ -571,7 +602,7 @@ class TestTestCase(unittest.TestCase):
         self.assertIn("The supplied result must be of type `dict`.", r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
 
-        tc.setResults({'r':'wrong'})
+        tc.setResults({'r': 'wrong'})
         self.assertEqual(tc.state, TestCase.Result.FATAL)
         r = tc.results
         self.assertEqual(r['r'].state, TestCase.Result.FATAL)
@@ -580,13 +611,15 @@ class TestTestCase(unittest.TestCase):
         self.assertIn("The supplied result values must be of type `TestCase.Data`.", r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
 
-        tc.setResults({'wrong':TestCase.Data()})
+        tc.setResults({'wrong': TestCase.Data()})
         self.assertEqual(tc.state, TestCase.Result.FATAL)
         r = tc.results
         self.assertEqual(r['r'].state, TestCase.Result.FATAL)
         self.assertEqual(r['r'].returncode, None)
         self.assertEqual(r['r'].stdout, '')
-        self.assertIn("The supplied result keys must be the names of the `Runner` or `Differ` object(s).", r['r'].stderr)
+        self.assertIn(
+            "The supplied result keys must be the names of the `Runner` or `Differ` object(s).",
+            r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
 
         tc.setResults({'r': TestCase.Data(TestCase.Result.PASS, None, 'out', 'err', None)})
@@ -597,6 +630,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].stdout, 'out')
         self.assertEqual(r['r'].stderr, 'err')
         self.assertEqual(r['r'].reasons, None)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)

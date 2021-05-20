@@ -32,14 +32,17 @@ class PipeProxy(object):
     def close(self):
         pass
 
+
 def get_uid(tc):
     return tc.getParam('_unique_id')
+
 
 def make_testcase_map(*args):
     out = dict()
     for tc in args:
         out[tc.getParam('_unique_id')] = tc
     return out
+
 
 class TestRunExecuteHelpers(unittest.TestCase):
     def test_execute_testcase(self):
@@ -61,7 +64,8 @@ class TestRunExecuteHelpers(unittest.TestCase):
         self.assertEqual(data.reasons, None)
 
         # Exception
-        with mock.patch('moosetools.moosetest.base.TestCase.execute', side_effect=Exception("wrong")):
+        with mock.patch('moosetools.moosetest.base.TestCase.execute',
+                        side_effect=Exception("wrong")):
             _execute_testcase(tc, conn)
 
         self.assertEqual(conn.state, TestCase.Result.FATAL)
@@ -122,7 +126,8 @@ class TestRunExecuteHelpers(unittest.TestCase):
         self.assertEqual(data.reasons, None)
 
         # Exception and skip
-        with mock.patch('moosetools.moosetest.base.TestCase.execute', side_effect=[Exception("wrong"), None]):
+        with mock.patch('moosetools.moosetest.base.TestCase.execute',
+                        side_effect=[Exception("wrong"), None]):
             _execute_testcases([tc0, tc1], q, 2)
 
         u, p, s, r = q.get()
@@ -179,7 +184,6 @@ class TestRunExecuteHelpers(unittest.TestCase):
 
 
 class TestRunningHelpers(unittest.TestCase):
-
     @mock.patch('moosetools.moosetest.base.Formatter.reportResults')
     @mock.patch('moosetools.moosetest.base.TestCase.setResults')
     @mock.patch('moosetools.moosetest.base.TestCase.setState')
@@ -252,6 +256,7 @@ class TestRunningHelpers(unittest.TestCase):
         fm_results.assert_not_called()
         fm_progress.reset_mock()
 
+
 class TestRun(unittest.TestCase):
     ANY = 42
 
@@ -320,8 +325,21 @@ class TestRun(unittest.TestCase):
         self._d_state.assert_not_called()
         self._d_results.assert_not_called()
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, returncode=2011, stdout=TestRun.IN('runner stdout'), stderr=TestRun.IN('runner stderr'))
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=2011,
+                        stdout=TestRun.IN('runner stdout'),
+                        stderr=TestRun.IN('runner stderr'))
 
         # ERROR
         self.resetMockObjects()
@@ -335,8 +353,21 @@ class TestRun(unittest.TestCase):
         self._d_state.assert_not_called()
         self._d_results.assert_not_called()
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.ERROR, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.ERROR, reasons=None, percent=100, duration=TestRun.ANY, returncode=2011, stdout='', stderr=TestRun.IN('runner error\n'))
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.ERROR,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.ERROR,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=2011,
+                        stdout='',
+                        stderr=TestRun.IN('runner error\n'))
 
         # EXCEPTION
         self.resetMockObjects()
@@ -349,8 +380,21 @@ class TestRun(unittest.TestCase):
         self._d_state.assert_not_called()
         self._d_results.assert_not_called()
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.EXCEPTION, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.EXCEPTION, reasons=None, percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN('runner raise\n'))
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.EXCEPTION,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.EXCEPTION,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr=TestRun.IN('runner raise\n'))
 
         # TIMEOUT
         self.resetMockObjects()
@@ -363,101 +407,190 @@ class TestRun(unittest.TestCase):
         self._d_state.assert_not_called()
         self._d_results.assert_not_called()
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.TIMEOUT, reasons=['max time (0.5) exceeded'], percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.TIMEOUT, reasons=['max time (0.5) exceeded'], percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN(''))
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.TIMEOUT,
+                        reasons=['max time (0.5) exceeded'],
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.TIMEOUT,
+                        reasons=['max time (0.5) exceeded'],
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr=TestRun.IN(''))
 
     def testRunnerWithController(self):
         c = TestController(stdout=True, stderr=True)
-        r = make_runner(TestRunner, (c,), name='Andrew')
+        r = make_runner(TestRunner, (c, ), name='Andrew')
         fm = Formatter()
 
         # PASS
-        rcode = run([[r]], (c,), fm)
+        rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 0)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
         self._d_state.assert_not_called()
         self._d_results.assert_not_called()
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout=TestRun.IN('controller stdout'), stderr=TestRun.IN('controller stderr'))
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        stdout=TestRun.IN('controller stdout'),
+                        stderr=TestRun.IN('controller stderr'))
 
         # ERROR, CONTROLLER
         self.resetMockObjects()
         c.setValue('error', True)
         c.setValue('stderr', False)
         c.setValue('stdout', False)
-        rcode = run([[r]], (c,), fm)
+        rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
         self._d_state.assert_not_called()
         self._d_results.assert_not_called()
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.FATAL, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.FATAL, reasons=None, percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN('An error occurred, on the controller'))
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.FATAL,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.FATAL,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr=TestRun.IN('An error occurred, on the controller'))
 
         # ERROR, RUNNER (during execution of Controller)
         self.resetMockObjects()
         c.setValue('error', False)
         with mock.patch('moosetools.moosetest.base.Runner.status', return_value=1):
-            rcode = run([[r]], (c,), fm)
+            rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
         self._d_state.assert_not_called()
         self._d_results.assert_not_called()
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.FATAL, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.FATAL, reasons=None, percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN('An error occurred, on the object'))
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.FATAL,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.FATAL,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr=TestRun.IN('An error occurred, on the object'))
 
         # EXCEPTION
         self.resetMockObjects()
         c.setValue('error', False)
         c.setValue('raise', True)
-        rcode = run([[r]], (c,), fm)
+        rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
         self._d_state.assert_not_called()
         self._d_results.assert_not_called()
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.FATAL, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.FATAL, reasons=None, percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN('An exception occurred'))
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.FATAL,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.FATAL,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr=TestRun.IN('An exception occurred'))
 
         # TIMEOUT (because of Controller)
         self.resetMockObjects()
         c.setValue('raise', False)
         c.setValue('sleep', 1)
-        rcode = run([[r]], (c,), fm, None, 0.5)
+        rcode = run([[r]], (c, ), fm, None, 0.5)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
         self._d_state.assert_not_called()
         self._d_results.assert_not_called()
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.TIMEOUT, reasons=['max time (0.5) exceeded'], percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.TIMEOUT, reasons=['max time (0.5) exceeded'], percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr='')
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.TIMEOUT,
+                        reasons=['max time (0.5) exceeded'],
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.TIMEOUT,
+                        reasons=['max time (0.5) exceeded'],
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr='')
 
         # SKIP
         self.resetMockObjects()
         c.setValue('skip', True)
         c.setValue('sleep', 0)
-        rcode = run([[r]], (c,), fm)
+        rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 0)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
         self._d_state.assert_not_called()
         self._d_results.assert_not_called()
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.SKIP, reasons=['a reason'], percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.SKIP, reasons=['a reason'], percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN(''))
-
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['a reason'],
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['a reason'],
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr=TestRun.IN(''))
 
     def testRunnerWithDiffers(self):
         d0 = make_differ(TestDiffer, name='a', stderr=True)
         d1 = make_differ(TestDiffer, name='b', stdout=True)
-        r = make_runner(TestRunner, name='Andrew', differs=(d0,d1))
+        r = make_runner(TestRunner, name='Andrew', differs=(d0, d1))
         fm = Formatter()
 
         # PASS
@@ -468,14 +601,50 @@ class TestRun(unittest.TestCase):
         self.assertEqual(self._d_state.call_count, 2)
         self.assertEqual(self._d_results.call_count, 2)
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr='')
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        stdout='',
+                        stderr='')
 
-        self.assertCall(self._d_state.call_args_list[0], name='a', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._d_state.call_args_list[1], name='b', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY)
+        self.assertCall(self._d_state.call_args_list[0],
+                        name='a',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._d_state.call_args_list[1],
+                        name='b',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
 
-        self.assertCall(self._d_results.call_args_list[0], name='a', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr=TestRun.IN('differ stderr'))
-        self.assertCall(self._d_results.call_args_list[1], name='b', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout=TestRun.IN('differ stdout'), stderr='')
+        self.assertCall(self._d_results.call_args_list[0],
+                        name='a',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        stdout='',
+                        stderr=TestRun.IN('differ stderr'))
+        self.assertCall(self._d_results.call_args_list[1],
+                        name='b',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        stdout=TestRun.IN('differ stdout'),
+                        stderr='')
 
         # ERROR, DIFFER 0
         self.resetMockObjects()
@@ -489,14 +658,50 @@ class TestRun(unittest.TestCase):
         self.assertEqual(self._d_state.call_count, 2)
         self.assertEqual(self._d_results.call_count, 2)
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.DIFF, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr='')
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.DIFF,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        stdout='',
+                        stderr='')
 
-        self.assertCall(self._d_state.call_args_list[0], name='a', state=TestCase.Result.DIFF, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._d_state.call_args_list[1], name='b', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY)
+        self.assertCall(self._d_state.call_args_list[0],
+                        name='a',
+                        state=TestCase.Result.DIFF,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._d_state.call_args_list[1],
+                        name='b',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
 
-        self.assertCall(self._d_results.call_args_list[0], name='a', state=TestCase.Result.DIFF, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr=TestRun.IN('differ error'))
-        self.assertCall(self._d_results.call_args_list[1], name='b', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr='')
+        self.assertCall(self._d_results.call_args_list[0],
+                        name='a',
+                        state=TestCase.Result.DIFF,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        stdout='',
+                        stderr=TestRun.IN('differ error'))
+        self.assertCall(self._d_results.call_args_list[1],
+                        name='b',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        stdout='',
+                        stderr='')
 
         # EXCEPTION, DIFFER 1
         self.resetMockObjects()
@@ -509,14 +714,50 @@ class TestRun(unittest.TestCase):
         self.assertEqual(self._d_state.call_count, 2)
         self.assertEqual(self._d_results.call_count, 2)
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.EXCEPTION, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr='')
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.EXCEPTION,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        stdout='',
+                        stderr='')
 
-        self.assertCall(self._d_state.call_args_list[0], name='a', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._d_state.call_args_list[1], name='b', state=TestCase.Result.EXCEPTION, reasons=None, percent=100, duration=TestRun.ANY)
+        self.assertCall(self._d_state.call_args_list[0],
+                        name='a',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._d_state.call_args_list[1],
+                        name='b',
+                        state=TestCase.Result.EXCEPTION,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
 
-        self.assertCall(self._d_results.call_args_list[0], name='a', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr='')
-        self.assertCall(self._d_results.call_args_list[1], name='b', state=TestCase.Result.EXCEPTION, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr=TestRun.IN('differ raise'))
+        self.assertCall(self._d_results.call_args_list[0],
+                        name='a',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        stdout='',
+                        stderr='')
+        self.assertCall(self._d_results.call_args_list[1],
+                        name='b',
+                        state=TestCase.Result.EXCEPTION,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        stdout='',
+                        stderr=TestRun.IN('differ raise'))
 
         # TIMEOUT, DIFFER 1
         self.resetMockObjects()
@@ -529,46 +770,108 @@ class TestRun(unittest.TestCase):
         self.assertEqual(self._d_state.call_count, 0)
         self.assertEqual(self._d_results.call_count, 0)
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.TIMEOUT, reasons=['max time (0.5) exceeded'], percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.TIMEOUT, reasons=['max time (0.5) exceeded'], percent=100, duration=TestRun.ANY, stdout='', stderr='')
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.TIMEOUT,
+                        reasons=['max time (0.5) exceeded'],
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.TIMEOUT,
+                        reasons=['max time (0.5) exceeded'],
+                        percent=100,
+                        duration=TestRun.ANY,
+                        stdout='',
+                        stderr='')
 
     def testRunnerWithDiffersWithControllers(self):
         c = TestController()
-        d0 = make_differ(TestDiffer, (c,), name='a')
-        d1 = make_differ(TestDiffer, (c,), name='b')
-        r = make_runner(TestRunner, (c,), name='Andrew', differs=(d0,d1))
+        d0 = make_differ(TestDiffer, (c, ), name='a')
+        d1 = make_differ(TestDiffer, (c, ), name='b')
+        r = make_runner(TestRunner, (c, ), name='Andrew', differs=(d0, d1))
         fm = Formatter()
 
         # SKIP, RUNNER
         c.setValue('skip', True)
-        rcode = run([[r]], (c,), fm)
+        rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 0)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
         self._d_state.assert_not_called()
         self._d_results.assert_not_called()
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.SKIP, reasons=['a reason'], percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.SKIP, reasons=['a reason'], percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr='')
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['a reason'],
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['a reason'],
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr='')
 
         # SKIP, DIFFER
         self.resetMockObjects()
         c.setValue('object_name', d0.name())
-        rcode = run([[r]], (c,), fm)
+        rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 0)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
         self.assertEqual(self._d_state.call_count, 2)
         self.assertEqual(self._d_results.call_count, 2)
         self._complete.assert_called_once()
-        self.assertCall(self._r_state, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results, name='Andrew', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, returncode=2011, stdout='', stderr='')
+        self.assertCall(self._r_state,
+                        name='Andrew',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results,
+                        name='Andrew',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=2011,
+                        stdout='',
+                        stderr='')
 
-        self.assertCall(self._d_state.call_args_list[0], name='a', state=TestCase.Result.SKIP, reasons=['a reason'], percent=100, duration=TestRun.ANY)
-        self.assertCall(self._d_state.call_args_list[1], name='b', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY)
+        self.assertCall(self._d_state.call_args_list[0],
+                        name='a',
+                        state=TestCase.Result.SKIP,
+                        reasons=['a reason'],
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._d_state.call_args_list[1],
+                        name='b',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY)
 
-        self.assertCall(self._d_results.call_args_list[0], name='a', state=TestCase.Result.SKIP, reasons=['a reason'], percent=100, duration=TestRun.ANY, stdout='', stderr='')
-        self.assertCall(self._d_results.call_args_list[1], name='b', state=TestCase.Result.PASS, reasons=None, percent=100, duration=TestRun.ANY, stdout='', stderr='')
+        self.assertCall(self._d_results.call_args_list[0],
+                        name='a',
+                        state=TestCase.Result.SKIP,
+                        reasons=['a reason'],
+                        percent=100,
+                        duration=TestRun.ANY,
+                        stdout='',
+                        stderr='')
+        self.assertCall(self._d_results.call_args_list[1],
+                        name='b',
+                        state=TestCase.Result.PASS,
+                        reasons=None,
+                        percent=100,
+                        duration=TestRun.ANY,
+                        stdout='',
+                        stderr='')
 
     def testMaxFail(self):
         r0 = make_runner(TestRunner, name='Just Andrew', error=True)
@@ -585,14 +888,53 @@ class TestRun(unittest.TestCase):
         self.assertEqual(self._r_state.call_count, 3)
         self.assertEqual(self._r_results.call_count, 3)
 
-        self.assertCall(self._r_state.call_args_list[0], name='Just Andrew', state=TestCase.Result.ERROR, reasons=None, percent=TestRun.ANY, duration=TestRun.ANY)
-        self.assertCall(self._r_results.call_args_list[0], name='Just Andrew', state=TestCase.Result.ERROR, reasons=None, percent=TestRun.ANY, duration=TestRun.ANY, returncode=2011, stdout='', stderr=TestRun.IN('runner error'))
+        self.assertCall(self._r_state.call_args_list[0],
+                        name='Just Andrew',
+                        state=TestCase.Result.ERROR,
+                        reasons=None,
+                        percent=TestRun.ANY,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[0],
+                        name='Just Andrew',
+                        state=TestCase.Result.ERROR,
+                        reasons=None,
+                        percent=TestRun.ANY,
+                        duration=TestRun.ANY,
+                        returncode=2011,
+                        stdout='',
+                        stderr=TestRun.IN('runner error'))
 
-        self.assertCall(self._r_state.call_args_list[1], name='Other Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=TestRun.ANY, duration=TestRun.ANY)
-        self.assertCall(self._r_results.call_args_list[1], name='Other Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=TestRun.ANY, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN("A previous test case (Just Andrew)"))
+        self.assertCall(self._r_state.call_args_list[1],
+                        name='Other Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['dependency'],
+                        percent=TestRun.ANY,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[1],
+                        name='Other Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['dependency'],
+                        percent=TestRun.ANY,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr=TestRun.IN("A previous test case (Just Andrew)"))
 
-        self.assertCall(self._r_state.call_args_list[2], name='Best Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results.call_args_list[2], name='Best Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN("A previous test case (Just Andrew)"))
+        self.assertCall(self._r_state.call_args_list[2],
+                        name='Best Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['dependency'],
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[2],
+                        name='Best Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['dependency'],
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr=TestRun.IN("A previous test case (Just Andrew)"))
 
         # Similar to above, but with individual groups
         groups = list()
@@ -614,25 +956,64 @@ class TestRun(unittest.TestCase):
         print(self._r_results.call_args_list)
 
         # Only look at first and last, the middle can change depending how fast works fire up
-        self.assertCall(self._r_state.call_args_list[0], name='0', state=TestCase.Result.ERROR, reasons=None, percent=TestRun.ANY, duration=TestRun.ANY)
-        self.assertCall(self._r_results.call_args_list[0], name='0', state=TestCase.Result.ERROR, reasons=None, percent=TestRun.ANY, duration=TestRun.ANY, returncode=2011, stdout='', stderr=TestRun.IN('runner error'))
+        self.assertCall(self._r_state.call_args_list[0],
+                        name='0',
+                        state=TestCase.Result.ERROR,
+                        reasons=None,
+                        percent=TestRun.ANY,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[0],
+                        name='0',
+                        state=TestCase.Result.ERROR,
+                        reasons=None,
+                        percent=TestRun.ANY,
+                        duration=TestRun.ANY,
+                        returncode=2011,
+                        stdout='',
+                        stderr=TestRun.IN('runner error'))
 
-        self.assertCall(self._r_state.call_args_list[-1], name='4', state=TestCase.Result.SKIP, reasons=['max failures reached'], percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results.call_args_list[-1], name='4', state=TestCase.Result.SKIP, reasons=['max failures reached'], percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN("Max failures of 1 exceeded."))
+        self.assertCall(self._r_state.call_args_list[-1],
+                        name='4',
+                        state=TestCase.Result.SKIP,
+                        reasons=['max failures reached'],
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[-1],
+                        name='4',
+                        state=TestCase.Result.SKIP,
+                        reasons=['max failures reached'],
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr=TestRun.IN("Max failures of 1 exceeded."))
 
     def testMinFailState(self):
         # SKIP as failure
         c = TestController(skip=True)
-        r = make_runner(TestRunner, (c,), name='Andrew')
+        r = make_runner(TestRunner, (c, ), name='Andrew')
         fm = Formatter()
 
-        rcode = run([[r]], (c,), fm, min_fail_state=TestCase.Result.SKIP)
-        self.assertEqual(rcode, 1) # this is what is being tested
+        rcode = run([[r]], (c, ), fm, min_fail_state=TestCase.Result.SKIP)
+        self.assertEqual(rcode, 1)  # this is what is being tested
         self.assertEqual(self._r_state.call_count, 1)
         self.assertEqual(self._r_results.call_count, 1)
 
-        self.assertCall(self._r_state.call_args_list[0], name='Andrew', state=TestCase.Result.SKIP, reasons=['a reason'], percent=TestRun.ANY, duration=TestRun.ANY)
-        self.assertCall(self._r_results.call_args_list[0], name='Andrew', state=TestCase.Result.SKIP, reasons=['a reason'], percent=TestRun.ANY, duration=TestRun.ANY, returncode=None, stdout='', stderr='')
+        self.assertCall(self._r_state.call_args_list[0],
+                        name='Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['a reason'],
+                        percent=TestRun.ANY,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[0],
+                        name='Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['a reason'],
+                        percent=TestRun.ANY,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr='')
 
     def testGroupSkip(self):
         # Same as first test in testMaxFails, but without the max fails
@@ -647,14 +1028,53 @@ class TestRun(unittest.TestCase):
         self.assertEqual(self._r_state.call_count, 3)
         self.assertEqual(self._r_results.call_count, 3)
 
-        self.assertCall(self._r_state.call_args_list[0], name='Just Andrew', state=TestCase.Result.ERROR, reasons=None, percent=TestRun.ANY, duration=TestRun.ANY)
-        self.assertCall(self._r_results.call_args_list[0], name='Just Andrew', state=TestCase.Result.ERROR, reasons=None, percent=TestRun.ANY, duration=TestRun.ANY, returncode=2011, stdout='', stderr=TestRun.IN('runner error'))
+        self.assertCall(self._r_state.call_args_list[0],
+                        name='Just Andrew',
+                        state=TestCase.Result.ERROR,
+                        reasons=None,
+                        percent=TestRun.ANY,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[0],
+                        name='Just Andrew',
+                        state=TestCase.Result.ERROR,
+                        reasons=None,
+                        percent=TestRun.ANY,
+                        duration=TestRun.ANY,
+                        returncode=2011,
+                        stdout='',
+                        stderr=TestRun.IN('runner error'))
 
-        self.assertCall(self._r_state.call_args_list[1], name='Other Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=TestRun.ANY, duration=TestRun.ANY)
-        self.assertCall(self._r_results.call_args_list[1], name='Other Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=TestRun.ANY, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN("A previous test case (Just Andrew)"))
+        self.assertCall(self._r_state.call_args_list[1],
+                        name='Other Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['dependency'],
+                        percent=TestRun.ANY,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[1],
+                        name='Other Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['dependency'],
+                        percent=TestRun.ANY,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr=TestRun.IN("A previous test case (Just Andrew)"))
 
-        self.assertCall(self._r_state.call_args_list[2], name='Best Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=100, duration=TestRun.ANY)
-        self.assertCall(self._r_results.call_args_list[2], name='Best Andrew', state=TestCase.Result.SKIP, reasons=['dependency'], percent=100, duration=TestRun.ANY, returncode=None, stdout='', stderr=TestRun.IN("A previous test case (Just Andrew)"))
+        self.assertCall(self._r_state.call_args_list[2],
+                        name='Best Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['dependency'],
+                        percent=100,
+                        duration=TestRun.ANY)
+        self.assertCall(self._r_results.call_args_list[2],
+                        name='Best Andrew',
+                        state=TestCase.Result.SKIP,
+                        reasons=['dependency'],
+                        percent=100,
+                        duration=TestRun.ANY,
+                        returncode=None,
+                        stdout='',
+                        stderr=TestRun.IN("A previous test case (Just Andrew)"))
 
     def testFailSafe(self):
         uid = uuid.uuid4()
@@ -674,10 +1094,11 @@ class TestRun(unittest.TestCase):
 
             def empty(self):
                 self._count += 1
-                return self._count not in (2, 3) # false on 2nd and 3rd call
+                return self._count not in (2, 3)  # false on 2nd and 3rd call
 
         with mock.patch('uuid.uuid4', return_value=uid):
-            with mock.patch('multiprocessing.managers.SyncManager.Queue', return_value=QueueProxy()):
+            with mock.patch('multiprocessing.managers.SyncManager.Queue',
+                            return_value=QueueProxy()):
                 with self.assertRaises(RuntimeError) as ex:
                     rcode = run([[r]], tuple(), fm)
 

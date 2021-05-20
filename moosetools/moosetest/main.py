@@ -18,12 +18,14 @@ from moosetools.moosetest.formatters import BasicFormatter
 # Local directory, to be used for getting the included Controller/Formatter objects
 LOCAL_DIR = os.path.abspath(os.path.dirname(__file__))
 
+
 def cli_args():
     """
     Return command line arguments.
     """
     parser = argparse.ArgumentParser(description='Testing system inspired by MOOSE')
-    parser.add_argument('--demo', action='store_true',
+    parser.add_argument('--demo',
+                        action='store_true',
                         help="Ignore all other arguments and run a demonstration.")
     parser.add_argument('--config', default=os.getcwd(), type=str,
                         help="The configuration file or directory. If a directory is provided a " \
@@ -39,21 +41,37 @@ class TestHarness(base.MooseObject):
     @staticmethod
     def validParams():
         params = base.MooseObject.validParams()
-        params.add('plugin_dirs',
-                   default=tuple(),
+        params.add(
+            'plugin_dirs',
+            default=tuple(),
+            vtype=str,
+            array=True,
+            doc=
+            "List of directories to search for plugins, the location should be relative to the configure file."
+        )
+
+        params.add('n_threads',
+                   default=os.cpu_count(),
+                   vtype=int,
+                   doc="The number of threads to utilize when running tests.")
+        params.add(
+            'spec_file_names',
+            vtype=str,
+            array=True,
+            default=('tests', ),
+            doc="List of file names (e.g., 'tests') that contain test specifications to run.")
+        params.add('spec_file_blocks',
                    vtype=str,
                    array=True,
-                   doc="List of directories to search for plugins, the location should be relative to the configure file.")
-
-        params.add('n_threads', default=os.cpu_count(), vtype=int,
-                   doc="The number of threads to utilize when running tests.")
-        params.add('spec_file_names', vtype=str, array=True, default=('tests',),
-                   doc="List of file names (e.g., 'tests') that contain test specifications to run.")
-        params.add('spec_file_blocks', vtype=str, array=True, default=('Tests',),
+                   default=('Tests', ),
                    doc="List of top-level test specifications (e.g., `[Tests]`) HIT blocks to run.")
-        params.add('timeout', default=300., vtype=float,
+        params.add('timeout',
+                   default=300.,
+                   vtype=float,
                    doc="Number of seconds allowed for the execution of a test case.")
-        params.add('max_failures', default=50, vtype=int,
+        params.add('max_failures',
+                   default=50,
+                   vtype=int,
                    doc="The maximum number of failures allowed before terminating all test cases.")
         return params
 
@@ -66,6 +84,7 @@ class TestHarness(base.MooseObject):
         Apply options provided via the command line to the TestHarness object parameters.
         """
         pass
+
 
 def main():
     """
@@ -90,29 +109,23 @@ def main():
     # no longer be used. They are applied to the TestHarness object in this function by calling
     # the TestHarness.applyCommandLineArguments method.
     harness = make_harness(filename, root, args)
-    del args # just to avoid accidental use in the future
+    del args  # just to avoid accidental use in the future
 
     # Create the Controller objects and Formatter
     controllers = make_controllers(filename, root, harness.getParam('plugin_dirs'))
     formatter = make_formatter(filename, root, harness.getParam('plugin_dirs'))
 
     # Locate the tests to execute
-    groups = discover(os.getcwd(),
-                      harness.getParam('spec_file_names'),
-                      harness.getParam('spec_file_blocks'),
-                      harness.getParam('plugin_dirs'),
-                      controllers,
-                      harness.getParam('n_threads'))
+    groups = discover(os.getcwd(), harness.getParam('spec_file_names'),
+                      harness.getParam('spec_file_blocks'), harness.getParam('plugin_dirs'),
+                      controllers, harness.getParam('n_threads'))
 
     # Execute the tests
-    rcode = run(groups,
-                controllers,
-                formatter,
-                harness.getParam('n_threads'),
-                harness.getParam('timeout'),
-                harness.getParam('max_failures'))
+    rcode = run(groups, controllers, formatter, harness.getParam('n_threads'),
+                harness.getParam('timeout'), harness.getParam('max_failures'))
 
     return rcode
+
 
 def make_harness(filename, root, cli_args):
     """
@@ -165,6 +178,7 @@ def make_harness(filename, root, cli_args):
 
     return harness
 
+
 def make_controllers(filename, root, plugin_dirs):
     """
     Create the `Controller` object from the [Controllers] block of the `pyhit.Node` of *root*.
@@ -183,7 +197,7 @@ def make_controllers(filename, root, plugin_dirs):
         c_node = root.append('Controllers')
 
     # Factory for building Controller objects
-    c_factory = factory.Factory(plugin_dirs=plugin_dirs, plugin_types=(Controller,))
+    c_factory = factory.Factory(plugin_dirs=plugin_dirs, plugin_types=(Controller, ))
     c_factory.load()
     if c_factory.status() > 0:
         msg = "An error occurred registering the Controller type, see console message(s) for details."
@@ -206,6 +220,7 @@ def make_controllers(filename, root, plugin_dirs):
 
     return tuple(controllers)
 
+
 def make_formatter(filename, root, plugin_dirs):
     """
     Create the `Formatter` object from the [Formatter] block of the `pyhit.Node` of *root*.
@@ -223,7 +238,7 @@ def make_formatter(filename, root, plugin_dirs):
         f_node = root.append('Formatter', type='BasicFormatter')
 
     # Factory for building Formatter objects
-    f_factory = factory.Factory(plugin_dirs=plugin_dirs, plugin_types=(Formatter,))
+    f_factory = factory.Factory(plugin_dirs=plugin_dirs, plugin_types=(Formatter, ))
     f_factory.load()
     if f_factory.status() > 0:
         msg = "An error occurred registering the Formatter type, see console message(s) for details."
@@ -239,6 +254,7 @@ def make_formatter(filename, root, plugin_dirs):
 
     return formatters[0]
 
+
 def _locate_config(start):
     """
     Recursively, up the directory tree, locate and return a ".moosetest" file if *start* is a directory.
@@ -250,10 +266,10 @@ def _locate_config(start):
         return start
 
     elif not os.path.isdir(start):
-        msg =  f"The supplied configuration location, '{start}', must be a filename or directory."
+        msg = f"The supplied configuration location, '{start}', must be a filename or directory."
         raise RuntimeError(msg)
 
-    root_dir = os.path.abspath(start) + os.sep # add trailing / to consider the start directory
+    root_dir = os.path.abspath(start) + os.sep  # add trailing / to consider the start directory
     for i in range(root_dir.count(os.sep)):
         root_dir = root_dir.rsplit(os.sep, 1)[0]
         fname = os.path.join(root_dir, '.moosetest')
@@ -263,11 +279,12 @@ def _locate_config(start):
     msg = f"Unable to locate a configuration in the location '{start}'."
     raise RuntimeError(msg)
 
+
 def _load_config(filename):
     """
     Load the supplied HIT *filename* using the `pyhit.load` function and return the root node.
     """
     if not os.path.isfile(filename):
-        msg =  "The configuration file, '{}', does not exist."
+        msg = "The configuration file, '{}', does not exist."
         raise RuntimeError(msg.format(filename))
     return pyhit.load(filename)

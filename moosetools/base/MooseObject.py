@@ -12,6 +12,7 @@ import logging
 from moosetools import mooseutils
 from moosetools import parameters
 
+
 class MooseObject(object):
     """
     Base for all objects in moosetools package.
@@ -35,7 +36,6 @@ class MooseObject(object):
     """
     __MooseObject_counter__ = -1
 
-
     @staticmethod
     def validParams():
         params = parameters.InputParameters()
@@ -47,10 +47,18 @@ class MooseObject(object):
         )
 
         levels = tuple(logging._nameToLevel.keys())
-        params.add('log_level', default='INFO', vtype=str, allow=levels, mutable=False,
+        params.add('log_level',
+                   default='INFO',
+                   vtype=str,
+                   allow=levels,
+                   mutable=False,
                    doc="Set the logging level, see python 'logging' package for details.")
-        params.add('log_status_error_level', default='ERROR', vtype=str, allow=levels,
-                   doc="Set the allowable logging level for the status method to return an error code.")
+        params.add(
+            'log_status_error_level',
+            default='ERROR',
+            vtype=str,
+            allow=levels,
+            doc="Set the allowable logging level for the status method to return an error code.")
         return params
 
     def __init__(self, params=None, **kwargs):

@@ -16,13 +16,16 @@ from moosetools.moosetest.base import Controller, Formatter, TestCase, State, Re
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from _helpers import TestController, TestRunner, TestDiffer
 
+
 class TestFormatter(unittest.TestCase):
     def testDefault(self):
 
         f = moosetest.base.Formatter()
         self.assertEqual(f.name(), 'Formatter')
 
-        methods = ['formatRunnerState', 'formatRunnerResult', 'formatDifferState', 'formatDifferResult']
+        methods = [
+            'formatRunnerState', 'formatRunnerResult', 'formatDifferState', 'formatDifferResult'
+        ]
         for method in methods:
             with self.assertRaises(NotImplementedError) as ex:
                 getattr(f, method)()
@@ -40,9 +43,9 @@ class TestFormatter(unittest.TestCase):
         fm = moosetest.base.Formatter(progress_interval=0)
         ct = TestController()
         rr = make_runner(TestRunner, [ct], name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
+        tc = TestCase(runner=rr, controllers=(ct, ))
 
-        tc.setResults({'r':TestCase.Data(TestCase.Result.ERROR, None, 'out', 'err', None)})
+        tc.setResults({'r': TestCase.Data(TestCase.Result.ERROR, None, 'out', 'err', None)})
         tc.setProgress(TestCase.Progress.FINISHED)
         tc.setState(TestCase.Result.PASS)
         fm.reportResults(tc)
@@ -52,12 +55,14 @@ class TestFormatter(unittest.TestCase):
 
         # Differ
         dr = make_differ(TestDiffer, [ct], name='d')
-        rr = make_runner(TestRunner, [ct], differs=(dr,), name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
+        rr = make_runner(TestRunner, [ct], differs=(dr, ), name='r')
+        tc = TestCase(runner=rr, controllers=(ct, ))
         tc.setProgress(TestCase.Progress.FINISHED)
         tc.setState(TestCase.Result.PASS)
-        tc.setResults({'r':TestCase.Data(TestCase.Result.ERROR, None, 'r_out', 'r_err', None),
-                      'd':TestCase.Data(TestCase.Result.TIMEOUT, None, 'd_out', 'd_err', None)})
+        tc.setResults({
+            'r': TestCase.Data(TestCase.Result.ERROR, None, 'r_out', 'r_err', None),
+            'd': TestCase.Data(TestCase.Result.TIMEOUT, None, 'd_out', 'd_err', None)
+        })
 
         fm.reportResults(tc)
         pstate.assert_called_with(tc, dr, tc.results['d'].state, None)
@@ -66,7 +71,7 @@ class TestFormatter(unittest.TestCase):
         # Errors
         ct = TestController()
         rr = make_runner(TestRunner, [ct], name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
+        tc = TestCase(runner=rr, controllers=(ct, ))
         fm.reportResults(tc)
         self.assertEqual(tc.progress, TestCase.Progress.FINISHED)
         self.assertEqual(tc.state, TestCase.Result.FATAL)
@@ -79,7 +84,7 @@ class TestFormatter(unittest.TestCase):
 
         ct = TestController()
         rr = make_runner(TestRunner, [ct], name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
+        tc = TestCase(runner=rr, controllers=(ct, ))
         tc.setState(TestCase.Result.PASS)
         fm.reportResults(tc)
         self.assertEqual(tc.progress, TestCase.Progress.FINISHED)
@@ -93,9 +98,9 @@ class TestFormatter(unittest.TestCase):
 
         ct = TestController()
         rr = make_runner(TestRunner, [ct], name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
+        tc = TestCase(runner=rr, controllers=(ct, ))
         tc.setState(TestCase.Result.PASS)
-        tc.setResults({'r':TestCase.Data(TestCase.Result.ERROR, None, 'r_out', 'r_err', None)})
+        tc.setResults({'r': TestCase.Data(TestCase.Result.ERROR, None, 'r_out', 'r_err', None)})
         fm.reportResults(tc)
         self.assertEqual(tc.progress, TestCase.Progress.FINISHED)
         self.assertEqual(tc.state, TestCase.Result.FATAL)
@@ -103,9 +108,9 @@ class TestFormatter(unittest.TestCase):
         self.assertEqual(r['r'].state, TestCase.Result.FATAL)
         self.assertEqual(r['r'].returncode, None)
         self.assertEqual(r['r'].stdout, '')
-        self.assertIn("The execution has not finished, so results cannot be reported.", r['r'].stderr)
+        self.assertIn("The execution has not finished, so results cannot be reported.",
+                      r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
-
 
     @mock.patch("moosetools.moosetest.base.Formatter._printState")
     def testReportProgress(self, pstate):
@@ -114,7 +119,7 @@ class TestFormatter(unittest.TestCase):
         fm = Formatter(progress_interval=0)
         ct = TestController()
         rr = make_runner(TestRunner, [ct], name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
+        tc = TestCase(runner=rr, controllers=(ct, ))
 
         fm.reportProgress(tc)
         pstate.assert_called_with(tc, rr, TestCase.Progress.WAITING, None)
@@ -140,7 +145,6 @@ class TestFormatter(unittest.TestCase):
         self.assertIn("The progress has not been set via the `setProgress` method.", r['r'].stderr)
         self.assertEqual(r['r'].reasons, None)
 
-
     @mock.patch("moosetools.moosetest.base.Formatter.formatDifferResult")
     @mock.patch("moosetools.moosetest.base.Formatter.formatRunnerResult")
     @mock.patch("moosetools.moosetest.base.Formatter.formatDifferState")
@@ -151,8 +155,8 @@ class TestFormatter(unittest.TestCase):
         ct = TestController()
         fm = Formatter()
         dr = make_differ(TestDiffer, [ct], name='d')
-        rr = make_runner(TestRunner, [ct], differs=(dr,), name='r')
-        tc = TestCase(runner=rr, controllers=(ct,))
+        rr = make_runner(TestRunner, [ct], differs=(dr, ), name='r')
+        tc = TestCase(runner=rr, controllers=(ct, ))
         tc.setProgress(TestCase.Progress.RUNNING)
 
         # Runner, progress
@@ -161,44 +165,48 @@ class TestFormatter(unittest.TestCase):
         self.assertEqual(kwargs['name'], 'r')
         self.assertEqual(kwargs['state'], TestCase.Progress.RUNNING)
         self.assertEqual(kwargs['reasons'], ["all the reasons"])
-        self.assertIsInstance(kwargs['duration'], float) # exact number can't be tested
+        self.assertIsInstance(kwargs['duration'], float)  # exact number can't be tested
         self.assertIsInstance(kwargs['percent'], float)
 
         # Differ, progress
-        tc.setProgress(TestCase.Progress.FINISHED) # call this to use execute time
+        tc.setProgress(TestCase.Progress.FINISHED)  # call this to use execute time
         fm._printState(tc, dr, TestCase.Progress.FINISHED, ["all the reasons"])
         kwargs = d_state.call_args.kwargs
         self.assertEqual(kwargs['name'], 'd')
         self.assertEqual(kwargs['state'], TestCase.Progress.FINISHED)
         self.assertEqual(kwargs['reasons'], ["all the reasons"])
-        self.assertIsInstance(kwargs['duration'], float) # exact number can't be tested
+        self.assertIsInstance(kwargs['duration'], float)  # exact number can't be tested
         self.assertIsInstance(kwargs['percent'], float)
 
         # Runner, results
         tc.setProgress(TestCase.Progress.FINISHED)
         tc.setState(TestCase.Result.PASS)
-        tc.setResults({'r':TestCase.Data(TestCase.Result.PASS, None, 'r_out', 'r_err', None),
-                      'd':TestCase.Data(TestCase.Result.PASS, None, 'd_out', 'd_err', None)})
+        tc.setResults({
+            'r': TestCase.Data(TestCase.Result.PASS, None, 'r_out', 'r_err', None),
+            'd': TestCase.Data(TestCase.Result.PASS, None, 'd_out', 'd_err', None)
+        })
         fm._printResult(tc, rr, tc.results['r'])
         kwargs = r_result.call_args.kwargs
         self.assertEqual(kwargs['name'], 'r')
         self.assertEqual(kwargs['state'], TestCase.Result.PASS)
         self.assertEqual(kwargs['reasons'], None)
-        self.assertIsInstance(kwargs['duration'], float) # exact number can't be tested
+        self.assertIsInstance(kwargs['duration'], float)  # exact number can't be tested
         self.assertIsInstance(kwargs['percent'], float)
         self.assertEqual(kwargs['stdout'], 'r_out')
         self.assertEqual(kwargs['stderr'], 'r_err')
 
         # Differ, results
         tc.setState(TestCase.Result.PASS)
-        tc.setResults({'r':TestCase.Data(TestCase.Result.PASS, None, 'r_out', 'r_err', None),
-                       'd':TestCase.Data(TestCase.Result.PASS, None, 'd_out', 'd_err', None)})
+        tc.setResults({
+            'r': TestCase.Data(TestCase.Result.PASS, None, 'r_out', 'r_err', None),
+            'd': TestCase.Data(TestCase.Result.PASS, None, 'd_out', 'd_err', None)
+        })
         fm._printResult(tc, dr, tc.results['d'])
         kwargs = d_result.call_args.kwargs
         self.assertEqual(kwargs['name'], 'd')
         self.assertEqual(kwargs['state'], TestCase.Result.PASS)
         self.assertEqual(kwargs['reasons'], None)
-        self.assertIsInstance(kwargs['duration'], float) # exact number can't be tested
+        self.assertIsInstance(kwargs['duration'], float)  # exact number can't be tested
         self.assertIsInstance(kwargs['percent'], float)
         self.assertEqual(kwargs['stdout'], 'd_out')
         self.assertEqual(kwargs['stderr'], 'd_err')
@@ -221,7 +229,6 @@ class TestFormatter(unittest.TestCase):
         time.sleep(1.1)
         fm.reportProgress(tc)
         pstate.assert_called()
-
 
 
 if __name__ == '__main__':

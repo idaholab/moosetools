@@ -18,6 +18,7 @@ from moosetools.moosetest.discover import MooseTestFactory, MooseTestWarehouse, 
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 from _helpers import TestController, TestRunner, TestDiffer
 
+
 class TestMooseTestFactory(unittest.TestCase):
     def testDefault(self):
         f = MooseTestFactory()
@@ -26,7 +27,7 @@ class TestMooseTestFactory(unittest.TestCase):
         self.assertIsInstance(params, InputParameters)
 
     def testWithController(self):
-        f = MooseTestFactory(controllers=(TestController(),))
+        f = MooseTestFactory(controllers=(TestController(), ))
         f.load()
         params = f.params('TestDiffer')
         self.assertIn('ctrl', params)
@@ -57,7 +58,6 @@ class TestMooseTesWarehouse(unittest.TestCase):
 
 @mock.patch('moosetools.pyhit.load')
 class TestCreateRunners(unittest.TestCase):
-
     def testDifferError(self, pyhit_load):
         root = pyhit.Node(None)
         root.append('Tests')
@@ -76,12 +76,12 @@ class TestCreateRunners(unittest.TestCase):
         root = pyhit.Node(None)
         root.append('Tests')
         root(0).append('run0', type='TestRunner')
-        root(0,0).append('diff0-0', type='TestDiffer')
-        root(0,0).append('diff0-1', type='TestDiffer')
+        root(0, 0).append('diff0-0', type='TestDiffer')
+        root(0, 0).append('diff0-1', type='TestDiffer')
 
         root(0).append('run1', type='TestRunner')
-        root(0,1).append('diff1-0', type='TestDiffer')
-        root(0,1).append('diff1-1', type='TestDiffer')
+        root(0, 1).append('diff1-0', type='TestDiffer')
+        root(0, 1).append('diff1-1', type='TestDiffer')
 
         pyhit_load.return_value = root
 
@@ -100,7 +100,6 @@ class TestCreateRunners(unittest.TestCase):
         self.assertIsInstance(differs[1], TestDiffer)
         self.assertEqual(differs[1].name(), 'diff0-1')
 
-
         self.assertIsInstance(objs[1], TestRunner)
         self.assertEqual(objs[1].name(), 'testing/tests:Tests/run1')
         differs = objs[1].getParam('differs')
@@ -109,6 +108,7 @@ class TestCreateRunners(unittest.TestCase):
         self.assertEqual(differs[0].name(), 'diff1-0')
         self.assertIsInstance(differs[1], TestDiffer)
         self.assertEqual(differs[1].name(), 'diff1-1')
+
 
 class TestDiscover(unittest.TestCase):
     def test(self):
@@ -133,7 +133,6 @@ class TestDiscover(unittest.TestCase):
         with self.assertRaises(RuntimeError) as ex:
             discover(start, ['tests'], ['Tests'], plugin_dirs)
         self.assertIn('Errors occurred during parsing', str(ex.exception))
-
 
 
 if __name__ == '__main__':

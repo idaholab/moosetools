@@ -4,6 +4,7 @@ import logging
 from moosetools.parameters import InputParameters
 from moosetools.base import MooseObject
 
+
 class Controller(MooseObject):
     """
     An object to dictate if a `moosetest.base.Runner` or `moosetest.base.Differ` should execute.
@@ -21,7 +22,10 @@ class Controller(MooseObject):
     @staticmethod
     def validParams():
         params = MooseObject.validParams()
-        params.add('prefix', vtype=str, required=True, mutable=False,
+        params.add('prefix',
+                   vtype=str,
+                   required=True,
+                   mutable=False,
                    doc="Set the sub-parameters prefix of the controller.")
         return params
 

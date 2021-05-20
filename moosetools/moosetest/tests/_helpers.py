@@ -3,6 +3,7 @@ import time
 import platform
 from moosetools.moosetest.base import Controller, Runner, Differ
 
+
 class TestController(Controller):
     @staticmethod
     def validParams():
@@ -20,7 +21,9 @@ class TestController(Controller):
     @staticmethod
     def validObjectParams():
         params = Controller.validObjectParams()
-        params.add('platform', array=True, allow=('Linux', 'Darwin', 'Windows'),
+        params.add('platform',
+                   array=True,
+                   allow=('Linux', 'Darwin', 'Windows'),
                    doc="Limit the execution to the supplied platform(s).")
         return params
 
@@ -50,6 +53,7 @@ class TestController(Controller):
             self.skip('{} not in {}', repr(sys_platform), repr(pf))
             self.debug("The system platform {} is not in the allowable platforms list of {}",
                        repr(sys_platform), repr(pf))
+
 
 class TestRunner(Runner):
     @staticmethod
@@ -83,6 +87,7 @@ class TestRunner(Runner):
         if self.getParam('raise'):
             raise Exception("runner raise")
         return 2011
+
 
 class TestDiffer(Differ):
     @staticmethod

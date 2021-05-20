@@ -27,7 +27,8 @@ class TestInputParameters(unittest.TestCase):
         self.assertIsNone(params.getValue('foo'))
         self.assertTrue(params.hasParameter('foo'))
 
-        params.setValue('error_mode', InputParameters.ErrorMode.ERROR)  # use error to capture return
+        params.setValue('error_mode',
+                        InputParameters.ErrorMode.ERROR)  # use error to capture return
         with self.assertLogs(level='ERROR') as log:
             params.add('foo')
         self.assertEqual(len(log.output), 1)
@@ -125,7 +126,8 @@ class TestInputParameters(unittest.TestCase):
             params.setDefault('other', 1980)
         self.assertIn("The parameter 'other' does not exist", str(e.exception))
 
-        params.setValue('error_mode', InputParameters.ErrorMode.ERROR)  # use error to capture return
+        params.setValue('error_mode',
+                        InputParameters.ErrorMode.ERROR)  # use error to capture return
         with self.assertLogs(level='ERROR') as log:
             params.setDefault('foo', 'wrong')
         self.assertEqual(len(log.output), 1)
@@ -373,9 +375,9 @@ class TestInputParameters(unittest.TestCase):
 
         with self.assertRaises(MooseException) as e:
             date.setRequired('year', True)
-        self.assertIn("The parameter 'year' has already been validated, the required state cannot be changed.",
-                      str(e.exception))
-
+        self.assertIn(
+            "The parameter 'year' has already been validated, the required state cannot be changed.",
+            str(e.exception))
 
         date.setValue('error_mode', InputParameters.ErrorMode.ERROR)
         with self.assertLogs(level='ERROR') as log:

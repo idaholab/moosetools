@@ -2,6 +2,7 @@ import time
 from moosetools.base import MooseObject
 from .TestCase import TestCase, RedirectOutput
 
+
 class Formatter(MooseObject):
     """
     Base class for defining how the progress and results are presented during the execution of test.
@@ -16,14 +17,17 @@ class Formatter(MooseObject):
     @staticmethod
     def validParams():
         params = MooseObject.validParams()
-        params.add('progress_interval', default=10., vtype=(int, float), mutable=False,
+        params.add('progress_interval',
+                   default=10.,
+                   vtype=(int, float),
+                   mutable=False,
                    doc="Number of seconds in between progress updates for a test case.")
         return params
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('name', self.__class__.__name__)
         MooseObject.__init__(self, *args, **kwargs)
-        self.__progress_time = time.time() # time of last progress report
+        self.__progress_time = time.time()  # time of last progress report
         self.__progress_interval = self.getParam('progress_interval')
 
     @property
@@ -40,10 +44,10 @@ class Formatter(MooseObject):
         raise NotImplementedError("The 'formatRunnerResult' method must be overridden.")
 
     def formatDifferState(self, **kwargs):
-       raise NotImplementedError("The 'formatDifferState' method must be overridden.")
+        raise NotImplementedError("The 'formatDifferState' method must be overridden.")
 
     def formatDifferResult(self, **kwargs):
-       raise NotImplementedError("The 'formatDifferResult' method must be overridden.")
+        raise NotImplementedError("The 'formatDifferResult' method must be overridden.")
 
     def formatComplete(self, complete, **kwargs):
         raise NotImplementedError("The 'formatComplete' method must be overridden.")
@@ -72,7 +76,10 @@ class Formatter(MooseObject):
                     tc_obj.critical("The progress has not been set via the `setProgress` method.")
                 tc_obj.setProgress(TestCase.Progress.FINISHED)
                 tc_obj.setState(TestCase.Result.FATAL)
-                tc_obj.setResults({tc_obj.runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)})
+                tc_obj.setResults({
+                    tc_obj.runner.name():
+                    TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+                })
 
             self._printState(tc_obj, tc_obj.runner, tc_obj.progress, None)
             self.__progress_time = time.time()
@@ -90,21 +97,30 @@ class Formatter(MooseObject):
                 tc_obj.critical("The state has not been set via the `setState` method.")
             tc_obj.setProgress(TestCase.Progress.FINISHED)
             tc_obj.setState(TestCase.Result.FATAL)
-            tc_obj.setResults({tc_obj.runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)})
+            tc_obj.setResults({
+                tc_obj.runner.name():
+                TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+            })
 
         elif tc_obj.results is None:
             with RedirectOutput() as out:
                 tc_obj.critical("The results have not been set via the `setResults` method.")
             tc_obj.setProgress(TestCase.Progress.FINISHED)
             tc_obj.setState(TestCase.Result.FATAL)
-            tc_obj.setResults({tc_obj.runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)})
+            tc_obj.setResults({
+                tc_obj.runner.name():
+                TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+            })
 
         elif tc_obj.progress != TestCase.Progress.FINISHED:
             with RedirectOutput() as out:
                 tc_obj.critical("The execution has not finished, so results cannot be reported.")
             tc_obj.setProgress(TestCase.Progress.FINISHED)
             tc_obj.setState(TestCase.Result.FATAL)
-            tc_obj.setResults({tc_obj.runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)})
+            tc_obj.setResults({
+                tc_obj.runner.name():
+                TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+            })
 
         # Report Runner results
         r_data = tc_obj.results.get(tc_obj.runner.name())

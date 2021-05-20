@@ -6,6 +6,7 @@ from moosetools.parameters import InputParameters
 from moosetools.base import MooseException
 from moosetools import moosetest
 
+
 class TestDiffer(unittest.TestCase):
     def testDefault(self):
 
@@ -22,7 +23,6 @@ class TestDiffer(unittest.TestCase):
 
     def testControllers(self):
         class ProxyController(object):
-
             @staticmethod
             def validObjectParams():
                 params = InputParameters()
@@ -32,7 +32,11 @@ class TestDiffer(unittest.TestCase):
             def getParam(self, value):
                 return 'test'
 
-        diff = moosetest.base.make_differ(moosetest.base.Differ, [ProxyController(),], name='name', test_platform='TempleOS')
+        diff = moosetest.base.make_differ(moosetest.base.Differ, [
+            ProxyController(),
+        ],
+                                          name='name',
+                                          test_platform='TempleOS')
         self.assertIn('test', diff.parameters())
         self.assertIn('platform', diff.getParam('test'))
         self.assertEqual(diff.getParam('test_platform'), 'TempleOS')

@@ -30,7 +30,8 @@ class Parser(base.MooseObject):
         params = base.MooseObject.validParams()
         params.add('_factory', private=True, required=True, vtype=Factory)
         params.add('_warehouse', private=True, required=True, vtype=(Warehouse, list))
-        params.add('iteration_method', vtype=moosetree.IterMethod,
+        params.add('iteration_method',
+                   vtype=moosetree.IterMethod,
                    default=moosetree.IterMethod.PRE_ORDER,
                    doc="Iteration method to utilize when traversing HIT tree.")
         return params
@@ -81,7 +82,7 @@ class Parser(base.MooseObject):
         # Iterate of all nodes with "type = ..."
         paths = set()
         for node in moosetree.findall(root,
-                                      func=lambda n: 'type' in n ,
+                                      func=lambda n: 'type' in n,
                                       method=self.getParam('iteration_method')):
             self._checkDuplicates(filename, paths, node)
             self._parseNode(filename, node)

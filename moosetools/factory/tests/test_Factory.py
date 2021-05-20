@@ -34,7 +34,7 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(f.status(), 0)
 
     def testLoad(self):
-        f = factory.Factory(plugin_dirs=('./plugins',))
+        f = factory.Factory(plugin_dirs=('./plugins', ))
         f.load()
         self.assertIn('CustomObject', f._registered_types)
 
@@ -64,7 +64,7 @@ class TestFactory(unittest.TestCase):
         self.assertIn("The 'CO2' name is already", log.output[0])
 
     def testParams(self):
-        f = factory.Factory(plugin_dirs=('./plugins',))
+        f = factory.Factory(plugin_dirs=('./plugins', ))
         f.load()
         self.assertEqual(f.status(), 0)
 
@@ -85,7 +85,7 @@ class TestFactory(unittest.TestCase):
         self.assertIn("The supplied name 'Unknown' is not associated", log.output[0])
 
     def testCreate(self):
-        f = factory.Factory(plugin_dirs=('./plugins',))
+        f = factory.Factory(plugin_dirs=('./plugins', ))
         f.load()
         self.assertEqual(f.status(), 0)
 
@@ -110,7 +110,7 @@ class TestFactory(unittest.TestCase):
         self.assertIn("The supplied name 'Unknown' is not associated", log.output[0])
 
     def testLoadError(self):
-        f = factory.Factory(plugin_dirs=('./plugins',))
+        f = factory.Factory(plugin_dirs=('./plugins', ))
         self.assertEqual(f.status(), 0)
 
         with mock.patch('importlib.import_module') as loader:
@@ -122,21 +122,21 @@ class TestFactory(unittest.TestCase):
                 self.assertIn("Failed to load module", out)
 
     def testPrint(self):
-        f = factory.Factory(plugin_dirs=('./plugins',))
+        f = factory.Factory(plugin_dirs=('./plugins', ))
         f.load()
         f._registered_types.pop('TestObjectBadParams')  # avoid error
         out = str(f)
         self.assertIn('CustomObject', out)
         self.assertIn('CustomCustomObject', out)
 
-
     def testPackageError(self):
-        f = factory.Factory(plugin_dirs=(self._tmpdir,))
+        f = factory.Factory(plugin_dirs=(self._tmpdir, ))
         with self.assertLogs(level='ERROR') as log:
             f.load()
         self.assertEqual(f.status(), 1)
         self.assertEqual(len(log.output), 1)
         self.assertIn("The supplied plugin directory", log.output[0])
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

@@ -1,5 +1,6 @@
 import colored
 
+
 def color_text(text, fg=None, bg=None):
     output = ''
     if fg is not None:

@@ -4,6 +4,7 @@ import platform
 import logging
 from moosetools.base import MooseObject
 
+
 def make_differ(cls, controllers=None, **kwargs):
     """
     Create a `Differ` object given the *cls* with the `validObjectParams` of the *controllers*.
@@ -15,6 +16,7 @@ def make_differ(cls, controllers=None, **kwargs):
         params.add(ctrl.getParam('prefix'), default=ctrl.validObjectParams())
     return cls(params, **kwargs)
 
+
 class Differ(MooseObject):
     """
     Base class for analyzing the results from a `moosetest.base.Runner` after a "run".
@@ -22,7 +24,6 @@ class Differ(MooseObject):
     The `Differ` object is designed to be as simple as possible. Child objects must override a
     single method: `execute`.
     """
-
     @staticmethod
     def validParams():
         params = MooseObject.validParams()

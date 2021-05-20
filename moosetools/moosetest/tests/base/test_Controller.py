@@ -6,6 +6,7 @@ from moosetools.parameters import InputParameters
 from moosetools.base import MooseException
 from moosetools import moosetest
 
+
 class TestController(unittest.TestCase):
     def testDefault(self):
 
@@ -35,6 +36,7 @@ class TestController(unittest.TestCase):
     def testValidObjectParams(self):
         params = moosetest.base.Controller.validObjectParams()
         self.assertIsInstance(params, InputParameters)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

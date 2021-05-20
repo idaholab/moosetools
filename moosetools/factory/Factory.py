@@ -33,7 +33,7 @@ class Factory(MooseObject):
                    doc="List of directories to search for plugins.")
         params.add('plugin_types',
                    array=True,
-                   default=(MooseObject,),
+                   default=(MooseObject, ),
                    doc="The python type of the plugins to load.")
         return params
 
@@ -125,7 +125,9 @@ class Factory(MooseObject):
 
         # Load Classes that exist within the available modules
         def predicate(otype):
-            return inspect.isclass(otype) and (otype not in plugin_types) and (otype.__name__ not in self._registered_types) and any(p in inspect.getmro(otype) for p in plugin_types)
+            return inspect.isclass(otype) and (otype not in plugin_types) and (
+                otype.__name__ not in self._registered_types) and any(p in inspect.getmro(otype)
+                                                                      for p in plugin_types)
 
         for module in list(sys.modules.values()):
             try:
@@ -137,7 +139,6 @@ class Factory(MooseObject):
         # Load classes that do
         #def predicate2(otype):
         #    inspect.isclass(otype) and (otype.__module__ == module.__name__) and (name not in self._registered_types) and any(p in inspect.getmro(otype) for p in plugin_types)
-
         """
         for info in pkgutil.iter_modules(plugin_dirs):
             print(info)

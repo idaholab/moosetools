@@ -7,6 +7,7 @@ from moosetools import mooseutils
 from moosetools.parameters import InputParameters
 from moosetools.moosetest.base import Controller
 
+
 class EnvironmentController(Controller):
     """
     A controller to dictate if an object should run based on the environment.
@@ -24,13 +25,15 @@ class EnvironmentController(Controller):
         with the name given in the "prefix" parameter
         """
         params = Controller.validObjectParams()
-        params.add('platform', array=True, allow=('Linux', 'Darwin', 'Windows'),
+        params.add('platform',
+                   array=True,
+                   allow=('Linux', 'Darwin', 'Windows'),
                    doc="Limit the execution to the supplied platform(s).")
-        params.add('python_minimum_version', vtype=str,
-                   doc="The minimum python version supported.")
-        params.add('python_maximum_version', vtype=str,
-                   doc="The maximum python version supported.")
-        params.add('python_required_packages', vtype=str, array=True,
+        params.add('python_minimum_version', vtype=str, doc="The minimum python version supported.")
+        params.add('python_maximum_version', vtype=str, doc="The maximum python version supported.")
+        params.add('python_required_packages',
+                   vtype=str,
+                   array=True,
                    doc="List of python packages, if any, that must exist.")
         return params
 
@@ -53,17 +56,21 @@ class EnvironmentController(Controller):
 
         # Python min. version
         min_py_version = params.getValue('python_minimum_version')
-        if (min_py_version is not None) and (packaging.version.parse(min_py_version) > packaging.version.parse(sys_py_version)):
+        if (min_py_version is not None) and (packaging.version.parse(min_py_version) >
+                                             packaging.version.parse(sys_py_version)):
             self.skip('{} > {}', min_py_version, sys_py_version)
-            self.debug("The system python version {} is less then the allowed minimum version of {}",
-                       sys_py_version, min_py_version)
+            self.debug(
+                "The system python version {} is less then the allowed minimum version of {}",
+                sys_py_version, min_py_version)
 
         # Python max. version
         max_py_version = params.getValue('python_maximum_version')
-        if (max_py_version is not None) and (packaging.version.parse(max_py_version) <= packaging.version.parse(sys_py_version)):
+        if (max_py_version is not None) and (packaging.version.parse(max_py_version) <=
+                                             packaging.version.parse(sys_py_version)):
             self.skip('{} < {}', max_py_version, sys_py_version)
-            self.debug("The system python version {} is greater then the allowed maximum version of {}",
-                       sys_py_version, max_py_version)
+            self.debug(
+                "The system python version {} is greater then the allowed maximum version of {}",
+                sys_py_version, max_py_version)
 
         # Check python packages
         py_packages = params.getValue('python_required_packages')

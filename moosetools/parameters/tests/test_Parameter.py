@@ -197,10 +197,13 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(err, None)
         self.assertEqual(opt.value, (1, ))
 
-        opt = Parameter('foo', vtype=int, array=True, allow=(1,2,3))
-        ret, err = opt.setValue((4,))
+        opt = Parameter('foo', vtype=int, array=True, allow=(1, 2, 3))
+        ret, err = opt.setValue((4, ))
         self.assertEqual(ret, 1)
-        self.assertEqual(err, "Attempting to set 'foo' to a value of (4,) but only the following are allowed: (1, 2, 3)")
+        self.assertEqual(
+            err,
+            "Attempting to set 'foo' to a value of (4,) but only the following are allowed: (1, 2, 3)"
+        )
         self.assertEqual(opt.value, None)
 
     def testSize(self):
@@ -444,7 +447,8 @@ class TestParameter(unittest.TestCase):
 
         retcode, msg = opt.validate()
         self.assertEqual(retcode, 1)
-        self.assertEqual(msg, "The parameter 'year' is marked as required, but no value is assigned.")
+        self.assertEqual(msg,
+                         "The parameter 'year' is marked as required, but no value is assigned.")
 
         opt.setValue(1980)
         retcode, msg = opt.validate()
@@ -453,11 +457,17 @@ class TestParameter(unittest.TestCase):
 
         retcode, msg = opt.setRequired(False)
         self.assertEqual(retcode, 1)
-        self.assertEqual(msg, "The parameter 'year' has already been validated, the required state cannot be changed.")
+        self.assertEqual(
+            msg,
+            "The parameter 'year' has already been validated, the required state cannot be changed."
+        )
 
         retcode, msg = opt.setRequired('wrong')
         self.assertEqual(retcode, 1)
-        self.assertEqual(msg, "For the parameters 'year', the supplied value for `setRequired` must be a `bool`, a <class 'str'> was provided.")
+        self.assertEqual(
+            msg,
+            "For the parameters 'year', the supplied value for `setRequired` must be a `bool`, a <class 'str'> was provided."
+        )
 
     def testIsInstance(self):
         opt = Parameter('year')

@@ -8,6 +8,7 @@ from moosetools.base import MooseException, MooseObject
 from moosetools.moosetest.controllers import EnvironmentController
 from moosetools.moosetest.base import make_differ
 
+
 class TestObject(MooseObject):
     pass
 
@@ -15,7 +16,7 @@ class TestObject(MooseObject):
 class TestEnvironmentController(unittest.TestCase):
     def testDefault(self):
         ctrl = EnvironmentController()
-        obj = make_differ(TestObject, (ctrl,))
+        obj = make_differ(TestObject, (ctrl, ))
 
         self.assertEqual(ctrl.name(), 'EnvironmentController')
         self.assertEqual(ctrl.getParam('prefix'), 'env')
@@ -26,7 +27,7 @@ class TestEnvironmentController(unittest.TestCase):
 
     def testPlatform(self):
         ctrl = EnvironmentController()
-        obj = make_differ(TestObject, (ctrl,), env_platform=('Darwin',))
+        obj = make_differ(TestObject, (ctrl, ), env_platform=('Darwin', ))
 
         with mock.patch('platform.system', return_value='Darwin'):
             ctrl.execute(obj, obj.getParam('env'))
@@ -40,7 +41,7 @@ class TestEnvironmentController(unittest.TestCase):
 
     def testMinVersion(self):
         ctrl = EnvironmentController()
-        obj = make_differ(TestObject, (ctrl,), env_python_minimum_version='1980.6.24')
+        obj = make_differ(TestObject, (ctrl, ), env_python_minimum_version='1980.6.24')
 
         with mock.patch('platform.python_version', return_value='2013.5.15'):
             ctrl.execute(obj, obj.getParam('env'))
@@ -53,7 +54,7 @@ class TestEnvironmentController(unittest.TestCase):
 
     def testMaxVersion(self):
         ctrl = EnvironmentController()
-        obj = make_differ(TestObject, (ctrl,), env_python_maximum_version='1980.6.24')
+        obj = make_differ(TestObject, (ctrl, ), env_python_maximum_version='1980.6.24')
 
         ctrl.execute(obj, obj.getParam('env'))
         self.assertEqual(ctrl.isRunnable(), True)
@@ -66,7 +67,8 @@ class TestEnvironmentController(unittest.TestCase):
 
     def testRequired(self):
         ctrl = EnvironmentController()
-        obj = make_differ(TestObject, (ctrl,), env_python_required_packages=('sys','io','unittest'))
+        obj = make_differ(TestObject, (ctrl, ),
+                          env_python_required_packages=('sys', 'io', 'unittest'))
 
         ctrl.execute(obj, obj.getParam('env'))
         self.assertEqual(ctrl.isRunnable(), True)
@@ -76,7 +78,6 @@ class TestEnvironmentController(unittest.TestCase):
             ctrl.execute(obj, obj.getParam('env'))
         self.assertEqual(ctrl.isRunnable(), False)
         self.assertEqual(ctrl.reasons(), ['missing python package(s)'])
-
 
 
 if __name__ == '__main__':

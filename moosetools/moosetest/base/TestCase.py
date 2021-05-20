@@ -17,6 +17,7 @@ from .Runner import Runner
 from .Differ import Differ
 from .Controller import Controller
 
+
 class State(enum.Enum):
     """
     Enumeration base for defining progress and state values for the `TestCase` object.
@@ -45,6 +46,7 @@ class State(enum.Enum):
         """
         return mooseutils.color_text(msg.format(*args, **kwargs), *self.color)
 
+
 class RedirectOutput(object):
     """
     A context object (i.e., `with...`) for redirecting sys.stdout and sys.stderr to `dict` keyed
@@ -56,7 +58,6 @@ class RedirectOutput(object):
     It also updates the `Handler` objects from the `logging` package, which store their own
     reference to `sys.stderr`. Thus, without this the logging output will not be redirected.
     """
-
     class SysRedirect(object):
         """
         A replacement IO object for sys.stdout/err that stores content in *out*, which should be a
@@ -78,7 +79,7 @@ class RedirectOutput(object):
         self._sys_stdout = sys.stdout
         self._sys_stderr = sys.stderr
 
-        self._logging_handlers = list() # storage for (handler, formatter) for resetting stream
+        self._logging_handlers = list()  # storage for (handler, formatter) for resetting stream
 
     @property
     def stdout(self):
@@ -122,6 +123,7 @@ class RedirectOutput(object):
             h.setStream(self._sys_stderr)
             h.setFormatter(f)
 
+
 class TestCase(MooseObject):
     """
     An object for managing the data associated with the execution of a test, which is composed of
@@ -139,8 +141,8 @@ class TestCase(MooseObject):
     sent back to the root process instance.
     """
 
-    __TOTAL__ = 0    # total number of TestCase to be executed
-    __FINISHED__ = 0 # number of TestCase object finished executed
+    __TOTAL__ = 0  # total number of TestCase to be executed
+    __FINISHED__ = 0  # number of TestCase object finished executed
 
     class Progress(State):
         """
@@ -152,9 +154,9 @@ class TestCase(MooseObject):
 
         The levels (second argument) are not utilized.
         """
-        WAITING  = (0, 0, 'WAITING', ('grey_82',))
-        RUNNING  = (1, 0, 'RUNNING', ('dodger_blue_3',))
-        FINISHED = (2, 0, 'FINISHED', ('white',))
+        WAITING = (0, 0, 'WAITING', ('grey_82', ))
+        RUNNING = (1, 0, 'RUNNING', ('dodger_blue_3', ))
+        FINISHED = (2, 0, 'FINISHED', ('white', ))
 
     class Result(State):
         """
@@ -163,13 +165,13 @@ class TestCase(MooseObject):
         The levels (second argument) are designed to be used to control what comprises a failure,
         see `moosetest.run` and `moosetest.formatter.BasicFormatter` for example use.
         """
-        PASS      = (10, 0, 'OK', ('green_1',))
-        SKIP      = (11, 1, 'SKIP', ('grey_42',))
-        TIMEOUT   = (12, 2, 'TIMEOUT', ('salmon_1',))
-        DIFF      = (13, 3, 'DIFF', ('yellow_1',))       # error on Differ
-        ERROR     = (14, 4, 'ERROR', ('red_1',))         # error on Runner
-        EXCEPTION = (15, 5, 'EXCEPTION', ('magenta_1',)) # exception raised by Runner/Differ
-        FATAL     = (16, 6, 'FATAL', ('white', 'red_1')) # internal error (see, run.py)
+        PASS = (10, 0, 'OK', ('green_1', ))
+        SKIP = (11, 1, 'SKIP', ('grey_42', ))
+        TIMEOUT = (12, 2, 'TIMEOUT', ('salmon_1', ))
+        DIFF = (13, 3, 'DIFF', ('yellow_1', ))  # error on Differ
+        ERROR = (14, 4, 'ERROR', ('red_1', ))  # error on Runner
+        EXCEPTION = (15, 5, 'EXCEPTION', ('magenta_1', ))  # exception raised by Runner/Differ
+        FATAL = (16, 6, 'FATAL', ('white', 'red_1'))  # internal error (see, run.py)
 
     @dataclass
     class Data:
@@ -196,14 +198,26 @@ class TestCase(MooseObject):
         based way for altering these.
         """
         params = MooseObject.validParams()
-        params.add('runner', vtype=Runner, required=True, mutable=False,
+        params.add('runner',
+                   vtype=Runner,
+                   required=True,
+                   mutable=False,
                    doc="The `Runner` object to execute.")
-        params.add('controllers', vtype=Controller, array=True, mutable=False,
+        params.add('controllers',
+                   vtype=Controller,
+                   array=True,
+                   mutable=False,
                    doc="`Controller` object(s) that dictate if the Runner should run.")
 
-        params.add('min_fail_state', vtype=TestCase.Result, mutable=False, default=TestCase.Result.TIMEOUT,
+        params.add('min_fail_state',
+                   vtype=TestCase.Result,
+                   mutable=False,
+                   default=TestCase.Result.TIMEOUT,
                    doc="The minimum state considered a failure for the entire test case.")
-        params.add('_unique_id', vtype=uuid.UUID, mutable=True, private=True,
+        params.add('_unique_id',
+                   vtype=uuid.UUID,
+                   mutable=True,
+                   private=True,
                    doc="A unique id used for collecting data returned from sub-processes.")
         return params
 
@@ -218,12 +232,12 @@ class TestCase(MooseObject):
         self.parameters().setValue('name', self._runner.name())
 
         self.__results = None  # results from the Runner/Differ objects
-        self.__progress = None # execution progress of this TestCase
-        self.__state = None    # the overall state (TestCase.Result)
+        self.__progress = None  # execution progress of this TestCase
+        self.__state = None  # the overall state (TestCase.Result)
 
         # The following are various time settings managed via the `setProgress` method
-        self.__create_time = None   # time when the object was created
-        self.__start_time = None    # time when progress change to running
+        self.__create_time = None  # time when the object was created
+        self.__start_time = None  # time when progress change to running
         self.__execute_time = None  # duration of execution running to finished
 
         self.setProgress(TestCase.Progress.WAITING)
@@ -326,7 +340,10 @@ class TestCase(MooseObject):
         if not isinstance(progress, TestCase.Progress):
             with RedirectOutput() as out:
                 self.critical("The supplied progress must be of type `TestCase.Progress`.")
-            results = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
+            results = {
+                self._runner.name():
+                TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+            }
             self.setState(TestCase.Result.FATAL)
             self.setResults(results)
             progress = TestCase.Progress.FINISHED
@@ -338,7 +355,8 @@ class TestCase(MooseObject):
             if self.__start_time is None: self.__start_time = current
         elif progress == TestCase.Progress.FINISHED:
             TestCase.__FINISHED__ += 1
-            if self.__execute_time is None: self.__execute_time = current - self.__start_time if self.__start_time else 0
+            if self.__execute_time is None:
+                self.__execute_time = current - self.__start_time if self.__start_time else 0
 
         self.__progress = progress
 
@@ -351,7 +369,10 @@ class TestCase(MooseObject):
         if not isinstance(state, TestCase.Result):
             with RedirectOutput() as out:
                 self.critical("The supplied state must be of type `TestCase.Result`.")
-            results = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
+            results = {
+                self._runner.name():
+                TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+            }
             self.setProgress(TestCase.Progress.FINISHED)
             self.setResults(results)
             state = TestCase.Result.FATAL
@@ -372,20 +393,31 @@ class TestCase(MooseObject):
         if not isinstance(results, dict):
             with RedirectOutput() as out:
                 self.critical("The supplied result must be of type `dict`.")
-            results = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
+            results = {
+                self._runner.name():
+                TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+            }
             self.setState(TestCase.Result.FATAL)
 
         if any(not isinstance(val, TestCase.Data) for val in results.values()):
             with RedirectOutput() as out:
                 self.critical("The supplied result values must be of type `TestCase.Data`.")
-            results = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
+            results = {
+                self._runner.name():
+                TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+            }
             self.setState(TestCase.Result.FATAL)
 
         names = [self._runner.name()] + [d.name() for d in self._differs]
         if any(key not in names for key in results.keys()):
             with RedirectOutput() as out:
-                self.critical("The supplied result keys must be the names of the `Runner` or `Differ` object(s).")
-            results = {self._runner.name():TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)}
+                self.critical(
+                    "The supplied result keys must be the names of the `Runner` or `Differ` object(s)."
+                )
+            results = {
+                self._runner.name():
+                TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+            }
             self.setState(TestCase.Result.FATAL)
 
         self.__results = results
@@ -418,7 +450,8 @@ class TestCase(MooseObject):
         for obj in self._differs:
             d_data = self._executeObject(obj, r_data.returncode, r_data.stdout, r_data.stderr)
             results[obj.name()] = d_data
-            if (d_data.state.level >= self._min_fail_state.level) and (d_data.state.level > state.level):
+            if (d_data.state.level >= self._min_fail_state.level) and (d_data.state.level >
+                                                                       state.level):
                 state = d_data.state
 
         return state, results
@@ -456,9 +489,11 @@ class TestCase(MooseObject):
         # this point indicates if the objected execution succeeded.
         with RedirectOutput() as out:
             try:
-                obj.reset() # clear log counts of the object to be passed to the Controller
+                obj.reset()  # clear log counts of the object to be passed to the Controller
             except Exception as ex:
-                self.exception("An exception occurred while calling the `reset` method of the '{}' object.", obj.name())
+                self.exception(
+                    "An exception occurred while calling the `reset` method of the '{}' object.",
+                    obj.name())
                 return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
 
             finally:
@@ -471,25 +506,34 @@ class TestCase(MooseObject):
             # Execute the `Controller`
             with RedirectOutput() as out:
                 try:
-                    controller.reset() # clear log counts
+                    controller.reset()  # clear log counts
                     controller.execute(obj, obj.getParam(controller.getParam('prefix')))
 
                     # Stop if an error is logged on the Controller object
                     if controller.status():
-                        self.error("An error occurred, on the controller, during execution of the {} controller with '{}' object.", type(controller).__name__, obj.name())
-                        return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+                        self.error(
+                            "An error occurred, on the controller, during execution of the {} controller with '{}' object.",
+                            type(controller).__name__, obj.name())
+                        return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr,
+                                             None)
 
                     # Stop if an error is logged on the object, due to execution of Controller
                     if obj.status():
-                        self.error("An error occurred, on the object, during execution of the {} controller with '{}' object.", type(controller).__name__, obj.name())
-                        return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+                        self.error(
+                            "An error occurred, on the object, during execution of the {} controller with '{}' object.",
+                            type(controller).__name__, obj.name())
+                        return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr,
+                                             None)
 
                     # Skip it...maybe
                     if not controller.isRunnable():
-                        return TestCase.Data(TestCase.Result.SKIP, None, out.stdout, out.stderr, controller.reasons())
+                        return TestCase.Data(TestCase.Result.SKIP, None, out.stdout, out.stderr,
+                                             controller.reasons())
 
                 except Exception as ex:
-                    self.error("An exception occurred during execution of the {} controller with '{}' object.\n{}", type(controller).__name__, obj.name(), traceback.format_exc())
+                    self.error(
+                        "An exception occurred during execution of the {} controller with '{}' object.\n{}",
+                        type(controller).__name__, obj.name(), traceback.format_exc())
                     return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
 
                 finally:
@@ -503,12 +547,14 @@ class TestCase(MooseObject):
 
                 # Errors on object result in failure
                 if obj.status():
-                    state = TestCase.Result.DIFF if isinstance(obj, Differ) else TestCase.Result.ERROR
+                    state = TestCase.Result.DIFF if isinstance(obj,
+                                                               Differ) else TestCase.Result.ERROR
                     self.error("An error occurred during execution of the '{}' object.", obj.name())
                     return TestCase.Data(state, rcode, out.stdout, out.stderr, None)
 
             except Exception as ex:
-                self.exception("An exception occurred during execution of the '{}' object.", obj.name())
+                self.exception("An exception occurred during execution of the '{}' object.",
+                               obj.name())
                 return TestCase.Data(TestCase.Result.EXCEPTION, None, out.stdout, out.stderr, None)
 
             finally:
