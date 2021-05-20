@@ -23,10 +23,6 @@ class Factory(MooseObject):
 
     It was originally designed to be utilized via the `factory.Parser` for creating objects from HIT
     input files.
-
-    The first iteration of this did not require the creation of __init__.py files. However,
-
-
     """
     @staticmethod
     def validParams():

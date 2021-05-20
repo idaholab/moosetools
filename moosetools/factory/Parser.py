@@ -68,19 +68,17 @@ class Parser(base.MooseObject):
         `status` method (see `base.MooseObject.status()`) will return a non-zero code if an
         error occurred.
         """
-        self.reset()  # zero all logging counts
-        if not os.path.isfile(filename):
-            self.error("The filename '{}' does not exist.".format(filename))
-            return 1
-
         if root is None:
+            if not os.path.isfile(filename):
+                self.error("The filename '{}' does not exist.".format(filename))
+                return 1
             try:
                 root = pyhit.load(filename)
             except Exception as err:
                 self.exception("Failed to load filename with pyhit: {}", filename)
                 return 1
 
-        # Iterate of all  nodes with "type = ..."
+        # Iterate of all nodes with "type = ..."
         paths = set()
         for node in moosetree.findall(root,
                                       func=lambda n: 'type' in n ,

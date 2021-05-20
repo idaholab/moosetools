@@ -170,12 +170,12 @@ class BasicFormatter(Formatter):
         longest = self.getParam('print_longest_running_tests')
         if (longest is not None) and (longest > 0):
             shown = 0
-            out.append('\nLongest running tests(s):')
+            out.append('\nLongest running test(s):')
             for tc in reversed(sorted(complete, key=lambda tc: tc.time)):
-                if shown >= longest:
-                    break
                 out.append(f'  {tc.time:.2f}s {tc.name()}')
                 shown += 1
+                if shown > longest:
+                    break
 
         return '\n'.join(out)
 

@@ -93,8 +93,8 @@ def _create_runners(root_dir, filename, spec_file_blocks, obj_factory):
     wh = MooseTestWarehouse(root_dir=root_dir, specfile=filename)
     parser = factory.Parser(obj_factory, wh)
     for node in moosetree.findall(root, func=lambda n: n.name in spec_file_blocks):
-        parser.parse(filename, node)
-    return wh.objects, parser.status()
+        parser.parse(filename, node, )
+    return wh.objects, max(parser.status(), wh.status())
 
 def discover(start, spec_file_names, spec_file_blocks, plugin_dirs=None, controllers=None, n_threads=None):
     """

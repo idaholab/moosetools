@@ -69,6 +69,8 @@ class TestCreateRunners(unittest.TestCase):
         with self.assertLogs(level='CRITICAL') as log:
             objs, status = _create_runners('foo/bar', 'foo/bar/testing/tests', ['Tests'], f)
         self.assertEqual(status, 1)
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("The `Differ` object 'differ' is being added without", log.output[0])
 
     def testRunnerWithDiffers(self, pyhit_load):
         root = pyhit.Node(None)

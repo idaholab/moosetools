@@ -129,13 +129,13 @@ class TestCase(MooseObject):
 
     This object does not perform the execution, which is managed via the `moosetest.run` function, it
     is a means for handling the data associated with the execution. It is designed to be instantiated
-    on demand in the `moosetest.run` function given `Runner` objects crated via the
+    on demand in the `moosetest.run` function given `Runner` objects created via the
     `moosetest.discover` function. It is not expected that they will be instituted pragmatically.
 
     The design of the run (see `moosetest.run`) function is such that all `TestCase` objects are
     created on the root process. Then a pool of subprocesses is are created that execute the tests.
     The results obtained from execution are returned to the root process for reporting. As such,
-    the execute methods on this class should be stateless and return the data that is to be
+    the execute methods on this class should be "const" and return the data that is to be
     sent back to the root process instance.
     """
 

@@ -191,7 +191,7 @@ class TestBasicFormatter(unittest.TestCase):
         self.assertIn("Executed 2 tests in 40.0 seconds", text)
         self.assertIn("OK:1 SKIP:0 TIMEOUT:0 DIFF:0 ERROR:0 EXCEPTION:0 FATAL:1", text)
 
-        self.assertIn('Longest running tests(s)', text)
+        self.assertIn('Longest running test(s)', text)
         self.assertIn('\n  20.00s B\n  10.00s A', text)
 
 

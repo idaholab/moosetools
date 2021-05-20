@@ -7,20 +7,13 @@ from moosetools import moosetree
 from moosetools import pyhit
 from moosetools import factory
 from moosetools import base
-from moosetools.moosetest.base import Controller, Formatter, make_runner, make_differ
 from moosetools.moosetest import discover, run, fuzzer
-
-
+from moosetools.moosetest.base import Controller, Formatter, make_runner, make_differ
 from moosetools.moosetest.base import make_runner, make_differ
 from moosetools.moosetest.runners import RunCommand
 from moosetools.moosetest.differs import ConsoleDiff
 from moosetools.moosetest.controllers import EnvironmentController
 from moosetools.moosetest.formatters import BasicFormatter
-
-
-# TODO:
-# - check status() of factory after factory calls
-
 
 # Local directory, to be used for getting the included Controller/Formatter objects
 LOCAL_DIR = os.path.abspath(os.path.dirname(__file__))
@@ -62,11 +55,6 @@ class TestHarness(base.MooseObject):
                    doc="Number of seconds allowed for the execution of a test case.")
         params.add('max_failures', default=50, vtype=int,
                    doc="The maximum number of failures allowed before terminating all test cases.")
-
-        # params.add('controllers', vtype=Controller, array=True,
-        #            doc="Controller objects to utilize for test case creation.")
-        # params.add('formatter', vtype=Formatter,
-        #            doc="Formatter object to utilize for test case output.")
         return params
 
     def __init__(self, *args, **kwargs):
@@ -75,7 +63,7 @@ class TestHarness(base.MooseObject):
 
     def applyCommandLineArguments(self, args):
         """
-        Apply options provided via the command line to the object.
+        Apply options provided via the command line to the TestHarness object parameters.
         """
         pass
 
@@ -104,11 +92,11 @@ def main():
     harness = make_harness(filename, root, args)
     del args # just to avoid accidental use in the future
 
-
+    # Create the Controller objects and Formatter
     controllers = make_controllers(filename, root, harness.getParam('plugin_dirs'))
     formatter = make_formatter(filename, root, harness.getParam('plugin_dirs'))
 
-
+    # Locate the tests to execute
     groups = discover(os.getcwd(),
                       harness.getParam('spec_file_names'),
                       harness.getParam('spec_file_blocks'),
@@ -116,6 +104,7 @@ def main():
                       controllers,
                       harness.getParam('n_threads'))
 
+    # Execute the tests
     rcode = run(groups,
                 controllers,
                 formatter,
@@ -143,6 +132,7 @@ def make_harness(filename, root, cli_args):
         raise RuntimeError(msg)
     root['type'] = 'TestHarness'
 
+    # Paths in in the configure file are related to the file, this updates them to be absolute
     plugin_dirs = list()
     hit_plugin_dirs = root.get('plugin_dirs', None)
     if hit_plugin_dirs is not None:
@@ -163,19 +153,29 @@ def make_harness(filename, root, cli_args):
     p = factory.Parser(f, w)
     p._parseNode(filename, root)
     if p.status() > 0:
-        msg = "An error occurred during parsing of the root level parameters for creation of the TestHarness obj, see console message(s) for details."
+        msg = "An error occurred during parsing of the root level parameters for creation of the TestHarness object, see console message(s) for details."
         raise RuntimeError(msg)
 
     # Apply the command line arguments to update TestHarness object parameters
     harness = w[0]
     harness.applyCommandLineArguments(cli_args)
-    if p.status() > 0:
-        msg = "An error occurred applying the command line arguments to the TestHarness obj, see console message(s) for details."
+    if harness.status() > 0:
+        msg = "An error occurred applying the command line arguments to the TestHarness object, see console message(s) for details."
         raise RuntimeError(msg)
 
     return harness
 
 def make_controllers(filename, root, plugin_dirs):
+    """
+    Create the `Controller` object from the [Controllers] block of the `pyhit.Node` of *root*.
+
+    The *filename* is provided for error reporting and should be the file used for generating
+    the tree structure in *root*.
+
+    The *plugin_dirs* should contain a list of absolute paths to include when registering Controller
+    objects with the factory. By default, regardless of the contents of *root*, all registered
+    Controller objects are created.
+    """
 
     # Locate/create the [Controllers] node
     c_node = moosetree.find(root, func=lambda n: n.fullpath == '/Controllers')
@@ -185,38 +185,66 @@ def make_controllers(filename, root, plugin_dirs):
     # Factory for building Controller objects
     c_factory = factory.Factory(plugin_dirs=plugin_dirs, plugin_types=(Controller,))
     c_factory.load()
+    if c_factory.status() > 0:
+        msg = "An error occurred registering the Controller type, see console message(s) for details."
+        raise RuntimeError(msg)
 
     # All Controller object type found by the Factory are automatically included with the default
     # configuration. This adds them to the configuration tree so they will be built by the factory
     c_types = set(child['type'] for child in c_node)
     for name in c_factory._registered_types.keys():
         if name not in c_types:
-            c_node.append(f"_default_{name}", type=name)
+            c_node.append(f"_moosetools_{name}", type=name)
 
+    # Use the Parser to create the Controller objects
     controllers = list()
     c_parser = factory.Parser(c_factory, controllers)
     c_parser.parse(filename, c_node)
+    if c_parser.status() > 0:
+        msg = "An error occurred during parsing of the Controller block, see console message(s) for details."
+        raise RuntimeError(msg)
 
     return tuple(controllers)
 
 def make_formatter(filename, root, plugin_dirs):
+    """
+    Create the `Formatter` object from the [Formatter] block of the `pyhit.Node` of *root*.
+
+    The *filename* is provided for error reporting and should be the file used for generating
+    the tree structure in *root*.
+
+    The *plugin_dirs* should contain a list of absolute paths to include when registering Formatter
+    objects with the factory. By default, a `BasicFormatter` is created.
+    """
 
     # Locate/create the [Formatter] node
     f_node = moosetree.find(root, func=lambda n: n.fullpath == '/Formatter')
     if f_node is None:
-        f_node = root.append('Formatter', type='BasicFormatter', root_test_dir=os.path.dirname(filename))
+        f_node = root.append('Formatter', type='BasicFormatter')
 
     # Factory for building Formatter objects
     f_factory = factory.Factory(plugin_dirs=plugin_dirs, plugin_types=(Formatter,))
     f_factory.load()
+    if f_factory.status() > 0:
+        msg = "An error occurred registering the Formatter type, see console message(s) for details."
+        raise RuntimeError(msg)
 
+    # Create the Formatter object by parsing the input file
     formatters = list()
     f_parser = factory.Parser(f_factory, formatters)
     f_parser._parseNode(filename, f_node)
+    if f_parser.status() > 0:
+        msg = "An error occurred during parsing of the root level parameters for creation of the Formatter object, see console message(s) for details."
+        raise RuntimeError(msg)
 
     return formatters[0]
 
 def _locate_config(start):
+    """
+    Recursively, up the directory tree, locate and return a ".moosetest" file if *start* is a directory.
+
+    If *start* is a file, return the supplied value.
+    """
 
     if os.path.isfile(start):
         return start
@@ -236,55 +264,10 @@ def _locate_config(start):
     raise RuntimeError(msg)
 
 def _load_config(filename):
+    """
+    Load the supplied HIT *filename* using the `pyhit.load` function and return the root node.
+    """
     if not os.path.isfile(filename):
         msg =  "The configuration file, '{}', does not exist."
         raise RuntimeError(msg.format(filename))
-    root = pyhit.load(filename)
-    return root
-
-def _locate_and_load_config(location=os.getcwd()):
-    """
-    Create and return a `pyhit` tree containing the configuration for the testing.
-
-    If a directory is provided to *location* the directory structure is searched from the supplied
-    location up the tree. When a ".moosetest" file is found, it is used to create the tree. If it
-    is not found then an empty tree structure is returned.
-
-    If a file is provided to *location* this file is used to create the tree.
-    """
-    filename = location if os.path.isfile(location) else _locate_config(location)
-    if filename is None:
-        logging.debug('Using default configuration.')
-        config = pyhit.Node(None)
-        controllers = config.append('Controllers')
-        controllers.append('env', type='EnvironmentController')
-    else:
-        logging.debug('Using configuration from file: {}'.format(filename))
-        config = _load_config(filename)
-    return filename, config
-
-def _create_controllers(filename, config, plugin_dirs):
-    """
-    Create the `Controller` objects that dictate if a test should execute given the *config* input,
-    which is a `pyhit.Node` that includes the object to create and the associated parameters.
-    Generally, the *config* input should be obtained by extracting the `[Controllers]` block returned
-    by calling the `locate_and_load_config` function. The *filename* is provided for error reporting
-    during parsing. The *plugin_dirs* is a list of locations to look for `Controller` objects, in
-    addition to the locations in this module.
-    """
-
-    # Get `Controllers` node
-    cnode = moosetree.find(config, func=lambda n: n.name == 'Controllers')
-
-    # Load `Controller` plugins
-    f = factory.Factory(plugin_dirs=plugin_dirs, plugin_types=(Controller,))
-    f.load()
-
-    w = list()
-    p = factory.Parser(f, w)
-    p.parse(filename, cnode)
-    return tuple(w)
-
-
-if __name__ == '__main__':
-    sys.exit(main())
+    return pyhit.load(filename)

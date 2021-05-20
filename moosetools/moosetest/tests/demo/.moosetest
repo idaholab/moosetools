@@ -1,8 +1,2 @@
-#plugin_dirs = ./plugins/moosetest
-progress_interval = 5
-
-#[Controllers]
-#  [test]
-#    type = TestController
-#  []
-#[]
+plugin_dirs = ./plugins/moosetest
+timeout = 10
