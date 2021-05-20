@@ -144,5 +144,6 @@ class TestMooseObject(unittest.TestCase):
         self.assertEqual(len(log.output), 1)
         self.assertIn("Attempting to reset logging count for 'WRONG'", log.output[0])
 
+
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

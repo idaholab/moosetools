@@ -109,7 +109,7 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(len(log.output), 1)
         self.assertIn("The supplied name 'Unknown' is not associated", log.output[0])
 
-    def testLoadError(self):
+    def testLoadErrors(self):
         f = factory.Factory(plugin_dirs=('./plugins', ))
         self.assertEqual(f.status(), 0)
 
@@ -120,6 +120,20 @@ class TestFactory(unittest.TestCase):
             self.assertEqual(f.status(), 1)
             for out in log.output:
                 self.assertIn("Failed to load module", out)
+
+        with mock.patch('os.path.isdir', return_value=False):
+            with self.assertLogs(level='ERROR') as log:
+                f.load()
+            self.assertEqual(f.status(), 1)
+            self.assertEqual(len(log.output), 1)
+            self.assertIn("'plugin_dirs' parameter is not a directory", log.output[0])
+
+        with mock.patch('os.path.isfile', return_value=False):
+            with self.assertLogs(level='ERROR') as log:
+                f.load()
+            self.assertEqual(f.status(), 1)
+            self.assertEqual(len(log.output), 1)
+            self.assertIn("'plugin_dirs' parameter is not a python package", log.output[0])
 
     def testPrint(self):
         f = factory.Factory(plugin_dirs=('./plugins', ))

@@ -107,21 +107,21 @@ class Factory(MooseObject):
         if plugin_dirs is not None:
             for path in set(os.path.abspath(p) for p in plugin_dirs):
                 if not os.path.isdir(path):
-                    msg = "The supplied item, {}, to the 'plugin_dirs' is not a directory."
+                    msg = "The supplied item, {}, to the 'plugin_dirs' parameter is not a directory."
                     self.error(msg, path)
-                    continue
 
                 elif not os.path.isfile(os.path.join(path, '__init__.py')):
                     msg = "The supplied item, {}, to the 'plugin_dirs' parameter is not a python package (i.e., it does not contain an __init__.py file)."
                     self.error(msg, path)
-                    continue
 
-                d_name, m_name = path.rsplit(os.sep, maxsplit=1)
-                sys.path.append(d_name)
-                try:
-                    importlib.import_module(m_name)
-                except Exception:
-                    self.exception("Failed to load module '{}' in directory '{}'", m_name, d_name)
+                else:
+                    d_name, m_name = path.rsplit(os.sep, maxsplit=1)
+                    sys.path.append(d_name)
+                    try:
+                        importlib.import_module(m_name)
+                    except Exception:
+                        self.exception("Failed to load module '{}' in directory '{}'", m_name,
+                                       d_name)
 
         # Load Classes that exist within the available modules
         def predicate(otype):

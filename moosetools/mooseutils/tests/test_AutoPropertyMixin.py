@@ -19,7 +19,7 @@ from moosetools import mooseutils
 # There is some more information here:
 #   https://github.com/ansible/ansible/issues/63973#issuecomment-546995228
 if (platform.system() == 'Darwin') and platform.python_version_tuple() >= ('3', '8', '0'):
-    multiprocessing.set_start_method('fork')
+    multiprocessing.set_start_method('fork', force=True)
 
 
 @mooseutils.addProperty('prop')

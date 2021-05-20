@@ -140,6 +140,15 @@ class TestParser(unittest.TestCase):
         self.assertEqual(len(log.output), 1)
         self.assertIn("The filename 'wrong' does not exist.", log.output[0])
 
+        # MISSING TYPE
+        root = pyhit.Node(None, 'Tests')
+        root.append('obj0')
+        with self.assertLogs(level='ERROR') as log:
+            p._parseNode('test0.hit', root)
+        self.assertEqual(p.status(), 1)
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("Missing 'type' in block", log.output[0])
+
         # FAIL PYHIT.LOAD
         with mock.patch('moosetools.pyhit.load') as load:
             load.side_effect = Exception()
