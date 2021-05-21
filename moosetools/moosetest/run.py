@@ -222,6 +222,7 @@ def _execute_testcases(testcases, q, timeout):
 
         if conn_recv.poll(timeout):
             state, results = conn_recv.recv()
+            proc.terminate()
         else:
             proc.terminate()
             state = TestCase.Result.TIMEOUT
@@ -376,5 +377,5 @@ def fuzzer(seed=1980,
     kwargs['timeout'] = random.randint(*timeout)
     kwargs['max_fails'] = random.randint(*max_fails)
     kwargs['min_fail_state'] = random.choice([r for r in TestCase.Result])
-    kwargs['method'] = RunMethod.THREAD_POOL
+    #kwargs['method'] = RunMethod.THREAD_POOL
     return run(groups, controllers, formatter, **kwargs)
