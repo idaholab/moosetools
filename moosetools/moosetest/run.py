@@ -70,9 +70,10 @@ def run(groups,
 
     # Setup process pool, the result_map is used to collecting results returned from workers
     if platform.python_version() < '3.7.0':
+        ctx = multiprocessing.get_context(MULTIPROCESSING_CONTEXT)
         executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
     else:
-        ctx = multiprocessing.get_context(MULTIPROCESSING_CONTEXT)
+        ctx = multiprocessing
         executor = concurrent.futures.ProcessPoolExecutor(mp_context=ctx, max_workers=n_threads)
     manager = ctx.Manager()
     result_map = manager.dict()
@@ -178,7 +179,10 @@ def _execute_testcases(testcases, result_map, timeout):
 
         result_map[unique_id] = (TestCase.Progress.RUNNING, None, None)
 
-        ctx = multiprocessing.get_context(MULTIPROCESSING_CONTEXT)
+        if platform.python_version() < '3.7.0':
+            ctx = multiprocessing.get_context(MULTIPROCESSING_CONTEXT)
+        else:
+            ctx = multiprocessing
         conn_recv, conn_send = ctx.Pipe(False)
         proc = ctx.Process(target=_execute_testcase, args=(tc, conn_send))
         proc.start()
