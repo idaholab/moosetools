@@ -88,27 +88,37 @@ def run(groups,
     tc_kwargs['min_fail_state'] = min_fail_state
 
     # Setup process/thread pool, the result_queue is used to collecting results returned from workers
-    if method == RunMethod.PROCESS_POOL:
-        executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
-        manager = multiprocessing.Manager()
-        result_queue = manager.Queue()
-    elif method == RunMethod.THREAD_POOL:
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=n_threads)
-        result_queue = queue.Queue()
+    #if method == RunMethod.PROCESS_POOL:
+    executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
+    manager = multiprocessing.Manager()
+    results_map = manager.dict()
+
+    #elif method == RunMethod.THREAD_POOL:
+    #    executor = concurrent.futures.ThreadPoolExecutor(max_workers=n_threads)
+    #    result_queue = queue.Queue()
 
     futures = list()  # pool workers
     testcase_map = dict()  # individual cases to allow report while others run
 
     for runners in groups:
         testcases = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
-        futures.append(executor.submit(_execute_testcases, testcases, result_queue, timeout))
+        futures.append(executor.submit(_execute_testcases, testcases, results_map, timeout))
         for tc in testcases:
-            testcase_map[tc.getParam('_unique_id')] = tc
+            testcase_map[tc.unique_id] = tc
 
     # Loop until all the test cases are finished or the number of failures is reached
+    count = len(testcase_map)
+    while count > 0 or any(f.running() for f in futures):
+        count = 0
+        for tc in testcase_map.values():
+            count += int(not tc.finished)
+            progress, state, results = results_map.get(tc.unique_id, (None, None, None))
+            if progress is not None:
+                _report_results(tc, formatter, progress, state, results)
+    """
     while any(not tc.finished for tc in testcase_map.values()):  #
-        _running_results(testcase_map, result_queue, formatter)
-        _running_progress(testcase_map, formatter)
+        _running_results(testcase_map, results_map, formatter)
+        _running_progress(testcase_map, progress_map, formatter)
 
         # If the number of failures has been reached, exit the loop early
         n_fails = sum(tc.state.level >= min_fail_state.level for tc in testcase_map.values()
@@ -150,7 +160,7 @@ def run(groups,
                 _running_progress(testcase_map, formatter)
         msg = "Unexpected progress/result output found.\nsys.stdout:\n{}\nsys.stderr:\n{}"
         raise RuntimeError(msg.format(out.stdout, out.stderr))
-
+    """
     print(formatter.reportComplete(testcase_map.values(), start_time))
 
     # When running the tests, there were cases that gave the an error that ended with:
@@ -187,7 +197,7 @@ def _execute_testcase(tc, conn):
     conn.close()
 
 
-def _execute_testcases(testcases, q, timeout):
+def _execute_testcases(testcases, results_map, timeout):
     """
     Function for executing groups of `TestCase` objects, *testcases*, each within a subprocess.
 
@@ -204,17 +214,17 @@ def _execute_testcases(testcases, q, timeout):
     skip_message = None
 
     for tc in testcases:
-        unique_id = tc.getParam('_unique_id')
+        unique_id = tc.unique_id
         if skip_message:
             state = TestCase.Result.SKIP
             results = {
                 tc.name(): TestCase.Data(TestCase.Result.SKIP, None, '', skip_message,
                                          ['dependency'])
             }
-            q.put((unique_id, TestCase.Progress.FINISHED, state, results))
+            results_map[unique_id] = (TestCase.Progress.FINISHED, state, results)
             continue
 
-        q.put((unique_id, TestCase.Progress.RUNNING, None, None))
+        results_map[unique_id] = (TestCase.Progress.RUNNING, None, None)
 
         conn_recv, conn_send = multiprocessing.Pipe(False)
         proc = multiprocessing.Process(target=_execute_testcase, args=(tc, conn_send))
@@ -232,13 +242,25 @@ def _execute_testcases(testcases, q, timeout):
                               [f'max time ({timeout}) exceeded'])
             }
 
-        q.put((unique_id, TestCase.Progress.FINISHED, state, results))
+        results_map[unique_id] = (TestCase.Progress.FINISHED, state, results)
 
         if (state.level > 0):
             skip_message = f"A previous test case ({tc.name()}) in the group returned a non-zero state of {state}."
 
 
-def _running_results(testcase_map, result_queue, formatter):
+def _report_results(tc, formatter, progress, state, results):
+    if tc.progress != progress:
+        tc.setProgress(progress)
+        if progress == TestCase.Progress.FINISHED:
+            tc.setState(state)
+            tc.setResults(results)
+            formatter.reportResults(tc)
+
+    elif tc.running:
+        formatter.reportProgress(tc)
+
+
+def _running_results(testcase_map, results_map, formatter):
     """
     Helper function for reporting results as obtained during a call to `run` function.
 
@@ -248,14 +270,14 @@ def _running_results(testcase_map, result_queue, formatter):
     See `run` function for use.
     """
     try:
-        unique_id, progress, state, results = result_queue.get_nowait()
+        progress, state, results = results_map.get(unique_id, (None, None, None))
         tc = testcase_map.get(unique_id)
-        tc.setProgress(progress)
-        if progress == TestCase.Progress.FINISHED:
-            tc.setState(state)
-            tc.setResults(results)
-            formatter.reportResults(tc)
-        result_queue.task_done()
+        if (progress is not None) and (tc.progress != progress):
+            tc.setProgress(progress)
+            if progress == TestCase.Progress.FINISHED:
+                tc.setState(state)
+                tc.setResults(results)
+                formatter.reportResults(tc)
 
     except queue.Empty:
         pass
@@ -379,3 +401,16 @@ def fuzzer(seed=1980,
     kwargs['min_fail_state'] = random.choice([r for r in TestCase.Result])
     #kwargs['method'] = RunMethod.THREAD_POOL
     return run(groups, controllers, formatter, **kwargs)
+
+
+if __name__ == '__main__':
+    from moosetools.moosetest.formatters import BasicFormatter
+    from moosetools.moosetest.base import make_runner, make_differ
+    sys.path.append(os.path.join(os.path.dirname(__file__), 'tests'))
+    from _helpers import TestController, TestRunner, TestDiffer
+
+    formatter = BasicFormatter()
+    groups = [None] * 1
+    groups[0] = [TestRunner(sleep=1, name='A')]
+
+    run(groups, tuple(), formatter, n_threads=1)
