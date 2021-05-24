@@ -59,6 +59,8 @@ def run(groups,
     The function will return 1 if any test case has a state with a level greater than
     *min_fail_state*, otherwise a 0 is returned.
     """
+    if platform.python_version() < '3.7':
+        raise RuntimeError("Python 3.7 or greater required.")
 
     # Capture for computing the total execution time for all test cases
     start_time = time.time()
@@ -69,15 +71,11 @@ def run(groups,
     tc_kwargs['min_fail_state'] = min_fail_state
 
     # Setup process pool, the result_map is used to collecting results returned from workers
-    if platform.python_version() < '3.7.0':
-        ctx = multiprocessing.get_context(MULTIPROCESSING_CONTEXT)
-        executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
-    else:
-        ctx = multiprocessing
-        executor = concurrent.futures.ProcessPoolExecutor(mp_context=ctx, max_workers=n_threads)
+    ctx = multiprocessing.get_context(MULTIPROCESSING_CONTEXT)
+    executor = concurrent.futures.ProcessPoolExecutor(mp_context=ctx, max_workers=n_threads)
     manager = ctx.Manager()
-    result_map = manager.dict()
 
+    result_map = manager.dict()
     futures = list()  # pool workers
     testcases = list()  # individual cases to allow report while others run
     for runners in groups:
@@ -129,7 +127,7 @@ def run(groups,
     return 1 if failed > 0 else 0
 
 
-def _execute_testcase(tc, conn):
+def _execute_testcase(tc, conn, legacy=False):
     """
     Function for executing the `TestCase` *tc* with exception handling from within a subprocess.
 
@@ -146,6 +144,7 @@ def _execute_testcase(tc, conn):
         results = {
             tc.name(): TestCase.Data(TestCase.Result.FATAL, None, '', traceback.format_exc(), None)
         }
+
     conn.send((state, results))
     conn.close()
 
@@ -179,10 +178,7 @@ def _execute_testcases(testcases, result_map, timeout):
 
         result_map[unique_id] = (TestCase.Progress.RUNNING, None, None)
 
-        if platform.python_version() < '3.7.0':
-            ctx = multiprocessing.get_context(MULTIPROCESSING_CONTEXT)
-        else:
-            ctx = multiprocessing
+        ctx = multiprocessing.get_context(MULTIPROCESSING_CONTEXT)
         conn_recv, conn_send = ctx.Pipe(False)
         proc = ctx.Process(target=_execute_testcase, args=(tc, conn_send))
         proc.start()
@@ -330,3 +326,16 @@ def fuzzer(seed=1980,
     kwargs['max_fails'] = random.randint(*max_fails)
     kwargs['min_fail_state'] = random.choice([r for r in TestCase.Result])
     return run(groups, controllers, formatter, **kwargs)
+
+
+if __name__ == '__main__':
+    from moosetools.moosetest.formatters import BasicFormatter
+    from moosetools.moosetest.base import make_runner, make_differ
+    sys.path.append(os.path.join(os.path.dirname(__file__), 'tests'))
+    from _helpers import TestController, TestRunner, TestDiffer
+
+    fm = BasicFormatter()
+    groups = [None] * 1
+    groups[0] = [TestRunner(name='a', sleep=1)]
+
+    run(groups, tuple(), fm)

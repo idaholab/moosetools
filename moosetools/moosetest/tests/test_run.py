@@ -88,6 +88,7 @@ class TestRunExecuteHelpers(unittest.TestCase):
         self.assertIn("wrong", data.stderr)
         self.assertEqual(data.reasons, None)
 
+    @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
     def test_execute_testcases(self):
         class DictProxy(object):
             def __init__(self, obj):
@@ -194,6 +195,7 @@ class TestRunExecuteHelpers(unittest.TestCase):
         self.assertEqual(data.reasons, ['max time (1) exceeded'])
 
 
+@unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
 class TestReportHelper(unittest.TestCase):
     @mock.patch('moosetools.moosetest.base.Formatter.reportResults')
     @mock.patch('moosetools.moosetest.base.TestCase.setResults')
@@ -227,6 +229,7 @@ class TestReportHelper(unittest.TestCase):
         fm_results.assert_called_once_with(tc0)
 
 
+@unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
 class TestRun(unittest.TestCase):
     ANY = 42
 
@@ -1046,6 +1049,7 @@ class TestRun(unittest.TestCase):
                         stdout='',
                         stderr=TestRun.IN("A previous test case (Just Andrew)"))
 
+    @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
     def testFuzzer(self):
         rcode = fuzzer()
         self.assertIn(rcode, (0, 1))

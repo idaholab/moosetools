@@ -9,6 +9,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os
+import platform
 import sys
 import argparse
 import unittest
@@ -155,6 +156,7 @@ class TestLoadConfig(unittest.TestCase):
         self.assertIn("The configuration file, 'wrong'", str(ex.exception))
 
 
+@unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
 class TestMain(unittest.TestCase):
     @mock.patch('argparse.ArgumentParser.parse_args',
                 return_value=argparse.Namespace(demo=False,
