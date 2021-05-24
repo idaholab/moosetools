@@ -226,8 +226,9 @@ def _execute_testcases(testcases, results_map, timeout):
 
         results_map[unique_id] = (TestCase.Progress.RUNNING, None, None)
 
-        conn_recv, conn_send = multiprocessing.Pipe(False)
-        proc = multiprocessing.Process(target=_execute_testcase, args=(tc, conn_send))
+        ctx = multiprocessing.get_context('fork')
+        conn_recv, conn_send = ctx.Pipe(False)
+        proc = ctx.Process(target=_execute_testcase, args=(tc, conn_send))
         proc.start()
 
         if conn_recv.poll(timeout):
@@ -242,6 +243,8 @@ def _execute_testcases(testcases, results_map, timeout):
                               [f'max time ({timeout}) exceeded'])
             }
 
+        proc.join()
+        proc.close()
         results_map[unique_id] = (TestCase.Progress.FINISHED, state, results)
 
         if (state.level > 0):
