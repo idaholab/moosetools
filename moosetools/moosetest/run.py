@@ -89,8 +89,9 @@ def run(groups,
 
     # Setup process/thread pool, the result_queue is used to collecting results returned from workers
     #if method == RunMethod.PROCESS_POOL:
-    executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
-    manager = multiprocessing.Manager()
+    ctx = multiprocessing.get_context('fork')
+    executor = concurrent.futures.ProcessPoolExecutor(mp_context=ctx, max_workers=n_threads)
+    manager = ctx.Manager()
     results_map = manager.dict()
 
     #elif method == RunMethod.THREAD_POOL:
@@ -193,8 +194,9 @@ def _execute_testcase(tc, conn):
         results = {
             tc.name(): TestCase.Data(TestCase.Result.FATAL, None, '', traceback.format_exc(), None)
         }
-    conn.send((state, results))
-    conn.close()
+    #conn.send((state, results))
+    #conn.close()
+    return state, results
 
 
 def _execute_testcases(testcases, results_map, timeout):
@@ -225,7 +227,8 @@ def _execute_testcases(testcases, results_map, timeout):
             continue
 
         results_map[unique_id] = (TestCase.Progress.RUNNING, None, None)
-
+        state, results = _execute_testcase(tc, None)
+        """
         ctx = multiprocessing.get_context('fork')
         conn_recv, conn_send = ctx.Pipe(False)
         proc = ctx.Process(target=_execute_testcase, args=(tc, conn_send))
@@ -245,8 +248,8 @@ def _execute_testcases(testcases, results_map, timeout):
 
         proc.join()
         proc.close()
+        """
         results_map[unique_id] = (TestCase.Progress.FINISHED, state, results)
-
         if (state.level > 0):
             skip_message = f"A previous test case ({tc.name()}) in the group returned a non-zero state of {state}."
 
