@@ -187,7 +187,8 @@ class Test(unittest.TestCase):
         page_attributes = manager.dict()
 
         page = MyNode(uid=0)
-        p = multiprocessing.Process(target=self._addAttribute, args=(page, 1949, page_attributes))
+        ctx = multiprocessing.get_context('fork')
+        p = ctx.Process(target=self._addAttribute, args=(page, 1949, page_attributes))
         p.start()
         p.join()
 
@@ -198,7 +199,7 @@ class Test(unittest.TestCase):
         self.assertIn('year', page.attributes)
         self.assertEqual(page['year'], 1949)
 
-        p = multiprocessing.Process(target=self._addAttribute, args=(page, 1980, page_attributes))
+        p = ctx.Process(target=self._addAttribute, args=(page, 1980, page_attributes))
         p.start()
         p.join()
 
@@ -222,16 +223,15 @@ class Test(unittest.TestCase):
         n1 = MyNode(uid=1)
         self._pages = [n0, n1]
 
-        barrier = multiprocessing.Barrier(2)
-        manager = multiprocessing.Manager()
+        ctx = multiprocessing.get_context('fork')
+        barrier = ctx.Barrier(2)
+        manager = ctx.Manager()
         page_attributes = manager.dict()
 
-        p0 = multiprocessing.Process(target=self._addAttributeBarrier,
-                                     args=(n0, barrier, page_attributes))
+        p0 = ctx.Process(target=self._addAttributeBarrier, args=(n0, barrier, page_attributes))
         p0.start()
 
-        p1 = multiprocessing.Process(target=self._addAttributeBarrier,
-                                     args=(n1, barrier, page_attributes))
+        p1 = ctx.Process(target=self._addAttributeBarrier, args=(n1, barrier, page_attributes))
         p1.start()
 
         p0.join()

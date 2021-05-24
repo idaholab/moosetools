@@ -20,9 +20,9 @@ import concurrent.futures
 
 from moosetools.moosetest.base import make_runner, make_differ, TestCase, State, Formatter, Runner, Differ
 from moosetools.moosetest.runners import RunCommand
-from moosetools.moosetest import run, fuzzer, RunMethod
+from moosetools.moosetest import run, fuzzer
 from moosetools.moosetest.run import _execute_testcase, _execute_testcases
-from moosetools.moosetest.run import _running_results, _running_progress
+from moosetools.moosetest.run import _report_progress_and_results
 
 # I do not want the tests directory to be packages with __init__.py, so load from file
 sys.path.append(os.path.join(os.path.dirname(__file__)))
@@ -89,24 +89,47 @@ class TestRunExecuteHelpers(unittest.TestCase):
         self.assertEqual(data.reasons, None)
 
     def test_execute_testcases(self):
+        class DictProxy(object):
+            def __init__(self, obj):
+                self.calls = list()
+                self.__obj = obj
+
+            def __setitem__(self, *args):
+                self.calls.append(args)
+                return self.__obj.__setitem__(*args)
+
         r0 = make_runner(RunCommand, name='test0', command=('sleep', '0.2'))
         r1 = make_runner(RunCommand, name='test1', command=('sleep', '0.3'))
 
         tc0 = TestCase(runner=r0)
         tc1 = TestCase(runner=r1)
 
-        # No error
-        q = queue.Queue()
-        _execute_testcases([tc0, tc1], q, 2)
-
-        u, p, s, r = q.get()
-        self.assertEqual(u, tc0.getParam('_unique_id'))
+        # Running
+        q = dict()
+        proxy = DictProxy(q)
+        _execute_testcases([tc0, tc1], proxy, 2)
+        self.assertEqual(len(proxy.calls), 4)
+        u, data = proxy.calls[0]
+        p, s, r = data
+        self.assertEqual(u, tc0.unique_id)
         self.assertEqual(p, TestCase.Progress.RUNNING)
         self.assertEqual(s, None)
         self.assertEqual(r, None)
 
-        u, p, s, r = q.get()
-        self.assertEqual(u, tc0.getParam('_unique_id'))
+        u, data = proxy.calls[2]
+        p, s, r = data
+        self.assertEqual(u, tc1.unique_id)
+        self.assertEqual(p, TestCase.Progress.RUNNING)
+        self.assertEqual(s, None)
+        self.assertEqual(r, None)
+
+        # No error
+        p, s, r = q.get(tc0.unique_id)
+        self.assertEqual(p, TestCase.Progress.FINISHED)
+        self.assertEqual(s, TestCase.Result.PASS)
+        self.assertIn('test0', r)
+
+        p, s, r = q.get(tc0.unique_id)
         self.assertEqual(p, TestCase.Progress.FINISHED)
         self.assertEqual(s, TestCase.Result.PASS)
         self.assertIn('test0', r)
@@ -117,14 +140,7 @@ class TestRunExecuteHelpers(unittest.TestCase):
         self.assertIn("sleep 0.2", data.stderr)
         self.assertEqual(data.reasons, None)
 
-        u, p, s, r = q.get()
-        self.assertEqual(u, tc1.getParam('_unique_id'))
-        self.assertEqual(p, TestCase.Progress.RUNNING)
-        self.assertEqual(s, None)
-        self.assertEqual(r, None)
-
-        u, p, s, r = q.get()
-        self.assertEqual(u, tc1.getParam('_unique_id'))
+        p, s, r = q.get(tc1.unique_id)
         self.assertEqual(p, TestCase.Progress.FINISHED)
         self.assertEqual(s, TestCase.Result.PASS)
         self.assertIn('test1', r)
@@ -140,14 +156,7 @@ class TestRunExecuteHelpers(unittest.TestCase):
                         side_effect=[Exception("wrong"), None]):
             _execute_testcases([tc0, tc1], q, 2)
 
-        u, p, s, r = q.get()
-        self.assertEqual(u, tc0.getParam('_unique_id'))
-        self.assertEqual(p, TestCase.Progress.RUNNING)
-        self.assertEqual(s, None)
-        self.assertEqual(r, None)
-
-        u, p, s, r = q.get()
-        self.assertEqual(u, tc0.getParam('_unique_id'))
+        p, s, r = q.get(tc0.unique_id)
         self.assertEqual(p, TestCase.Progress.FINISHED)
         self.assertEqual(s, TestCase.Result.FATAL)
         self.assertIn('test0', r)
@@ -158,8 +167,7 @@ class TestRunExecuteHelpers(unittest.TestCase):
         self.assertIn("wrong", data.stderr)
         self.assertEqual(data.reasons, None)
 
-        u, p, s, r = q.get()
-        self.assertEqual(u, tc1.getParam('_unique_id'))
+        p, s, r = q.get(tc1.unique_id)
         self.assertEqual(p, TestCase.Progress.FINISHED)
         self.assertEqual(s, TestCase.Result.SKIP)
         self.assertIn('test1', r)
@@ -174,14 +182,7 @@ class TestRunExecuteHelpers(unittest.TestCase):
         r2 = make_runner(RunCommand, name='test2', command=('sleep', '2'))
         tc2 = TestCase(runner=r2)
         _execute_testcases([tc2], q, 1)
-        u, p, s, r = q.get()
-        self.assertEqual(u, tc2.getParam('_unique_id'))
-        self.assertEqual(p, TestCase.Progress.RUNNING)
-        self.assertEqual(s, None)
-        self.assertEqual(r, None)
-
-        u, p, s, r = q.get()
-        self.assertEqual(u, tc2.getParam('_unique_id'))
+        p, s, r = q.get(tc2.unique_id)
         self.assertEqual(p, TestCase.Progress.FINISHED)
         self.assertEqual(s, TestCase.Result.TIMEOUT)
         self.assertIn('test2', r)
@@ -193,78 +194,37 @@ class TestRunExecuteHelpers(unittest.TestCase):
         self.assertEqual(data.reasons, ['max time (1) exceeded'])
 
 
-class TestRunningHelpers(unittest.TestCase):
+class TestReportHelper(unittest.TestCase):
     @mock.patch('moosetools.moosetest.base.Formatter.reportResults')
     @mock.patch('moosetools.moosetest.base.TestCase.setResults')
     @mock.patch('moosetools.moosetest.base.TestCase.setState')
     @mock.patch('moosetools.moosetest.base.TestCase.setProgress')
-    def test_running_results(self, tc_prog, tc_state, tc_results, fm_results):
+    def test_report_progress_and_results(self, tc_prog, tc_state, tc_results, fm_results):
 
         fm = Formatter()
-        q = queue.Queue()
-
         r0 = make_runner(RunCommand, name='test0', command=('sleep', '0.2'))
         tc0 = TestCase(runner=r0)
-        tc_map = make_testcase_map(tc0)
-
-        tc_prog.assert_called_with(TestCase.Progress.WAITING)
-        tc_state.assert_not_called()
-        tc_results.assert_not_called()
-        fm_results.assert_not_called()
         tc_prog.reset_mock()
 
-        q.put((get_uid(tc0), TestCase.Progress.RUNNING, None, None))
-        _running_results(tc_map, q, fm)
-        tc_prog.assert_called_with(TestCase.Progress.RUNNING)
-        tc_state.assert_not_called()
-        tc_results.assert_not_called()
-        fm_results.assert_not_called()
-        tc_prog.reset_mock()
-
-        q.put((get_uid(tc0), TestCase.Progress.FINISHED, TestCase.Result.FATAL, 'data'))
-        _running_results(tc_map, q, fm)
-        tc_prog.assert_called_with(TestCase.Progress.FINISHED)
-        tc_state.assert_called_with(TestCase.Result.FATAL)
-        tc_results.assert_called_with('data')
-        fm_results.assert_called_with(tc0)
-
-        # tests that the queue.Empty exception is handled
-        _running_results(tc_map, queue.Queue(), fm)
-
-    @mock.patch('moosetools.moosetest.base.TestCase.setResults')
-    @mock.patch('moosetools.moosetest.base.TestCase.setState')
-    @mock.patch('moosetools.moosetest.base.TestCase.setProgress')
-    @mock.patch('moosetools.moosetest.base.Formatter.reportResults')
-    @mock.patch('moosetools.moosetest.base.Formatter.reportProgress')
-    def test_running_progress(self, fm_progress, fm_results, tc_prog, tc_state, tc_results):
-
-        fm = Formatter()
-
-        r0 = make_runner(RunCommand, name='test0', command=('sleep', '0.2'))
-        r1 = make_runner(RunCommand, name='test0', command=('sleep', '0.1'))
-        tc0 = TestCase(runner=r0)
-        tc1 = TestCase(runner=r1)
-        tc_prog.reset_mock()
-
-        tc_map = make_testcase_map(tc0, tc1)
-
-        # Make sure nothing is called
-        _running_progress(tc_map, fm)
+        _report_progress_and_results(tc0, fm, None, None, None)
         tc_prog.assert_not_called()
         tc_state.assert_not_called()
         tc_results.assert_not_called()
-        fm_progress.assert_not_called()
         fm_results.assert_not_called()
+        tc_prog.reset_mock()
 
-        # Running should report progress (function is mocked)
-        tc0._TestCase__progress = TestCase.Progress.RUNNING
-        _running_progress(tc_map, fm)
-        tc_prog.assert_not_called()
+        _report_progress_and_results(tc0, fm, TestCase.Progress.RUNNING, None, None)
+        tc_prog.assert_called_once_with(TestCase.Progress.RUNNING)
         tc_state.assert_not_called()
         tc_results.assert_not_called()
-        fm_progress.assert_called_with(tc0)
         fm_results.assert_not_called()
-        fm_progress.reset_mock()
+        tc_prog.reset_mock()
+
+        _report_progress_and_results(tc0, fm, TestCase.Progress.FINISHED, None, None)
+        tc_prog.assert_called_once_with(TestCase.Progress.FINISHED)
+        tc_state.assert_called_once_with(None)
+        tc_results.assert_called_once_with(None)
+        fm_results.assert_called_once_with(tc0)
 
 
 class TestRun(unittest.TestCase):
@@ -322,22 +282,6 @@ class TestRun(unittest.TestCase):
                 self.assertIn(value.value, call[1][key])  # call.kwargs[key] in python > 3.7
             else:
                 self.assertEqual(call[1][key], value)  # call.kwargs[key] in python > 3.7
-
-    def testMethod(self):
-        r = make_runner(TestRunner, name='Just Andrew')
-        fm = Formatter()
-
-        with mock.patch('platform.python_version', return_value='3.6.0'):
-            with self.assertRaises(RuntimeError) as ex:
-                rcode = run([[r]], tuple(), fm, method=RunMethod.PROCESS_POOL)
-            self.assertIn("Using a Process pool with python 3.6", str(ex.exception))
-
-        rcode = run([[r]], tuple(), fm, method=RunMethod.THREAD_POOL)
-        self.assertEqual(rcode, 0)
-
-        if platform.python_version() >= "3.7":
-            rcode = run([[r]], tuple(), fm, method=RunMethod.PROCESS_POOL)
-            self.assertEqual(rcode, 0)
 
     def testRunnerOnly(self):
         r = TestRunner(name='Andrew', stderr=True, stdout=True)
@@ -1101,35 +1045,6 @@ class TestRun(unittest.TestCase):
                         returncode=None,
                         stdout='',
                         stderr=TestRun.IN("A previous test case (Just Andrew)"))
-
-    def testFailSafe(self):
-        uid = uuid.uuid4()
-        r = make_runner(TestRunner, name='Just Andrew')
-        fm = Formatter()
-
-        class QueueProxy(object):
-            def __init__(self):
-                self._count = 0
-
-            def get_nowait(self):
-                return uid, None, None, None
-
-            def task_done(self):
-                pass
-
-            def put(self, *args):
-                pass
-
-            def empty(self):
-                self._count += 1
-                return self._count not in (2, 3)  # false on 2nd and 3rd call
-
-        with mock.patch('uuid.uuid4', return_value=uid):
-            with mock.patch('queue.Queue', return_value=QueueProxy()):
-                with self.assertRaises(RuntimeError) as ex:
-                    rcode = run([[r]], tuple(), fm)
-
-        self.assertIn('Unexpected progress/result', str(ex.exception))
 
     def testFuzzer(self):
         rcode = fuzzer()

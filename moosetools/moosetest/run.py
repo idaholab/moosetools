@@ -14,19 +14,19 @@ import traceback
 import queue
 import platform
 import concurrent.futures
+import threading
 import multiprocessing
 import time
 import enum
+from moosetools.moosetest.base import TestCase
 
-from moosetools.moosetest.base import TestCase, RedirectOutput
-
-
-class RunMethod(enum.Enum):
-    """
-    The run method to utilize: ThreadPool or ProcessPool
-    """
-    THREAD_POOL = 0
-    PROCESS_POOL = 1
+# By default macOS use 'spawn' for creating processes. However, I had problems with the following
+# warning being produced. I couldn't figure out that root cause of the warning with respect to the
+# code here. It might be related to https://bugs.python.org/issue38119. Using 'fork' does not result
+# in the warning, so I went with that until I figure out the reason.
+#
+# UserWarning: resource_tracker: There appear to be 5 leaked semaphore objects to clean up at shutdown
+MULTIPROCESSING_CONTEXT = 'fork'
 
 
 def run(groups,
@@ -57,27 +57,8 @@ def run(groups,
     is triggered all running objects will continue to run and all objects waiting will be canceled.
 
     The function will return 1 if any test case has a state with a level greater than
-    *min_fail*state*, otherwise a 0 is returned.
+    *min_fail_state*, otherwise a 0 is returned.
     """
-    # NOTE: This function is the heart of moosetest. Significant effort went into the design,
-    #       including getting 100% test coverage and handling all the corner cases found during
-    #       that process. If you are going to change this function make sure you test the changes
-    #       thoroughly. If something does not work, please be kind...this was non-trivial (at least
-    #       for Andrew).
-
-    # Determine the default method. Originally this function only operated using a Process pool, but
-    # in python 3.6 there was a problem with pickling the Queue. However, using a Thread pool does
-    # work in 3.6.
-    # https://stackoverflow.com/questions/44144584/typeerror-cant-pickle-thread-lock-objects
-    #
-    # Given that switching between them is trivial, it might be a nice option to have improve
-    # performance depending on the type of testing being performed.
-    if method is None:
-        method = RunMethod.PROCESS_POOL if platform.python_version(
-        ) >= "3.7" else RunMethod.THREAD_POOL
-
-    if method == RunMethod.PROCESS_POOL and platform.python_version() < "3.7":
-        raise RuntimeError("Using a Process pool with python 3.6 is not supported.")
 
     # Capture for computing the total execution time for all test cases
     start_time = time.time()
@@ -87,59 +68,50 @@ def run(groups,
     tc_kwargs['controllers'] = controllers
     tc_kwargs['min_fail_state'] = min_fail_state
 
-    # Setup process/thread pool, the result_queue is used to collecting results returned from workers
-    #if method == RunMethod.PROCESS_POOL:
-    ctx = multiprocessing.get_context('fork')
-    executor = concurrent.futures.ProcessPoolExecutor(mp_context=ctx, max_workers=n_threads)
+    # Setup process pool, the result_map is used to collecting results returned from workers
+    if platform.python_version() < '3.7.0':
+        executor = concurrent.futures.ProcessPoolExecutor(max_workers=n_threads)
+    else:
+        ctx = multiprocessing.get_context(MULTIPROCESSING_CONTEXT)
+        executor = concurrent.futures.ProcessPoolExecutor(mp_context=ctx, max_workers=n_threads)
     manager = ctx.Manager()
-    results_map = manager.dict()
-
-    #elif method == RunMethod.THREAD_POOL:
-    #    executor = concurrent.futures.ThreadPoolExecutor(max_workers=n_threads)
-    #    result_queue = queue.Queue()
+    result_map = manager.dict()
 
     futures = list()  # pool workers
-    testcase_map = dict()  # individual cases to allow report while others run
-
+    testcases = list()  # individual cases to allow report while others run
     for runners in groups:
-        testcases = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
-        futures.append(executor.submit(_execute_testcases, testcases, results_map, timeout))
-        for tc in testcases:
-            testcase_map[tc.unique_id] = tc
+        local = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
+        futures.append(executor.submit(_execute_testcases, local, result_map, timeout))
+        testcases += local
 
-    # Loop until all the test cases are finished or the number of failures is reached
-    count = len(testcase_map)
+    # Loop until all the test cases are finished, the number of failures is reached, or the Future
+    # objects are complete
+    count = len(testcases)  # count of running/waiting test cases
     while count > 0 or any(f.running() for f in futures):
+        n_fails = 0
         count = 0
-        for tc in testcase_map.values():
-            count += int(not tc.finished)
-            progress, state, results = results_map.get(tc.unique_id, (None, None, None))
-            if progress is not None:
-                _report_results(tc, formatter, progress, state, results)
-    """
-    while any(not tc.finished for tc in testcase_map.values()):  #
-        _running_results(testcase_map, results_map, formatter)
-        _running_progress(testcase_map, progress_map, formatter)
+        for tc in testcases:
+            if tc.finished:
+                n_fails += int(tc.state.level >= min_fail_state.level)
+            else:
+                count += 1
+            progress, state, results = result_map.pop(tc.unique_id, (None, None, None))
+            _report_progress_and_results(tc, formatter, progress, state, results)
 
-        # If the number of failures has been reached, exit the loop early
-        n_fails = sum(tc.state.level >= min_fail_state.level for tc in testcase_map.values()
-                      if tc.finished)
         if n_fails >= max_fails:
             break
 
-    # Cancel all workers. There is only something to cancel if the previous loop exited early
-    # because of hitting the max failures. After canceling, continue reporting progress/results
-    # until all the workers are finished. It is also possible that the queue contains data that
-    # was present
-    for f in futures:
-        f.cancel()
-    while any(f.running() for f in futures) or not result_queue.empty():
-        _running_results(testcase_map, result_queue, formatter)
-        _running_progress(testcase_map, formatter)
+    # Shutdown the pool of workers.
+    if platform.python_version() >= '3.9.0':
+        executor.shutdown(cancel_futures=True)
+    else:
+        for f in futures:
+            f.cancel()
+        executor.shutdown()
 
-    # Any test cases that are not finished have been skipped because of the early max failures exit
-    # of the first loop. So, mark them as finished and report.
-    for tc in filter(lambda tc: not tc.finished, testcase_map.values()):
+    # If there are test cases not finished they must have been skipped because of the early max
+    # failures exit, So, mark them as finished and report.
+    for tc in filter(lambda tc: not tc.finished, testcases):
         tc.setProgress(TestCase.Progress.FINISHED)
         tc.setState(TestCase.Result.SKIP)
         tc.setResults({
@@ -150,30 +122,9 @@ def run(groups,
         formatter.reportProgress(tc)
         formatter.reportResults(tc)
 
-    # At this point all the workers should be done and the data collected from the result_queue.
-    # Just to be sure catch the case where there is still data hanging around. This shouldn't be
-    # possible to trigger, but it helped catch some bugs when writing and testing the function so
-    # is should stay.
-    if not result_queue.empty():
-        with RedirectOutput() as out:
-            while not result_queue.empty():
-                _running_results(testcase_map, result_queue, formatter)
-                _running_progress(testcase_map, formatter)
-        msg = "Unexpected progress/result output found.\nsys.stdout:\n{}\nsys.stderr:\n{}"
-        raise RuntimeError(msg.format(out.stdout, out.stderr))
-    """
-    print(formatter.reportComplete(testcase_map.values(), start_time))
-
-    # When running the tests, there were cases that gave the an error that ended with:
-    #
-    #     File "/Users/.../lib/python3.8/multiprocessing/popen_fork.py", line 69, in _launch
-    #       child_r, parent_w = os.pipe()
-    # OSError: [Errno 24] Too many open files
-    #
-    # Adding a call to shutdown the pool of workers seems to get rid of that problem.
-    executor.shutdown()
-
-    failed = sum(tc.state.level >= min_fail_state.level for tc in testcase_map.values())
+    # Produce exit code and return
+    print(formatter.reportComplete(testcases, start_time))
+    failed = sum(tc.state.level >= min_fail_state.level for tc in testcases)
     return 1 if failed > 0 else 0
 
 
@@ -194,12 +145,11 @@ def _execute_testcase(tc, conn):
         results = {
             tc.name(): TestCase.Data(TestCase.Result.FATAL, None, '', traceback.format_exc(), None)
         }
-    #conn.send((state, results))
-    #conn.close()
-    return state, results
+    conn.send((state, results))
+    conn.close()
 
 
-def _execute_testcases(testcases, results_map, timeout):
+def _execute_testcases(testcases, result_map, timeout):
     """
     Function for executing groups of `TestCase` objects, *testcases*, each within a subprocess.
 
@@ -223,20 +173,18 @@ def _execute_testcases(testcases, results_map, timeout):
                 tc.name(): TestCase.Data(TestCase.Result.SKIP, None, '', skip_message,
                                          ['dependency'])
             }
-            results_map[unique_id] = (TestCase.Progress.FINISHED, state, results)
+            result_map[unique_id] = (TestCase.Progress.FINISHED, state, results)
             continue
 
-        results_map[unique_id] = (TestCase.Progress.RUNNING, None, None)
-        state, results = _execute_testcase(tc, None)
-        """
-        ctx = multiprocessing.get_context('fork')
+        result_map[unique_id] = (TestCase.Progress.RUNNING, None, None)
+
+        ctx = multiprocessing.get_context(MULTIPROCESSING_CONTEXT)
         conn_recv, conn_send = ctx.Pipe(False)
         proc = ctx.Process(target=_execute_testcase, args=(tc, conn_send))
         proc.start()
 
         if conn_recv.poll(timeout):
             state, results = conn_recv.recv()
-            proc.terminate()
         else:
             proc.terminate()
             state = TestCase.Result.TIMEOUT
@@ -248,14 +196,21 @@ def _execute_testcases(testcases, results_map, timeout):
 
         proc.join()
         proc.close()
-        """
-        results_map[unique_id] = (TestCase.Progress.FINISHED, state, results)
+
+        result_map[unique_id] = (TestCase.Progress.FINISHED, state, results)
         if (state.level > 0):
             skip_message = f"A previous test case ({tc.name()}) in the group returned a non-zero state of {state}."
 
 
-def _report_results(tc, formatter, progress, state, results):
-    if tc.progress != progress:
+def _report_progress_and_results(tc, formatter, progress, state, results):
+    """
+    Helper function for reporting results/progress during a call to the `run` function.
+
+    The `TestCase` object in *tc* if updated with *progress*, *state*, and *results* if the supplied
+    progress differs from the existing progress in the object. The progress and results are
+    displayed to the screen using the `Formatter` object supplied in *formatter*.
+    """
+    if (progress is not None) and (tc.progress != progress):
         tc.setProgress(progress)
         if progress == TestCase.Progress.FINISHED:
             tc.setState(state)
@@ -264,41 +219,6 @@ def _report_results(tc, formatter, progress, state, results):
 
     elif tc.running:
         formatter.reportProgress(tc)
-
-
-def _running_results(testcase_map, results_map, formatter):
-    """
-    Helper function for reporting results as obtained during a call to `run` function.
-
-    The results are obtained from the *result_queue* for `TestCase` objects within the
-    *testcase_map*.
-
-    See `run` function for use.
-    """
-    try:
-        progress, state, results = results_map.get(unique_id, (None, None, None))
-        tc = testcase_map.get(unique_id)
-        if (progress is not None) and (tc.progress != progress):
-            tc.setProgress(progress)
-            if progress == TestCase.Progress.FINISHED:
-                tc.setState(state)
-                tc.setResults(results)
-                formatter.reportResults(tc)
-
-    except queue.Empty:
-        pass
-
-
-def _running_progress(testcase_map, formatter):
-    """
-    Helper function for reporting state of the `TestCase` objects.
-
-    The supplied `TestCase` objects *testcase_map* are each checked, if the case is running the
-    progress is reported. If more than *max_fails* is reached the processes in *futures* are canceled.
-    """
-    for tc in testcase_map.values():
-        if tc.running:
-            formatter.reportProgress(tc)
 
 
 def fuzzer(seed=1980,
@@ -405,18 +325,4 @@ def fuzzer(seed=1980,
     kwargs['timeout'] = random.randint(*timeout)
     kwargs['max_fails'] = random.randint(*max_fails)
     kwargs['min_fail_state'] = random.choice([r for r in TestCase.Result])
-    #kwargs['method'] = RunMethod.THREAD_POOL
     return run(groups, controllers, formatter, **kwargs)
-
-
-if __name__ == '__main__':
-    from moosetools.moosetest.formatters import BasicFormatter
-    from moosetools.moosetest.base import make_runner, make_differ
-    sys.path.append(os.path.join(os.path.dirname(__file__), 'tests'))
-    from _helpers import TestController, TestRunner, TestDiffer
-
-    formatter = BasicFormatter()
-    groups = [None] * 1
-    groups[0] = [TestRunner(sleep=1, name='A')]
-
-    run(groups, tuple(), formatter, n_threads=1)

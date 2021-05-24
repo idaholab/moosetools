@@ -249,15 +249,9 @@ class TestCase(MooseObject):
                    mutable=False,
                    default=TestCase.Result.TIMEOUT,
                    doc="The minimum state considered a failure for the entire test case.")
-        #params.add('_unique_id',
-        #           vtype=uuid.UUID,
-        #           mutable=True,
-        #           private=True,
-        #           doc="A unique id used for collecting data returned from sub-processes.")
         return params
 
     def __init__(self, *args, **kwargs):
-        #kwargs['_unique_id'] = uuid.uuid4()
         MooseObject.__init__(self, *args, **kwargs)
 
         self._runner = self.getParam('runner')
@@ -275,13 +269,16 @@ class TestCase(MooseObject):
         self.__start_time = None  # time when progress change to running
         self.__execute_time = None  # duration of execution running to finished
 
-        self.__unique_id = uuid.uuid4()
+        self.__unique_id = uuid.uuid4()  # a unique identifier for this instance
 
         self.setProgress(TestCase.Progress.WAITING)
         TestCase.__TOTAL__ += 1
 
     @property
     def unique_id(self):
+        """
+        Return a unique identifier for this object.
+        """
         return self.__unique_id
 
     @property

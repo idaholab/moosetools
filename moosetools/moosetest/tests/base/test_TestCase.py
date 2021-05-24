@@ -16,6 +16,7 @@ import multiprocessing
 import collections
 import logging
 import unittest
+import uuid
 from unittest import mock
 from moosetools.moosetest.base import make_runner, Runner, make_differ, Differ
 from moosetools.moosetest.base import Controller, Formatter, TestCase, State, RedirectOutput
@@ -69,6 +70,10 @@ class TestRedirectOutput(unittest.TestCase):
 
 
 class TestTestCase(unittest.TestCase):
+    def test_unique_id(self):
+        tc0 = TestCase(runner=Runner(name='a'))
+        self.assertIsInstance(tc0.unique_id, uuid.UUID)
+
     def testCounts(self):
         TestCase.__TOTAL__ = 0
         TestCase.__FINISHED__ = 0
