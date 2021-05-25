@@ -98,12 +98,21 @@ def run(groups,
             except queue.Empty:
                 pass
 
+            for tc in filter(lambda obj: obj.running, testcases.values()):
+                formatter.reportProgress(tc)
+
         if n_fails >= max_fails:
             for f in futures:
                 f.cancel()
 
     # Shutdown the pool of workers.
     executor.shutdown()
+
+    # Raise any exceptions from Future objects
+    for f_obj in filter(lambda f: not f.cancelled(), futures):
+        exc = f_obj.exception()
+        if exc is not None:
+            raise exc
 
     # Report any messages that remain in the Queues
     while any(not r.empty() for r in readers):
@@ -131,7 +140,7 @@ def run(groups,
     return 1 if failed > 0 else 0
 
 
-def _execute_testcase(tc, conn, legacy=False):
+def _execute_testcase(tc, conn):
     """
     Function for executing the `TestCase` *tc* with exception handling from within a subprocess.
 
@@ -218,9 +227,6 @@ def _report_progress_and_results(tc, formatter, progress, state, results):
             tc.setState(state)
             tc.setResults(results)
             formatter.reportResults(tc)
-
-    elif tc.running:
-        formatter.reportProgress(tc)
 
 
 def fuzzer(seed=1980,
@@ -330,16 +336,17 @@ def fuzzer(seed=1980,
     return run(groups, controllers, formatter, **kwargs)
 
 
-if __name__ == '__main__':
+if __name__ == '__main__':  # pragma: no cover
+    # This is here for quick testing
     from moosetools.moosetest.formatters import BasicFormatter
     from moosetools.moosetest.base import make_runner, make_differ
     sys.path.append(os.path.join(os.path.dirname(__file__), 'tests'))
     from _helpers import TestController, TestRunner, TestDiffer
 
-    fm = BasicFormatter()
+    fm = BasicFormatter(progress_interval=3)
     groups = [None] * 3
-    groups[0] = [TestRunner(name='a.a', sleep=1), TestRunner(name='a.b', sleep=2)]
-    groups[1] = [TestRunner(name='b.a', sleep=1), TestRunner(name='b.b', sleep=2)]
-    groups[2] = [TestRunner(name='c.a', sleep=1), TestRunner(name='c.b', sleep=2)]
+    groups[0] = [TestRunner(name='a.a', sleep=1), TestRunner(name='a.b', sleep=4)]
+    groups[1] = [TestRunner(name='b.a', sleep=1), TestRunner(name='b.b', sleep=5)]
+    groups[2] = [TestRunner(name='c.a', sleep=1), TestRunner(name='c.b', sleep=6)]
 
-    run(groups, tuple(), fm, n_threads=2)
+    Run(groups, tuple(), fm, n_threads=2)

@@ -64,6 +64,12 @@ class TestMooseTesWarehouse(unittest.TestCase):
         self.assertEqual(obj.name(), 'thename')
         self.assertIs(w.objects[-1].getParam('differs')[0], obj)
 
+        obj.error("something went wrong")
+        with self.assertLogs(level='CRITICAL') as log:
+            w.append(obj)
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("The 'thename' object produced error(s) during construction.", log.output[0])
+
 
 @mock.patch('moosetools.pyhit.load')
 class TestCreateRunners(unittest.TestCase):
@@ -75,7 +81,9 @@ class TestCreateRunners(unittest.TestCase):
 
         f = MooseTestFactory()
         f.load()
-        with self.assertLogs(level='CRITICAL') as log:
+        with self.assertLogs(level='CRITICAL') as log, \
+        mock.patch('os.path.isdir', return_value=True), \
+        mock.patch('os.path.isabs', return_value=True):
             objs, status = _create_runners('foo/bar', 'foo/bar/testing/tests', ['Tests'], f)
         self.assertEqual(status, 1)
         self.assertEqual(len(log.output), 1)
@@ -96,7 +104,9 @@ class TestCreateRunners(unittest.TestCase):
 
         f = MooseTestFactory()
         f.load()
-        with mock.patch('os.path.isfile', return_value=True):
+        with mock.patch('os.path.isfile', return_value=True), \
+        mock.patch('os.path.isdir', return_value=True), \
+        mock.patch('os.path.isabs', return_value=True):
             objs, status = _create_runners('foo/bar', 'foo/bar/testing/tests', ['Tests'], f)
 
         self.assertEqual(status, 0)

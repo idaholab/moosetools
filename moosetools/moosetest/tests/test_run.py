@@ -229,6 +229,9 @@ class TestReportHelper(unittest.TestCase):
         tc_results.assert_called_once_with(None)
         fm_results.assert_called_once_with(tc0)
 
+        #tc0.setProgress(
+        #_report_progress_and_results(tc0, fm, TestCase.Progress.FINISHED, None, None)
+
 
 @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
 class TestRun(unittest.TestCase):
@@ -286,6 +289,15 @@ class TestRun(unittest.TestCase):
                 self.assertIn(value.value, call[1][key])  # call.kwargs[key] in python > 3.7
             else:
                 self.assertEqual(call[1][key], value)  # call.kwargs[key] in python > 3.7
+
+    def testFutureException(self):
+        r = TestRunner(name='Andrew', stderr=True, stdout=True)
+        fm = Formatter()
+
+        with mock.patch('concurrent.futures.Future.exception', return_value=Exception('future exception')), \
+        self.assertRaises(Exception) as cm:
+            rcode = run([[r]], tuple(), fm)
+        self.assertIn('future exception', str(cm.exception))
 
     def testRunnerOnly(self):
         r = TestRunner(name='Andrew', stderr=True, stdout=True)

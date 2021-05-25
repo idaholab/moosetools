@@ -9,7 +9,9 @@
 
 import uuid
 import enum
-from moosetools.base import MooseObject
+import os
+from moosetools import mooseutils
+from moosetools import base
 from .Differ import Differ
 
 
@@ -48,7 +50,7 @@ def make_runner(cls, controllers=None, **kwargs):
     return cls(params, **kwargs)
 
 
-class Runner(MooseObject):
+class Runner(base.MooseObject):
     """
     Base class for defining a task to be "run", via the `moosetest.run` function.
 
@@ -57,13 +59,77 @@ class Runner(MooseObject):
     """
     @staticmethod
     def validParams():
-        params = MooseObject.validParams()
+        params = base.MooseObject.validParams()
         params.setRequired('name', True)
         params.add('differs',
                    vtype=Differ,
                    array=True,
                    doc="The 'Differ' object(s) to execute after execution of this object.")
+
+        params.add(
+            'base_dir',
+            vtype=str,
+            verify=(Runner.verifyBaseDirectory,
+                    "The supplied directory must exist and be an absolute path."),
+            doc=
+            "The base directory for the relative paths of the supplied names in the 'filenames' parameter."
+        )
+        params.add(
+            'filenames',
+            vtype=str,
+            array=True,
+            doc=
+            "Filename(s) that are expected to be created during execution of this object. The file(s) listed here are joined with the 'filenames' parameter from each differ. The combined set is what is used for associated error checking."
+        )
+
+        params.add(
+            'check_created_files',
+            vtype=bool,
+            mutable=False,
+            doc=
+            "Check that all files created are accounted for in the 'filenames' parameters of this `Runner` object and/or associated `Differ` objects. By default the check will be performed if the 'base_dir' is set."
+        )
+
+        params.add('delete_output_before_running',
+                   vtype=bool,
+                   default=True,
+                   doc="Delete pre-existing output files before running test.")
+
         return params
+
+    @staticmethod
+    def verifyBaseDirectory(value):
+        """
+        Verify function for 'base_dir' parameter.
+
+        Usually a lambda is supplied to the verify argument when adding the parameter; however,
+        lambda functions cannot be pickled so they fail when being run with multiprocessing.
+        """
+        return os.path.isdir(value) and os.path.isabs(value)
+
+    def __init__(self, *args, **kwargs):
+        base.MooseObject.__init__(self, *args, **kwargs)
+        self.__expected_files = None
+        self.__pre_execute_files = None
+
+    def preExecute(self):
+        """
+        Called prior to execution of this object.
+
+        Performs checks regarding the files expected to be created during execution.
+        """
+        self._preExecuteExpectedFiles()
+
+    def postExecute(self):
+        """
+        Called after execution of this object.
+
+        This method is always called, even if `preExecute` and/or `execute` raises an exception or
+        results in an error.
+
+        Performs checks that the expected files were created.
+        """
+        self._postExecuteExpectedFiles()
 
     def execute(self):
         """
@@ -78,3 +144,95 @@ class Runner(MooseObject):
         `moosetools.moosetest.runners.RunCommand` for an example implementation.
         """
         raise NotImplementedError("The 'execute' method must be overridden.")
+
+    def _preExecuteExpectedFiles(self):
+        """
+        Prepare for inspection of expected file prior to execution.
+        """
+
+        # Create set of expected files from this object and Differ objects, accounting for 'base_dir'
+        self.__expected_files = self._getExpectedFiles()
+
+        # Check that all paths are absolute
+        non_abs = [fname for fname in self.__expected_files if not os.path.isabs(fname)]
+        if non_abs:
+            msg = "The following file(s) were not defined as an absolute path or as a relative path to the 'base_dir' parameter:\n  {}"
+            self.error(msg, '\n  '.join(non_abs))
+            return
+
+        # Check that the file is not under version control
+        root_dir = mooseutils.git_root_dir()
+        if root_dir:
+            git_files = set(mooseutils.git_ls_files(self.getParam('base_dir') or root_dir))
+            intersect = git_files.intersection(self.__expected_files)
+            if intersect:
+                msg = "The following file(s) are being tracked with 'git', thus cannot be expected to be created by the execution of this object:\n  {}."
+                self.error(msg, '\n  '.join(intersect))
+                return
+
+        # Remove expected output
+        if self.getParam('delete_output_before_running'):
+            [os.remove(fname) for fname in self.__expected_files if os.path.isfile(fname)]
+
+        # Check that expected files do not exist
+        exist = [fname for fname in self.__expected_files if os.path.isfile(fname)]
+        if exist:
+            msg = "The following files(s) are expected to be created, but they already exist:\n  {}"
+            self.error(msg, '\n  '.join(exist))
+            return
+
+        # Store directory content
+        check_created_files = self.getParam('check_created_files')
+        if check_created_files and not self.isParamValid('base_dir'):
+            msg = "When 'check_created_files' is enabled, the 'base_dir' parameter must be defined to limit the check to the correct location."
+            self.error(msg)
+            return
+        elif check_created_files or ((check_created_files is None)
+                                     and self.isParamValid('base_dir')):
+            self.__pre_execute_files = set(os.listdir(self.getParam('base_dir')))
+
+    def _postExecuteExpectedFiles(self):
+        """
+        Inspect expected file after execution.
+        """
+
+        # check that expected files exist
+        do_not_exist = [fname for fname in self.__expected_files if not os.path.isfile(fname)]
+        if do_not_exist:
+            msg = "The following file(s) were not created as expected:\n  {}"
+            self.error(msg, '\n  '.join(do_not_exist))
+
+        # check for other files
+        if self.__pre_execute_files is not None:
+            post_execute_files = set(os.listdir(self.getParam('base_dir')))
+            diff = post_execute_files.difference(self.__pre_execute_files)
+            if self.__expected_files != diff:
+                msg = "The following file(s) were created but not expected:\n  {}"
+                self.error(msg, '\n  '.join(diff.difference(self.__expected_files)))
+
+    def _getExpectedFiles(self):
+        """
+        Build the list of expected files.
+        """
+        expected = Runner.filenames(self)
+        for differ in self.getParam('differs') or set():
+            expected.update(Runner.filenames(differ))
+        return expected
+
+    @staticmethod
+    def filenames(obj):
+        """
+        Return a set of filenames gathered from the 'filenames' parameters, with relative paths
+        being prefixed with the 'base_dir' parameter (if it exists).
+        """
+        filenames = set(obj.getParam('filenames') or list())
+        base_dir = obj.getParam('base_dir')
+        if base_dir is not None:
+            filenames_abs = set()
+            for fname in filenames:
+                if os.path.isabs(fname):
+                    filenames_abs.add(fname)
+                else:
+                    filenames_abs.add(os.path.join(base_dir, fname))
+            filenames = filenames_abs
+        return filenames
