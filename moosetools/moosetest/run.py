@@ -79,8 +79,8 @@ def run(groups,
     testcases = dict()  # unique_id to TestCase object
     readers = list()
     for runners in groups:
-        result_recv, result_send = ctx.Pipe(False)
-        readers.append(result_recv)
+        result_send = manager.Queue()
+        readers.append(result_send)
         local = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
         futures.append(executor.submit(_execute_testcases, local, result_send, timeout))
         testcases.update({tc.unique_id:tc for tc in local})
@@ -91,7 +91,7 @@ def run(groups,
     while any(f.running() for f in futures):
         for reader in multiprocessing.connection.wait(readers, 0.1):
             try:
-                unique_id, progress, state, results = reader.recv()
+                unique_id, progress, state, results = reader.get()
                 tc = testcases.get(unique_id)
                 _report_progress_and_results(tc, formatter, progress, state, results)
                 if tc.finished:
@@ -206,10 +206,12 @@ def _execute_testcases(testcases, result_send, timeout):
                                          ['dependency'])
             }
             #result_map[unique_id] = (TestCase.Progress.FINISHED, state, results)
-            result_send.send((unique_id, TestCase.Progress.FINISHED, state, results))
+            #result_send.send((unique_id, TestCase.Progress.FINISHED, state, results))
+            result_send.put((unique_id, TestCase.Progress.FINISHED, state, results))
             continue
 
-        result_send.send((unique_id, TestCase.Progress.RUNNING, None, None))
+        result_send.put((unique_id, TestCase.Progress.RUNNING, None, None))
+        #result_send.send((unique_id, TestCase.Progress.RUNNING, None, None))
         #result_map[unique_id] = (TestCase.Progress.RUNNING, None, None)
 
         state, results = _execute_testcase(tc, None)
@@ -235,11 +237,13 @@ def _execute_testcases(testcases, result_send, timeout):
         proc.close()
         """
         #result_map[unique_id] = (TestCase.Progress.FINISHED, state, results)
-        result_send.send((unique_id, TestCase.Progress.FINISHED, state, results))
+        #result_send.send((unique_id, TestCase.Progress.FINISHED, state, results))
+        result_send.put((unique_id, TestCase.Progress.FINISHED, state, results))
         if (state.level > 0):
             skip_message = f"A previous test case ({tc.name()}) in the group returned a non-zero state of {state}."
 
 
+    result_send.close()
     #result_send.send((None, None, None, None)) # close
 
 
