@@ -49,6 +49,6 @@ class Differ(MooseObject):
         prior to running this object.
 
         Refer to `moosetools.base.TestCase` for how this function is called and
-        `moosetools.moosetest.differs.TextDiff` for an example implementation.
+        `moosetools.moosetest.differs.ConsoleDiff` for an example implementation.
         """
         raise NotImplementedError("The 'execute' method must be overridden.")
