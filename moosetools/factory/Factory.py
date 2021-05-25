@@ -19,7 +19,7 @@ from moosetools.base import MooseObject
 class Factory(MooseObject):
     """
     The `Factory` object exists as a convenient way to create `base.MooseObject` objects that
-    exist within a directory without requiring a full python module/package directory structure.
+    exist within a directory without requiring PYTHONPATH.
 
     It was originally designed to be utilized via the `factory.Parser` for creating objects from HIT
     input files.
@@ -28,15 +28,12 @@ class Factory(MooseObject):
     def validParams():
         params = MooseObject.validParams()
         params.add('plugin_dirs',
-                   default=(os.path.join(os.getcwd(), 'plugins'), ),
-                   required=True,
                    vtype=str,
                    array=True,
-                   verify=(lambda dirs: all(os.path.isdir(d) for d in dirs),
-                           "Supplied plugin directories must exist."),
                    doc="List of directories to search for plugins.")
-        params.add('plugin_type',
-                   default=MooseObject,
+        params.add('plugin_types',
+                   array=True,
+                   default=(MooseObject, ),
                    doc="The python type of the plugins to load.")
         return params
 
@@ -103,23 +100,41 @@ class Factory(MooseObject):
         error occurred.
         """
         self.reset()
+        plugin_types = self.getParam('plugin_types')
 
+        # Import modules from the supplied directories
         plugin_dirs = self.getParam('plugin_dirs')
-        plugin_type = self.getParam('plugin_type')
+        if plugin_dirs is not None:
+            for path in set(os.path.abspath(p) for p in plugin_dirs):
+                if not os.path.isdir(path):
+                    msg = "The supplied item, {}, to the 'plugin_dirs' parameter is not a directory."
+                    self.error(msg, path)
 
-        for info in pkgutil.iter_modules(plugin_dirs):
-            loader = info.module_finder.find_module(info.name)
+                elif not os.path.isfile(os.path.join(path, '__init__.py')):
+                    msg = "The supplied item, {}, to the 'plugin_dirs' parameter is not a python package (i.e., it does not contain an __init__.py file)."
+                    self.error(msg, path)
+
+                else:
+                    d_name, m_name = path.rsplit(os.sep, maxsplit=1)
+                    sys.path.append(d_name)
+                    try:
+                        importlib.import_module(m_name)
+                    except Exception:
+                        self.exception("Failed to load module '{}' in directory '{}'", m_name,
+                                       d_name)
+
+        # Load Classes that exist within the available modules
+        def predicate(otype):
+            return inspect.isclass(otype) and (otype not in plugin_types) and (
+                otype.__name__ not in self._registered_types) and any(p in inspect.getmro(otype)
+                                                                      for p in plugin_types)
+
+        for module in list(sys.modules.values()):
             try:
-                module = loader.load_module()
-            except Exception:
-                self.exception("Failed to load module '{}' in file '{}'", info.name,
-                               info.module_finder.path)
-                continue
-
-            for name, otype in inspect.getmembers(module):
-                if inspect.isclass(otype) and (plugin_type in inspect.getmro(otype)) and (
-                        name not in self._registered_types):
+                for name, otype in inspect.getmembers(module, predicate):
                     self.register(name, otype)
+            except ModuleNotFoundError:
+                continue
 
         return self.status()
 

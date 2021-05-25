@@ -1,0 +1,27 @@
+[Tests]
+  [runner0]
+    type = RunCommand
+    command = 'sleep 3'
+  []
+  [runner1]
+    type = RunCommand
+    command = 'sleep 3'
+  []
+  [group]
+    [runner1]
+      type = RunCommand
+      command = 'sleep 3'
+      [diff]
+        type = ConsoleDiff
+        text_in_stderr = 'sleep'
+      []
+    []
+  []
+[]
+
+[Assessments]
+  [runner]
+    type = RunCommand
+    command = 'sleep 1'
+  []
+[]

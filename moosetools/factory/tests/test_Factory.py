@@ -11,6 +11,7 @@ import os
 import sys
 import importlib
 import unittest
+import tempfile
 from unittest import mock
 from moosetools import parameters
 from moosetools import factory
@@ -20,15 +21,22 @@ class TestFactory(unittest.TestCase):
     def setUp(self):
         self._cwd = os.getcwd()
         os.chdir(os.path.dirname(__file__))
+        self._tmpdir = tempfile.mkdtemp()
 
     def tearDown(self):
         os.chdir(self._cwd)
+        os.rmdir(self._tmpdir)
 
     def testInit(self):
         f = factory.Factory()
         self.assertEqual(f.status(), 0)
         f.load()
         self.assertEqual(f.status(), 0)
+
+    def testLoad(self):
+        f = factory.Factory(plugin_dirs=('./plugins', ))
+        f.load()
+        self.assertIn('CustomObject', f._registered_types)
 
     def testRegister(self):
         f = factory.Factory()
@@ -56,7 +64,7 @@ class TestFactory(unittest.TestCase):
         self.assertIn("The 'CO2' name is already", log.output[0])
 
     def testParams(self):
-        f = factory.Factory()
+        f = factory.Factory(plugin_dirs=('./plugins', ))
         f.load()
         self.assertEqual(f.status(), 0)
 
@@ -77,7 +85,7 @@ class TestFactory(unittest.TestCase):
         self.assertIn("The supplied name 'Unknown' is not associated", log.output[0])
 
     def testCreate(self):
-        f = factory.Factory()
+        f = factory.Factory(plugin_dirs=('./plugins', ))
         f.load()
         self.assertEqual(f.status(), 0)
 
@@ -101,12 +109,11 @@ class TestFactory(unittest.TestCase):
         self.assertEqual(len(log.output), 1)
         self.assertIn("The supplied name 'Unknown' is not associated", log.output[0])
 
-    def testLoadError(self):
-        f = factory.Factory()
-        self.assertEqual(f.status(), 0)
+    def testLoadErrors(self):
+        f = factory.Factory(plugin_dirs=('./plugins', ))
         self.assertEqual(f.status(), 0)
 
-        with mock.patch('importlib.machinery.SourceFileLoader.load_module') as loader:
+        with mock.patch('importlib.import_module') as loader:
             loader.side_effect = Exception()
             with self.assertLogs(level='CRITICAL') as log:
                 f.load()
@@ -114,13 +121,35 @@ class TestFactory(unittest.TestCase):
             for out in log.output:
                 self.assertIn("Failed to load module", out)
 
+        with mock.patch('os.path.isdir', return_value=False):
+            with self.assertLogs(level='ERROR') as log:
+                f.load()
+            self.assertEqual(f.status(), 1)
+            self.assertEqual(len(log.output), 1)
+            self.assertIn("'plugin_dirs' parameter is not a directory", log.output[0])
+
+        with mock.patch('os.path.isfile', return_value=False):
+            with self.assertLogs(level='ERROR') as log:
+                f.load()
+            self.assertEqual(f.status(), 1)
+            self.assertEqual(len(log.output), 1)
+            self.assertIn("'plugin_dirs' parameter is not a python package", log.output[0])
+
     def testPrint(self):
-        f = factory.Factory()
+        f = factory.Factory(plugin_dirs=('./plugins', ))
         f.load()
         f._registered_types.pop('TestObjectBadParams')  # avoid error
         out = str(f)
         self.assertIn('CustomObject', out)
         self.assertIn('CustomCustomObject', out)
+
+    def testPackageError(self):
+        f = factory.Factory(plugin_dirs=(self._tmpdir, ))
+        with self.assertLogs(level='ERROR') as log:
+            f.load()
+        self.assertEqual(f.status(), 1)
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("the 'plugin_dirs' parameter is not a python package", log.output[0])
 
 
 if __name__ == '__main__':

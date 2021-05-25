@@ -9,6 +9,7 @@
 
 import sys
 import logging
+from moosetools import mooseutils
 from moosetools import parameters
 
 
@@ -33,6 +34,8 @@ class MooseObject(object):
     `InputParameters.update` method before `InputParameters.validate` is called. Again, refer to
     `InputParameters` documentation for further information.
     """
+    __MooseObject_counter__ = -1
+
     @staticmethod
     def validParams():
         params = parameters.InputParameters()
@@ -42,15 +45,35 @@ class MooseObject(object):
             doc=
             "The name of the object. If using the factory.Parser to build objects from an input file, this will be automatically set to the block name in the input file."
         )
+
+        levels = tuple(logging._nameToLevel.keys())
+        params.add('log_level',
+                   default='INFO',
+                   vtype=str,
+                   allow=levels,
+                   mutable=False,
+                   doc="Set the logging level, see python 'logging' package for details.")
+        params.add(
+            'log_status_error_level',
+            default='ERROR',
+            vtype=str,
+            allow=levels,
+            doc="Set the allowable logging level for the status method to return an error code.")
         return params
 
     def __init__(self, params=None, **kwargs):
-        self.__logger = logging.getLogger(self.__class__.__module__)
+        MooseObject.__MooseObject_counter__ += 1
         self.__log_counts = {key: 0 for key in logging._levelToName.keys()}
-        self._parameters = params or getattr(self.__class__, 'validParams')()
+        self._parameters = getattr(self.__class__, 'validParams')() if (params is None) else params
         self._parameters.update(**kwargs)
-        self._parameters.set('_moose_object', self)
+        self._parameters.setValue('_moose_object', self)
         self._parameters.validate()  # once this is called, the mutable flag becomes active
+
+        # Create a unique logger for this object, to allow for object level log controls
+        logger_name = '{}.{}'.format(self.__class__.__module__, MooseObject.__MooseObject_counter__)
+        logger = logging.getLogger(logger_name)
+        logger.setLevel(self.getParam('log_level'))
+        self.__logger = logger
 
     def name(self):
         """
@@ -79,21 +102,18 @@ class MooseObject(object):
                 continue
             self.__log_counts[lvl] = 0
 
-    def status(self, *levels):
+    def status(self):
         """
         Return 1 if logging messages exist.
 
         By default only the logging.ERROR and logging.CRITICAL levels are
         considered. If *levels* is provided the levels given are used.
         """
-        if not levels: levels = [logging.ERROR, logging.CRITICAL]
+        level = logging._nameToLevel[self.getParam('log_status_error_level')]
         count = 0
-        for lvl in levels:
-            if lvl not in self.__log_counts:
-                msg = "Attempting to get logging count for '{}' level, but the level does not exist."
-                self.error(msg, lvl)
-                continue
-            count += self.__log_counts[lvl]
+        for lvl, cnt in self.__log_counts.items():
+            if lvl >= level:
+                count += cnt
         return int(count > 0)
 
     def info(self, *args, **kwargs):
@@ -160,7 +180,8 @@ class MooseObject(object):
             str), "The supplied 'message' must be a python `str` type, see `MooseObject.log`."
         name = self.getParam('name')
         message = message.format(*args, **kwargs)
-        if name is not None: message = '({}): {}'.format(name, message)
+        #if extra is None: extra = dict()
+        #extra.setdefault('mooseobject_name', self.name()
         self.__logger.log(level, message, exc_info=exc_info, stack_info=stack_info, extra=extra)
         self.__log_counts[level] += 1
 
@@ -178,4 +199,4 @@ class MooseObject(object):
 
         Refer to `InputParameters.get` for further information.
         """
-        return self._parameters.get(*args)
+        return self._parameters.getValue(*args)

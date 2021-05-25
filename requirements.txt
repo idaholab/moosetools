@@ -1,5 +1,9 @@
+colored
 coverage
 deepdiff
+matplotlib
+packaging
 pandas
 pyyaml
 sympy
+yapf==0.31.0
