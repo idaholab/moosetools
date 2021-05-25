@@ -72,8 +72,8 @@ def run(groups,
 
     # Setup process pool, the result_map is used to collecting results returned from workers
     ctx = multiprocessing.get_context(MULTIPROCESSING_CONTEXT)
-    executor = concurrent.futures.ProcessPoolExecutor(mp_context=ctx,
-                                                      max_workers=min(n_threads, len(groups)))
+    manager = ctx.Manager()
+    executor = concurrent.futures.ProcessPoolExecutor(mp_context=ctx, max_workers=n_threads)
 
     futures = list()  # pool workers
     testcases = dict()  # unique_id to TestCase object
@@ -83,61 +83,34 @@ def run(groups,
         readers.append(result_send)
         local = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
         futures.append(executor.submit(_execute_testcases, local, result_send, timeout))
-        testcases.update({tc.unique_id:tc for tc in local})
+        testcases.update({tc.unique_id: tc for tc in local})
 
-    # Loop until all the test cases are finished, the number of failures is reached, or the Future
-    # objects are complete
+    # Loop until the Future objects are complete
     n_fails = 0
     while any(f.running() for f in futures):
-        for reader in multiprocessing.connection.wait(readers, 0.1):
+        for reader in readers:
             try:
-                unique_id, progress, state, results = reader.get()
+                unique_id, progress, state, results = reader.get_nowait()
                 tc = testcases.get(unique_id)
                 _report_progress_and_results(tc, formatter, progress, state, results)
                 if tc.finished:
                     n_fails += int(tc.state.level >= min_fail_state.level)
-            except EOFError:
+            except queue.Empty:
                 pass
 
-        #if n_fails >= max_fails:
-        #    break
-    #for conn in multiprocessing.connection.wait(readers):
-    #    unique_id, progress, state, results = conn.recv()
-    #    tc = testcase_map.get(unique_id)
-    #    _report_progress_and_results(tc, formatter, progress, state, results)
-    #print("HERE")
-
-    # TODO: Make sure all connections are closes
-
-
-    """
-        n_fails = 0
-        count = 0
-        for tc in testcases:
-            if tc.finished:
-                n_fails += int(tc.state.level >= min_fail_state.level)
-            else:
-                count += 1
-
-            #if tc.unique_id in result_map:
-                #progress, state, results = result_map.get(tc.unique_id)
-                #_report_progress_and_results(tc, formatter, progress, state, results)
-
-            # TODO: this is causing a deadlock
-            progress, state, results = result_map.pop(tc.unique_id, (None, None, None))
-            _report_progress_and_results(tc, formatter, progress, state, results)
-
         if n_fails >= max_fails:
-            break
-    """
+            for f in futures:
+                f.cancel()
 
     # Shutdown the pool of workers.
-    if platform.python_version() >= '3.9.0':
-        executor.shutdown(cancel_futures=True)
-    else:
-        for f in futures:
-            f.cancel()
-        executor.shutdown()
+    executor.shutdown()
+
+    # Report any messages that remain in the Queues
+    while any(not r.empty() for r in readers):
+        for reader in [r for r in readers if not r.empty()]:
+            unique_id, progress, state, results = reader.get_nowait()
+            tc = testcases.get(unique_id)
+            _report_progress_and_results(tc, formatter, progress, state, results)
 
     # If there are test cases not finished they must have been skipped because of the early max
     # failures exit, So, mark them as finished and report.
@@ -175,9 +148,8 @@ def _execute_testcase(tc, conn, legacy=False):
         results = {
             tc.name(): TestCase.Data(TestCase.Result.FATAL, None, '', traceback.format_exc(), None)
         }
+    conn.send((state, results))
 
-    return state, results
-    #conn.send((state, results))
 
 def _execute_testcases(testcases, result_send, timeout):
     """
@@ -195,7 +167,6 @@ def _execute_testcases(testcases, result_send, timeout):
     """
     skip_message = None
 
-
     for tc in testcases:
         unique_id = tc.unique_id
 
@@ -205,18 +176,10 @@ def _execute_testcases(testcases, result_send, timeout):
                 tc.name(): TestCase.Data(TestCase.Result.SKIP, None, '', skip_message,
                                          ['dependency'])
             }
-            #result_map[unique_id] = (TestCase.Progress.FINISHED, state, results)
-            #result_send.send((unique_id, TestCase.Progress.FINISHED, state, results))
             result_send.put((unique_id, TestCase.Progress.FINISHED, state, results))
             continue
 
         result_send.put((unique_id, TestCase.Progress.RUNNING, None, None))
-        #result_send.send((unique_id, TestCase.Progress.RUNNING, None, None))
-        #result_map[unique_id] = (TestCase.Progress.RUNNING, None, None)
-
-        state, results = _execute_testcase(tc, None)
-
-        """
         ctx = multiprocessing.get_context(MULTIPROCESSING_CONTEXT)
         conn_recv, conn_send = ctx.Pipe(False)
         proc = ctx.Process(target=_execute_testcase, args=(tc, conn_send))
@@ -235,16 +198,10 @@ def _execute_testcases(testcases, result_send, timeout):
 
         proc.join()
         proc.close()
-        """
-        #result_map[unique_id] = (TestCase.Progress.FINISHED, state, results)
-        #result_send.send((unique_id, TestCase.Progress.FINISHED, state, results))
+
         result_send.put((unique_id, TestCase.Progress.FINISHED, state, results))
         if (state.level > 0):
             skip_message = f"A previous test case ({tc.name()}) in the group returned a non-zero state of {state}."
-
-
-    result_send.close()
-    #result_send.send((None, None, None, None)) # close
 
 
 def _report_progress_and_results(tc, formatter, progress, state, results):

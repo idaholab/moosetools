@@ -90,14 +90,6 @@ class TestRunExecuteHelpers(unittest.TestCase):
 
     @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
     def test_execute_testcases(self):
-        class DictProxy(object):
-            def __init__(self, obj):
-                self.calls = list()
-                self.__obj = obj
-
-            def __setitem__(self, *args):
-                self.calls.append(args)
-                return self.__obj.__setitem__(*args)
 
         r0 = make_runner(RunCommand, name='test0', command=('sleep', '0.2'))
         r1 = make_runner(RunCommand, name='test1', command=('sleep', '0.3'))
@@ -105,32 +97,18 @@ class TestRunExecuteHelpers(unittest.TestCase):
         tc0 = TestCase(runner=r0)
         tc1 = TestCase(runner=r1)
 
-        # Running
-        q = dict()
-        proxy = DictProxy(q)
-        _execute_testcases([tc0, tc1], proxy, 2)
-        self.assertEqual(len(proxy.calls), 4)
-        u, data = proxy.calls[0]
-        p, s, r = data
+        # No error
+        q = queue.Queue()
+        _execute_testcases([tc0, tc1], q, 2)
+
+        u, p, s, r = q.get()
         self.assertEqual(u, tc0.unique_id)
         self.assertEqual(p, TestCase.Progress.RUNNING)
         self.assertEqual(s, None)
         self.assertEqual(r, None)
 
-        u, data = proxy.calls[2]
-        p, s, r = data
-        self.assertEqual(u, tc1.unique_id)
-        self.assertEqual(p, TestCase.Progress.RUNNING)
-        self.assertEqual(s, None)
-        self.assertEqual(r, None)
-
-        # No error
-        p, s, r = q.get(tc0.unique_id)
-        self.assertEqual(p, TestCase.Progress.FINISHED)
-        self.assertEqual(s, TestCase.Result.PASS)
-        self.assertIn('test0', r)
-
-        p, s, r = q.get(tc0.unique_id)
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc0.unique_id)
         self.assertEqual(p, TestCase.Progress.FINISHED)
         self.assertEqual(s, TestCase.Result.PASS)
         self.assertIn('test0', r)
@@ -141,7 +119,14 @@ class TestRunExecuteHelpers(unittest.TestCase):
         self.assertIn("sleep 0.2", data.stderr)
         self.assertEqual(data.reasons, None)
 
-        p, s, r = q.get(tc1.unique_id)
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc1.unique_id)
+        self.assertEqual(p, TestCase.Progress.RUNNING)
+        self.assertEqual(s, None)
+        self.assertEqual(r, None)
+
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc1.unique_id)
         self.assertEqual(p, TestCase.Progress.FINISHED)
         self.assertEqual(s, TestCase.Result.PASS)
         self.assertIn('test1', r)
@@ -157,7 +142,14 @@ class TestRunExecuteHelpers(unittest.TestCase):
                         side_effect=[Exception("wrong"), None]):
             _execute_testcases([tc0, tc1], q, 2)
 
-        p, s, r = q.get(tc0.unique_id)
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc0.unique_id)
+        self.assertEqual(p, TestCase.Progress.RUNNING)
+        self.assertEqual(s, None)
+        self.assertEqual(r, None)
+
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc0.unique_id)
         self.assertEqual(p, TestCase.Progress.FINISHED)
         self.assertEqual(s, TestCase.Result.FATAL)
         self.assertIn('test0', r)
@@ -168,7 +160,8 @@ class TestRunExecuteHelpers(unittest.TestCase):
         self.assertIn("wrong", data.stderr)
         self.assertEqual(data.reasons, None)
 
-        p, s, r = q.get(tc1.unique_id)
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc1.unique_id)
         self.assertEqual(p, TestCase.Progress.FINISHED)
         self.assertEqual(s, TestCase.Result.SKIP)
         self.assertIn('test1', r)
@@ -183,7 +176,15 @@ class TestRunExecuteHelpers(unittest.TestCase):
         r2 = make_runner(RunCommand, name='test2', command=('sleep', '2'))
         tc2 = TestCase(runner=r2)
         _execute_testcases([tc2], q, 1)
-        p, s, r = q.get(tc2.unique_id)
+
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc2.unique_id)
+        self.assertEqual(p, TestCase.Progress.RUNNING)
+        self.assertEqual(s, None)
+        self.assertEqual(r, None)
+
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc2.unique_id)
         self.assertEqual(p, TestCase.Progress.FINISHED)
         self.assertEqual(s, TestCase.Result.TIMEOUT)
         self.assertIn('test2', r)

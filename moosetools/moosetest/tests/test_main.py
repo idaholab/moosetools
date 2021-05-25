@@ -166,12 +166,14 @@ class TestMain(unittest.TestCase):
         rcode = main()
         self.assertEqual(rcode, 0)
 
+
 @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
 class TestFuzzer(unittest.TestCase):
     @mock.patch('argparse.ArgumentParser.parse_args', return_value=argparse.Namespace(demo=True))
     def testFuzzer(self, mock_cli_args):
         rcode = main()  # TODO: figure out how to mock the fuzzer function
         self.assertEqual(rcode, 1)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)
