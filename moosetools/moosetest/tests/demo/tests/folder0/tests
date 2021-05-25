@@ -1,0 +1,13 @@
+[Tests]
+  [runner]
+    type = RunCommand
+    command = 'sleep 5'
+  []
+[]
+
+[Assessments]
+  [runner]
+    type = RunCommand
+    command = 'sleep 2'
+  []
+[]

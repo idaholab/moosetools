@@ -53,7 +53,6 @@ class TestParameter(unittest.TestCase):
 
         with self.assertRaises(TypeError) as e:
             p = Parameter('bar', default='wrong', vtype=int)
-            p.value
         self.assertIn("'bar' must be of type (<class 'int'>,) but <class 'str'> provided.",
                       str(e.exception))
 
@@ -198,6 +197,15 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(err, None)
         self.assertEqual(opt.value, (1, ))
 
+        opt = Parameter('foo', vtype=int, array=True, allow=(1, 2, 3))
+        ret, err = opt.setValue((4, ))
+        self.assertEqual(ret, 1)
+        self.assertEqual(
+            err,
+            "Attempting to set 'foo' to a value of (4,) but only the following are allowed: (1, 2, 3)"
+        )
+        self.assertEqual(opt.value, None)
+
     def testSize(self):
         opt = Parameter('foo', size=4)
         self.assertEqual(opt.size, 4)
@@ -248,7 +256,7 @@ class TestParameter(unittest.TestCase):
 
         ret, err = opt.validate()
         self.assertEqual(ret, 1)
-        self.assertIn("The Parameter 'year' is marked as required, but no value is assigned.", err)
+        self.assertIn("The parameter 'year' is marked as required, but no value is assigned.", err)
 
         with self.assertRaises(TypeError) as e:
             Parameter('year', required="wrong")
@@ -428,6 +436,57 @@ class TestParameter(unittest.TestCase):
         self.assertEqual(ret, 0)
         self.assertEqual(err, None)
         self.assertEqual(opt.is_set_by_user, True)
+
+    def testSetRequired(self):
+        opt = Parameter('year')
+        self.assertEqual(opt.required, False)
+        retcode, msg = opt.setRequired(True)
+        self.assertEqual(retcode, 0)
+        self.assertEqual(msg, None)
+        self.assertEqual(opt.required, True)
+
+        retcode, msg = opt.validate()
+        self.assertEqual(retcode, 1)
+        self.assertEqual(msg,
+                         "The parameter 'year' is marked as required, but no value is assigned.")
+
+        opt.setValue(1980)
+        retcode, msg = opt.validate()
+        self.assertEqual(retcode, 0)
+        self.assertEqual(msg, None)
+
+        retcode, msg = opt.setRequired(False)
+        self.assertEqual(retcode, 1)
+        self.assertEqual(
+            msg,
+            "The parameter 'year' has already been validated, the required state cannot be changed."
+        )
+
+        retcode, msg = opt.setRequired('wrong')
+        self.assertEqual(retcode, 1)
+        self.assertEqual(
+            msg,
+            "For the parameters 'year', the supplied value for `setRequired` must be a `bool`, a <class 'str'> was provided."
+        )
+
+    def testIsInstance(self):
+        opt = Parameter('year')
+        self.assertFalse(opt.isInstance(float))
+        opt.setValue(1980)
+        self.assertTrue(opt.isInstance(int))
+
+    def testValidate(self):
+        sub = InputParameters()
+        sub.add('year')
+
+        opt = Parameter('date', default=sub)
+
+        self.assertFalse(opt.is_validated)
+        self.assertFalse(sub.parameter('year').is_validated)
+
+        opt.validate()
+        self.assertTrue(opt.is_validated)
+        self.assertTrue(sub.parameter('year').is_validated)
 
 
 if __name__ == '__main__':

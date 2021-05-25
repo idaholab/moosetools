@@ -146,6 +146,12 @@ class Parameter(object):
         elif self.__size is not None:
             self.__array = True
 
+        if self.__default is not None:
+            retcode, msg = self.setDefault(self.__default)
+            self.__set_by_user = False
+            if retcode > 0:
+                raise TypeError(msg)
+
     @property
     def name(self):
         """Returns the option name."""
@@ -154,17 +160,11 @@ class Parameter(object):
     @property
     def value(self):
         """Returns the option value."""
-        retcode, err = self.validate()
-        if retcode > 0:
-            raise TypeError(err)
         return self.__value
 
     @property
     def default(self):
         """Returns the default value for the option."""
-        retcode, err = self.validate()
-        if retcode > 0:
-            raise TypeError(err)
         return self.__default
 
     @property
@@ -210,10 +210,29 @@ class Parameter(object):
     @property
     def is_set_by_user(self):
         """Return True if the value has been set after construction."""
-        retcode, err = self.validate()
-        if retcode > 0:
-            raise TypeError(err)
         return self.__set_by_user
+
+    @property
+    def is_validated(self):
+        """Return True if `validate` was called."""
+        return self.__validated
+
+    def setRequired(self, value):
+        """
+        Set the required status.
+
+        The supplied *value* should be a `bool` and this method will return a non-zero exit status
+        if called after the `validate` method has been called.
+        """
+        if not isinstance(value, bool):
+            msg = "For the parameters '{}', the supplied value for `setRequired` must be a `bool`, a {} was provided."
+            return 1, msg.format(self.name, type(value))
+
+        if self.__validated:
+            msg = "The parameter '{}' has already been validated, the required state cannot be changed."
+            return 1, msg.format(self.name)
+        self.__required = value
+        return 0, None
 
     def setDefault(self, val):
         """
@@ -223,8 +242,7 @@ class Parameter(object):
         values are are detailed in `setValue` method. If the value has not been assigned (i.e.,
         it is None) this method will also set the value.
         """
-        self.validate()
-        retcode, error = self.__check(val)
+        retcode, error = self.__checkValue(val)
         if retcode == 0:
             self.__default = val
             if self.__value is None:
@@ -245,7 +263,7 @@ class Parameter(object):
         ret, err = param.setValue(42)
         ```
         """
-        retcode, error = self.__check(val)
+        retcode, error = self.__checkValue(val)
         if retcode == 0:
             self.__value = val
             self.__set_by_user = True
@@ -257,8 +275,6 @@ class Parameter(object):
         """
         if self.__value is not None:
             return isinstance(self.__value, types)
-        elif self.__default is not None:
-            return isinstance(self.__default, types)
         return False
 
     def validate(self):
@@ -273,19 +289,15 @@ class Parameter(object):
         if self.__validated:
             return 0, None
 
-        self.__validated = True
-        if (self.value is None) and (self.__default is not None):
-            set_by_user = self.__set_by_user
-            retcode, error = self.setDefault(self.__default)
-            if not set_by_user:
-                self.__set_by_user = False
-            if retcode > 0:
-                return retcode, error
-
         if self.__required and (self.value is None):
-            msg = "The Parameter '{}' is marked as required, but no value is assigned."
+            msg = "The parameter '{}' is marked as required, but no value is assigned."
             return 1, msg.format(self.name)
 
+        from .InputParameters import InputParameters
+        if self.isInstance(InputParameters):
+            self.__value.validate()
+
+        self.__validated = True
         return 0, None
 
     def toString(self, prefix='', level=0):
@@ -325,7 +337,7 @@ class Parameter(object):
 
         return textwrap.indent('\n'.join(out), ' ' * 4 * level)
 
-    def __check(self, val):
+    def __checkValue(self, val):
         """
         Check that the supplied value is correct.
 
@@ -346,10 +358,14 @@ class Parameter(object):
 
         if self.__array:
             for v in val:
-                if (val is not None) and (self.__vtype
-                                          is not None) and not isinstance(v, self.__vtype):
+                if (v is not None) and (self.__vtype
+                                        is not None) and not isinstance(v, self.__vtype):
                     msg = "The values within '{}' must be of type {} but {} provided."
                     return 1, msg.format(self.name, self.__vtype, type(v))
+
+                if (v is not None) and (self.__allow is not None) and (v not in self.__allow):
+                    msg = "Attempting to set '{}' to a value of {} but only the following are allowed: {}"
+                    return 1, msg.format(self.name, val, self.__allow)
 
             if self.__size is not None:
                 if (val is not None) and (len(val) != self.__size):
@@ -363,10 +379,10 @@ class Parameter(object):
                 msg = "'{}' must be of type {} but {} provided."
                 return 1, msg.format(self.name, self.__vtype, type(val))
 
-        # Check that the value is allowed
-        if (val is not None) and (self.__allow is not None) and (val not in self.__allow):
-            msg = "Attempting to set '{}' to a value of {} but only the following are allowed: {}"
-            return 1, msg.format(self.name, val, self.__allow)
+            # Check that the value is allowed
+            if (val is not None) and (self.__allow is not None) and (val not in self.__allow):
+                msg = "Attempting to set '{}' to a value of {} but only the following are allowed: {}"
+                return 1, msg.format(self.name, val, self.__allow)
 
         # Call custom verify function
         if (val is not None) and (self.__verify is not None) and (not self.__verify[0](val)):

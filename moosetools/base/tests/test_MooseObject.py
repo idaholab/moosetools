@@ -33,17 +33,18 @@ class TestMooseObject(unittest.TestCase):
 
     def testLogs(self):
         msg = "This is a test: {}"
-        obj = MooseObject()
 
-        with self.assertLogs(level='INFO') as log:
-            obj.info(msg, 'INFO')
-        self.assertEqual(len(log.output), 1)
-        self.assertIn(msg.format('INFO'), log.output[0])
-
+        obj = MooseObject(log_level='DEBUG')
         with self.assertLogs(level='DEBUG') as log:
             obj.debug(msg, 'DEBUG')
         self.assertEqual(len(log.output), 1)
         self.assertIn(msg.format('DEBUG'), log.output[0])
+
+        obj = MooseObject()
+        with self.assertLogs(level='INFO') as log:
+            obj.info(msg, 'INFO')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn(msg.format('INFO'), log.output[0])
 
         with self.assertLogs(level='WARNING') as log:
             obj.warning(msg, 'WARNING')
@@ -135,11 +136,6 @@ class TestMooseObject(unittest.TestCase):
         with self.assertLogs(level='ERROR'):
             obj.getParam('wrong')
         self.assertEqual(obj.status(), 1)
-        self.assertEqual(obj.status(logging.INFO), 0)
-        self.assertEqual(obj.status(logging.DEBUG), 0)
-        self.assertEqual(obj.status(logging.WARNING), 0)
-        self.assertEqual(obj.status(logging.ERROR), 0)
-        self.assertEqual(obj.status(logging.CRITICAL), 1)
         obj.reset()
         self.assertEqual(obj.status(), 0)
 
@@ -148,10 +144,12 @@ class TestMooseObject(unittest.TestCase):
         self.assertEqual(len(log.output), 1)
         self.assertIn("Attempting to reset logging count for 'WRONG'", log.output[0])
 
-        with self.assertLogs(level='ERROR') as log:
-            obj.status('WRONG')
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("Attempting to get logging count for 'WRONG'", log.output[0])
+    def testCount(self):
+        obj0 = CustomObject()
+        self.assertEqual(MooseObject.__MooseObject_counter__, 0)
+
+        obj1 = CustomObject()
+        self.assertEqual(MooseObject.__MooseObject_counter__, 1)
 
 
 if __name__ == '__main__':

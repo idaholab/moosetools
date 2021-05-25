@@ -29,7 +29,11 @@ class Parser(base.MooseObject):
     def validParams():
         params = base.MooseObject.validParams()
         params.add('_factory', private=True, required=True, vtype=Factory)
-        params.add('_warehouse', private=True, required=True, vtype=Warehouse)
+        params.add('_warehouse', private=True, required=True, vtype=(Warehouse, list))
+        params.add('iteration_method',
+                   vtype=moosetree.IterMethod,
+                   default=moosetree.IterMethod.PRE_ORDER,
+                   doc="Iteration method to utilize when traversing HIT tree.")
         return params
 
     def __init__(self, factory, warehouse, **kwargs):
@@ -54,33 +58,32 @@ class Parser(base.MooseObject):
         """Return the `factory.Warehouse` object provided in the constructor."""
         return self.getParam('_warehouse')
 
-    def parse(self, filename):
+    def parse(self, filename, root=None):
         """
-        Open the supplied *filename* and instantiate the `MooseObject` objects.
+        Instantiate the `MooseObjects` in the supplied *filename* or in the `pyhit.Node` tree with
+        a *root* node. If the *root* is supplied, the *filename* is only used for error reporting, if
+        it is omitted then the file is opened to create the *root*.
 
         This method should not raise exceptions. It reports all problems with logging errors. Prior
         to running it resets the error counts (see `base.MooseObject.reset()`). As such the
         `status` method (see `base.MooseObject.status()`) will return a non-zero code if an
         error occurred.
         """
-        self.reset()  # zero all logging counts
+        if root is None:
+            if not os.path.isfile(filename):
+                self.error("The filename '{}' does not exist.".format(filename))
+                return 1
+            try:
+                root = pyhit.load(filename)
+            except Exception as err:
+                self.exception("Failed to load filename with pyhit: {}", filename)
+                return 1
 
-        if not os.path.exists(filename):
-            self.error("The filename '{}' does not exist.".format(filename))
-            return 1
-
-        try:
-            root = pyhit.load(filename)
-
-        except Exception as err:
-            self.exception("Failed to load filename with pyhit: {}", filename)
-            return 1
-
-        # Iterate of all childless nodes, those should contain a 'type = ...' parameter for building
+        # Iterate of all nodes with "type = ..."
         paths = set()
         for node in moosetree.findall(root,
-                                      func=lambda n: len(n) == 0,
-                                      method=moosetree.IterMethod.PRE_ORDER):
+                                      func=lambda n: 'type' in n,
+                                      method=self.getParam('iteration_method')):
             self._checkDuplicates(filename, paths, node)
             self._parseNode(filename, node)
         return self.status()
@@ -109,32 +112,12 @@ class Parser(base.MooseObject):
             return
 
         # Set the object name to that of the block (e.g., [object])
-        params.set('name', node.name)
+        params.setValue('name', node.name)
         params.add('_hit_path', default=node.fullpath, private=True)
+        params.add('_hit_filename', default=filename, private=True)
 
-        # Loop through all the parameters in the hit file
-        for key, value in node.params():
-            if key == 'type':
-                continue
-
-            if key not in params:
-                msg = "{}:{}\nThe parameter '{}' does not exist in '{}' object parameters."
-                self.error(msg, filename, node.line(key, -1), key, otype)
-                continue
-
-            # Attempt to convert the string value supplied by the HIT parser to types as given
-            # in the `InputParameters` object returned by `validParams` function
-            param = params.parameter(key)
-            vtype = param.vtype
-            if param.array or ((vtype is not None) and (type(value) not in vtype)):
-                new_value = self._getValueFromStr(vtype, str(value), param.array)
-                if new_value is None:
-                    msg = "{}:{}\nFailed to convert '{}' to the correct type(s) of '{}' for '{}' parameter."
-                    self.error(msg, filename, node.line(key, -1), new_value, vtype, key)
-                value = new_value
-
-            if value is not None:
-                params.set(key, value)
+        # Update the Parameters with the HIT node
+        self.setParameters(params, filename, node, otype)
 
         # Attempt to build the object and update warehouse
         obj = self.factory.create(otype, params)
@@ -169,6 +152,35 @@ class Parser(base.MooseObject):
                 self.error(msg)
             else:
                 paths.add(fullparam)
+
+    def setParameters(self, params, filename, node, otype):
+        """
+        Update the `InputParameters` object in *params* with the key/value pairs in *node*,
+        which is a `pyhit.Node` object.
+        """
+        # Loop through all the parameters in the hit file
+        for key, value in node.params():
+            if key == 'type':
+                continue
+
+            if key not in params:
+                msg = "{}:{}\nThe parameter '{}' does not exist in '{}' object parameters."
+                self.error(msg, filename, node.line(key, -1), key, otype)
+                continue
+
+            # Attempt to convert the string value supplied by the HIT parser to types as given
+            # in the `InputParameters` object returned by `validParams` function
+            param = params.parameter(key)
+            vtype = param.vtype
+            if param.array or ((vtype is not None) and (type(value) not in vtype)):
+                new_value = Parser._getValueFromStr(vtype, str(value), param.array)
+                if new_value is None:
+                    msg = "{}:{}\nFailed to convert '{}' to the correct type(s) of '{}' for '{}' parameter."
+                    self.error(msg, filename, node.line(key, -1), new_value, vtype, key)
+                value = new_value
+
+            if value is not None:
+                params.setValue(key, value)
 
     @staticmethod
     def _getValueFromStr(vtypes, str_value, array):
