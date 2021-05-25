@@ -163,18 +163,15 @@ class TestMain(unittest.TestCase):
                                                 config=os.path.join(os.path.dirname(__file__),
                                                                     'demo', '.moosetest')))
     def testDefault(self, mock_cli_args):
-        with RedirectOutput() as out:
-            rcode = main()
+        rcode = main()
         self.assertEqual(rcode, 0)
-        self.assertIn('Executed 5 tests in', out.stdout)
 
+@unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
+class TestFuzzer(unittest.TestCase):
     @mock.patch('argparse.ArgumentParser.parse_args', return_value=argparse.Namespace(demo=True))
     def testFuzzer(self, mock_cli_args):
-        with RedirectOutput() as out:
-            rcode = main()  # TODO: figure out how to mock the fuzzer function
+        rcode = main()  # TODO: figure out how to mock the fuzzer function
         self.assertEqual(rcode, 1)
-        self.assertIn('Executed', out.stdout)
-
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)
