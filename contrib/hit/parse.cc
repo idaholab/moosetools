@@ -188,12 +188,13 @@ Node::remove()
   delete this;
 }
 
-std::string
+const std::string &
 Node::name()
 {
   if (_toks.size() > 0)
-    return *_toks[0].name;
-  return "";
+    return _toks[0].name;
+  static std::string unknown_name = "[unknown]";
+  return unknown_name;
 }
 
 int
@@ -698,7 +699,7 @@ public:
     if (_pos >= _tokens.size())
     {
       _pos++;
-      return Token{TokType::EOF, "", std::make_shared<std::string>(_name), _input.size()};
+      return Token{TokType::EOF, "", _name, _input.size()};
     }
     auto tok = _tokens[_pos];
     _pos++;

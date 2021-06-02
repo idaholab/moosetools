@@ -149,7 +149,7 @@ public:
   int line();
   /// name returns the file name of the original parsed input (file) that contained the start of
   /// the content that this node was built from.
-  std::string name();
+  const std::string & name();
 
   /// the following functions return the stored value of the node (if any exists) of the type
   /// indicated in the function name. If the node holds a value of a different type or doesn't hold

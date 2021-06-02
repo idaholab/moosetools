@@ -70,11 +70,7 @@ tokTypeName(TokType t)
   // clang-format on
 }
 
-Token::Token(TokType t,
-             const std::string & val,
-             const std::shared_ptr<std::string> & name,
-             size_t offset,
-             int line)
+Token::Token(TokType t, const std::string & val, const std::string & name, size_t offset, int line)
   : type(t), val(val), name(name), offset(offset), line(line)
 {
 }
@@ -87,10 +83,7 @@ Token::str()
   return tokTypeName(type) + ":'" + val + "'";
 }
 
-Lexer::Lexer(const std::string & name, const std::string & input)
-  : _name(std::make_shared<std::string>(name)), _input(input)
-{
-}
+Lexer::Lexer(const std::string & name, const std::string & input) : _name(name), _input(input) {}
 
 std::vector<Token> &
 Lexer::tokens()

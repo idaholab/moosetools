@@ -35,7 +35,7 @@ struct Token
 {
   Token(TokType t,
         const std::string & val,
-        const std::shared_ptr<std::string> & name,
+        const std::string & name,
         size_t offset = 0,
         int line = 0);
   /// str returns a human-friendly string representation of the token.
@@ -46,7 +46,7 @@ struct Token
   /// val is the actual text from the input that makes this token.
   std::string val;
   /// name of the original input file
-  std::shared_ptr<std::string> name;
+  std::string name;
   /// offset is the byte offset into the original input identifying the start position where this
   /// token was found.  This can be used to determine line numbers, column offsets, etc. useful for
   /// error messages among other things.
@@ -153,7 +153,7 @@ public:
 
 private:
   int _line_count = 1;
-  std::shared_ptr<std::string> _name;
+  std::string _name;
   std::string _input;
   size_t _start = 0;
   size_t _pos = 0;
