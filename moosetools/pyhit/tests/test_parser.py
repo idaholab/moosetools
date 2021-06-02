@@ -179,6 +179,13 @@ class TestHitLoad(unittest.TestCase):
         self.assertIn('type = NeumannBC', out)
         self.assertIn('boundary = left', out)
 
+    def testNodeLocation(self):
+        root = pyhit.load('test.hit')
+        self.assertEqual(root.children[0].line(), 1)
+        self.assertEqual(root.children[1].line(), 10)
+        self.assertEqual(root.children[0].filename(), 'test.hit')
+        self.assertEqual(root.children[1].filename(), 'test.hit')
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)
