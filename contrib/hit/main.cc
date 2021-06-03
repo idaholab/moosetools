@@ -42,7 +42,7 @@ main(int argc, char ** argv)
     for (std::string line; std::getline(std::cin, line);)
       ss << line << std::endl;
 
-    hit::BraceExpander expander("STDIN");
+    hit::BraceExpander expander;
     hit::EnvEvaler env;
     hit::RawEvaler raw;
     expander.registerEvaler("env", env);
@@ -134,7 +134,7 @@ parseOpts(int argc, char ** argv, Flags & flags)
 class DupParamWalker : public hit::Walker
 {
 public:
-  DupParamWalker(std::string fname) : _fname(fname) {}
+  DupParamWalker() {}
   void walk(const std::string & fullpath, const std::string & /*nodepath*/, hit::Node * n) override
   {
     std::string prefix = n->type() == hit::NodeType::Field ? "parameter" : "section";
@@ -145,11 +145,10 @@ public:
       if (_duplicates.count(fullpath) == 0)
       {
         errors.push_back(
-            hit::errormsg(_fname, existing, prefix, " '", fullpath, "' supplied multiple times"));
+            hit::errormsg(existing, prefix, " '", fullpath, "' supplied multiple times"));
         _duplicates.insert(fullpath);
       }
-      errors.push_back(
-          hit::errormsg(_fname, n, prefix, " '", fullpath, "' supplied multiple times"));
+      errors.push_back(hit::errormsg(n, prefix, " '", fullpath, "' supplied multiple times"));
     }
     _have[n->fullpath()] = n;
   }
@@ -157,7 +156,6 @@ public:
   std::vector<std::string> errors;
 
 private:
-  std::string _fname;
   std::set<std::string> _duplicates;
   std::map<std::string, hit::Node *> _have;
 };
@@ -202,9 +200,9 @@ findParam(int argc, char ** argv)
     if (n)
     {
       if (flags.have("f"))
-        std::cout << fname << "\n";
+        std::cout << n->filename() << "\n";
       else
-        std::cout << fname << ":" << n->line() << "\n";
+        std::cout << n->filename() << ":" << n->line() << "\n";
     }
   }
 
@@ -378,7 +376,7 @@ validate(int argc, char ** argv)
       continue;
     }
 
-    DupParamWalker w(fname);
+    DupParamWalker w;
     root->walk(&w, hit::NodeType::Field);
     for (auto & msg : w.errors)
       std::cout << msg << "\n";

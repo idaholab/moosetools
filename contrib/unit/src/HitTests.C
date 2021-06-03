@@ -266,7 +266,7 @@ TEST(HitTests, ParseFields)
   {
     auto test = cases[i];
     auto root = hit::parse("TEST", test.input);
-    hit::BraceExpander exw("TEST");
+    hit::BraceExpander exw;
     root->walk(&exw);
     auto n = root->find(test.key);
     if (!n)
@@ -382,7 +382,7 @@ TEST(HitTests, BraceExpressions)
     try
     {
       root = hit::parse("TEST", test.input);
-      hit::BraceExpander exw("TEST");
+      hit::BraceExpander exw;
       hit::RawEvaler raw;
       hit::ReplaceEvaler repl;
       exw.registerEvaler("raw", raw);
