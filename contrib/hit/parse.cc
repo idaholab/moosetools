@@ -189,7 +189,7 @@ Node::remove()
 }
 
 const std::string &
-Node::name()
+Node::filename()
 {
   if (_toks.size() > 0)
     return _toks[0].name;
