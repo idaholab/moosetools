@@ -37,7 +37,33 @@ class Differ(MooseObject):
     def validParams():
         params = MooseObject.validParams()
         params.setRequired('name', True)
+
+        params.add(
+            'base_dir',
+            vtype=str,
+            doc=
+            "The base directory for the relative paths of the supplied names in the 'filenames' parameter."
+        )
+        params.add('filenames',
+                   vtype=str,
+                   array=True,
+                   doc="Filename(s) to be inspected by this object.")
         return params
+
+    def preExecute(self):
+        """
+        Called prior to execution of this object.
+        """
+        pass
+
+    def postExecute(self):
+        """
+        Called after execution of this object.
+
+        This method is always called, even if `preExecute` and/or `execute` raises an exception or
+        results in an error.
+        """
+        pass
 
     def execute(self, rcode, stdout, stderr):
         """
