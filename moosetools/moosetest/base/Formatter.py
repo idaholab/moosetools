@@ -36,15 +36,8 @@ class Formatter(MooseObject):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('name', self.__class__.__name__)
         MooseObject.__init__(self, *args, **kwargs)
-        self.__progress_time = time.time()  # time of last progress report
+        self.__progress_time = dict()
         self.__progress_interval = self.getParam('progress_interval')
-
-    @property
-    def time(self):
-        """
-        Return the time since the last progress report.
-        """
-        return time.time() - self.__progress_time
 
     def formatRunnerState(self, **kwargs):
         raise NotImplementedError("The 'formatRunnerState' method must be overridden.")
@@ -74,15 +67,13 @@ class Formatter(MooseObject):
 
     def reportProgress(self, tc_obj):
         """
-        Print the results of the `TestCase` in *tc_obj*.
+        Print the progress of the `TestCase` in *tc_obj*.
 
         See `moosetools.run` for use.
         """
-        if (time.time() - self.__progress_time) > self.__progress_interval:
-
-            if tc_obj.progress is None:
-                with RedirectOutput() as out:
-                    tc_obj.critical("The progress has not been set via the `setProgress` method.")
+        if tc_obj.progress is None:
+            with RedirectOutput() as out:
+                tc_obj.critical("The progress has not been set via the `setProgress` method.")
                 tc_obj.setProgress(TestCase.Progress.FINISHED)
                 tc_obj.setState(TestCase.Result.FATAL)
                 tc_obj.setResults({
@@ -90,8 +81,12 @@ class Formatter(MooseObject):
                     TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
                 })
 
-            self._printState(tc_obj, tc_obj.runner, tc_obj.progress, None)
-            self.__progress_time = time.time()
+        if tc_obj.running:
+            current = time.time()
+            progress_time = self.__progress_time.get(tc_obj.unique_id, tc_obj.start_time)
+            if current - progress_time >= self.__progress_interval:
+                self.__progress_time[tc_obj.unique_id] = current
+                self._printState(tc_obj, tc_obj.runner, tc_obj.progress, None)
 
     def reportResults(self, tc_obj):
         """

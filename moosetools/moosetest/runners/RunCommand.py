@@ -8,6 +8,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os
+import sys
 import threading
 import multiprocessing
 import subprocess
@@ -36,6 +37,7 @@ class RunCommand(Runner):
 
     def execute(self):
         kwargs = dict()
+        kwargs['capture_output'] = True  # MOOSE executable output is not captured without this
         kwargs['encoding'] = 'utf-8'
         kwargs['check'] = self.getParam('allow_exception')
         kwargs['timeout'] = self.getParam('timeout')
@@ -43,5 +45,7 @@ class RunCommand(Runner):
         cmd = self.getParam('command')
         str_cmd = ' '.join(cmd)
         self.info('RUNNING COMMAND:\n{0}\n{1}\n{0}'.format('-' * len(str_cmd), str_cmd))
-        out = subprocess.run(self.getParam('command'), **kwargs)
+        out = subprocess.run(cmd, **kwargs)
+        sys.stdout.write(out.stdout)
+        sys.stderr.write(out.stderr)
         return out.returncode

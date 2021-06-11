@@ -39,6 +39,11 @@ class MooseTestFactory(factory.Factory):
         Creates the parameters with sub-parameters for each `Controller` object.
         """
         params = factory.Factory.params(self, *args, **kwargs)
+
+        # Add the controllers, this allows Runner objects to pragmatically add a Differ object
+        params.add('_controllers', default=self.getParam('controllers'), private=True)
+
+        # Add the Controller object parameters with the correct prefix from the Controller object
         for controller in self.getParam('controllers') or list():
             params.add(
                 controller.getParam('prefix'),
@@ -53,7 +58,7 @@ class MooseTestWarehouse(factory.Warehouse):
     Custom `Warehouse` that handles automatically adds `Differ` objects to the parent `Runner` as
     well as prefixes the name of the `Runner` with the test specification file.
 
-    This warehouse is used within the the `create_runners` function and is designed to operate
+    This warehouse is used within the the `_create_runners` function and is designed to operate
     on a per specification file basis. That is, a warehouse is created for each specification, with
     the resulting objects returned by the warehouse being the `Runner` objects.
 
@@ -88,6 +93,15 @@ class MooseTestWarehouse(factory.Warehouse):
             prefix = self.getParam('specfile').replace(self.getParam('root_dir'), '').strip(os.sep)
             obj.parameters().setValue('name', f"{prefix}:{base}")
             factory.Warehouse.append(self, obj)
+
+        # Set the "base_dir", if not set, to location of HIT file that created the object
+        if not obj.isParamValid('base_dir') and ('_hit_filename' in obj.parameters()):
+            obj.parameters().setValue('base_dir', os.path.dirname(obj.getParam('_hit_filename')))
+
+        # Propagate construction errors of object
+        if obj.status():
+            msg = "The '{}' object produced error(s) during construction."
+            self.critical(msg, obj.name())
 
 
 def _create_runners(root_dir, filename, spec_file_blocks, obj_factory):

@@ -369,6 +369,15 @@ class TestCase(MooseObject):
 
         return self.__execute_time
 
+    @property
+    def start_time(self):
+        """
+        Return the start time for the TestCase object.
+
+        See `Formatter.reportProgress`.
+        """
+        return self.__start_time
+
     def setProgress(self, progress):
         """
         Update this execution status with *progress*.
@@ -530,7 +539,7 @@ class TestCase(MooseObject):
                 obj.reset()  # clear log counts of the object to be passed to the Controller
             except Exception as ex:
                 self.exception(
-                    "An exception occurred while calling the `reset` method of the '{}' object.",
+                    "An exception occurred within the `reset` method of the '{}' object.",
                     obj.name())
                 return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
 
@@ -550,7 +559,7 @@ class TestCase(MooseObject):
                     # Stop if an error is logged on the Controller object
                     if controller.status():
                         self.error(
-                            "An error occurred, on the controller, during execution of the {} controller with '{}' object.",
+                            "An error occurred, on the controller, within the `execute` method of the {} controller with '{}' object.",
                             type(controller).__name__, obj.name())
                         return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr,
                                              None)
@@ -558,7 +567,7 @@ class TestCase(MooseObject):
                     # Stop if an error is logged on the object, due to execution of Controller
                     if obj.status():
                         self.error(
-                            "An error occurred, on the object, during execution of the {} controller with '{}' object.",
+                            "An error occurred, on the object, within the `execute` method of the {} controller with '{}' object.",
                             type(controller).__name__, obj.name())
                         return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr,
                                              None)
@@ -570,7 +579,7 @@ class TestCase(MooseObject):
 
                 except Exception as ex:
                     self.error(
-                        "An exception occurred during execution of the {} controller with '{}' object.\n{}",
+                        "An exception occurred within the `execute` method of the {} controller with '{}' object.\n{}",
                         type(controller).__name__, obj.name(), traceback.format_exc())
                     return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
 
@@ -580,23 +589,61 @@ class TestCase(MooseObject):
 
         # Execute the object
         with RedirectOutput() as out:
-            try:
-                rcode = obj.execute(*args, **kwargs)
 
-                # Errors on object result in failure
+            # Call `preExecute`, stop if this fails in any capacity
+            try:
+                obj.reset()
+                obj.preExecute()
+                if obj.status():
+                    self.error(
+                        "An error occurred within the `preExecute` method of the '{}' object.",
+                        obj.name())
+                    return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+
+            except Exception as ex:
+                self.exception(
+                    "An exception occurred within the `preExecute` method of the '{}' object.",
+                    obj.name())
+                return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+
+            # Call `execute`, always call `postExecute` even if this fails
+            execute_failure = None
+            try:
+                obj.reset()
+                rcode = obj.execute(*args, **kwargs)
                 if obj.status():
                     state = TestCase.Result.DIFF if isinstance(obj,
                                                                Differ) else TestCase.Result.ERROR
-                    self.error("An error occurred during execution of the '{}' object.", obj.name())
-                    return TestCase.Data(state, rcode, out.stdout, out.stderr, None)
+                    self.error("An error occurred within the `execute` method of the '{}' object.",
+                               obj.name())
+                    execute_failure = TestCase.Data(state, rcode, out.stdout, out.stderr, None)
 
             except Exception as ex:
-                self.exception("An exception occurred during execution of the '{}' object.",
-                               obj.name())
-                return TestCase.Data(TestCase.Result.EXCEPTION, None, out.stdout, out.stderr, None)
+                self.exception(
+                    "An exception occurred within the `execute` method of the '{}' object.",
+                    obj.name())
+                execute_failure = TestCase.Data(TestCase.Result.EXCEPTION, None, out.stdout,
+                                                out.stderr, None)
 
-            finally:
-                stdout += out.stdout
-                stderr += out.stderr
+            # Call `postExecute`
+            try:
+                obj.reset()
+                obj.postExecute()
+                if obj.status():
+                    self.error(
+                        "An error occurred within the `postExecute` method of the '{}' object.",
+                        obj.name())
+                    return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
 
+            except Exception as ex:
+                self.exception(
+                    "An exception occurred within the `postExecute` method of the '{}' object.",
+                    obj.name())
+                return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+
+            if execute_failure is not None:
+                return execute_failure
+
+        stdout += out.stdout
+        stderr += out.stderr
         return TestCase.Data(TestCase.Result.PASS, rcode, stdout, stderr, None)

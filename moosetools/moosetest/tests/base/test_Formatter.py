@@ -130,20 +130,21 @@ class TestFormatter(unittest.TestCase):
         tc = TestCase(runner=rr, controllers=(ct, ))
 
         fm.reportProgress(tc)
-        pstate.assert_called_with(tc, rr, TestCase.Progress.WAITING, None)
+        pstate.assert_not_called()
 
         tc.setProgress(TestCase.Progress.RUNNING)
         fm.reportProgress(tc)
         pstate.assert_called_with(tc, rr, TestCase.Progress.RUNNING, None)
+        pstate.reset_mock()
 
         tc.setProgress(TestCase.Progress.FINISHED)
         fm.reportProgress(tc)
-        pstate.assert_called_with(tc, rr, TestCase.Progress.FINISHED, None)
+        pstate.assert_not_called()
 
         # Error
         tc._TestCase__progress = None
         fm.reportProgress(tc)
-        pstate.assert_called_with(tc, rr, TestCase.Progress.FINISHED, None)
+        pstate.assert_not_called()
         self.assertEqual(tc.progress, TestCase.Progress.FINISHED)
         self.assertEqual(tc.state, TestCase.Result.FATAL)
         r = tc.results
@@ -219,16 +220,11 @@ class TestFormatter(unittest.TestCase):
         self.assertEqual(kwargs['stdout'], 'd_out')
         self.assertEqual(kwargs['stderr'], 'd_err')
 
-    def testTime(self):
-        fm = Formatter()
-        self.assertTrue(fm.time < 0.01)
-        time.sleep(1.01)
-        self.assertTrue(fm.time > 1)
-
     @mock.patch("moosetools.moosetest.base.Formatter._printState")
     def testProgressTime(self, pstate):
         rr = make_runner(TestRunner, name='r')
         tc = TestCase(runner=rr)
+        tc.setProgress(TestCase.Progress.RUNNING)
 
         fm = Formatter(progress_interval=1)
         fm.reportProgress(tc)

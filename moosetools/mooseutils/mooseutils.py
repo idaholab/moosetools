@@ -191,6 +191,8 @@ def runExe(app_path, args):
     Args:
         app_path[str]: The application to execute.
         args[list]: The arguments to pass to the executable.
+
+    DEPRECATED: use run_executable
     """
     import subprocess
 
