@@ -9,21 +9,30 @@
 
 import os
 import re
-import dataclasses
+#import dataclasses # TODO: use when python 3.6 is dropped
 import typing
 from moosetools import mooseutils
 from moosetools.parameters import InputParameters
 from moosetools.moosetest.base import Controller
 
 
-@dataclasses.dataclass
+# TODO: Use this when python 3.6 is dropped
+#@dataclasses.dataclass
+#class AutotoolsConfigItem(object):
+#    """
+#    Helper class for for defining configuration items as meta data within object parameters.
+#    """
+#    key: str = None  # name of the item in the configuration (e.g., MOOSE_SPARSE_AD)
+#    default: typing.Any = None  # default raw value if the value is not within the configuration file
+#    mapping: dict = None  # mapping from configuration file values to parameter values
 class AutotoolsConfigItem(object):
     """
     Helper class for for defining configuration items as meta data within object parameters.
     """
-    key: str = None  # name of the item in the configuration (e.g., MOOSE_SPARSE_AD)
-    default: typing.Any = None  # default raw value if the value is not within the configuration file
-    mapping: dict = None  # mapping from configuration file values to parameter values
+    def __init__(self, key, default, mapping):
+        self.key = key
+        self.default = default
+        self.mapping = mapping
 
 
 class AutotoolsConfigController(Controller):
