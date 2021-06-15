@@ -8,4 +8,4 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 from .EnvironmentController import EnvironmentController
-from .AutotoolsConfigControllerBase import AutotoolsConfigControllerBase, AutotoolsConfigItem
+from .AutotoolsConfigController import AutotoolsConfigController, AutotoolsConfigItem

@@ -24,7 +24,7 @@ class AutotoolsConfigItem(object):
     default: typing.Any = None # default raw value if the value is not within the configuration file
     mapping: dict = None # mapping from configuration file values to parameter values
 
-class AutotoolsConfigControllerBase(Controller):
+class AutotoolsConfigController(Controller):
     """
     A base `Controller` to dictate if an object should run based on Autotools configuration file(s).
     """
@@ -34,7 +34,7 @@ class AutotoolsConfigControllerBase(Controller):
     def validParams():
         params = Controller.validParams()
         params.add('config_files', vtype=str, mutable=False, array=True,
-                   verify=(AutotoolsConfigControllerBase.isFile, "The supplied file name(s) must exist."),
+                   verify=(AutotoolsConfigController.isFile, "The supplied file name(s) must exist."),
                    doc="The file(s) to read for the current application configuration.")
         return params
 
@@ -74,7 +74,7 @@ class AutotoolsConfigControllerBase(Controller):
             content = fid.read()
 
         output = dict()
-        for match in AutotoolsConfigControllerBase.RE_DEFINE.finditer(content):
+        for match in AutotoolsConfigController.RE_DEFINE.finditer(content):
             output[match.group('key')] = match.group('value').strip(' \n"\'')
         return output
 
@@ -84,7 +84,7 @@ class AutotoolsConfigControllerBase(Controller):
         # Build a map of configure options from the supplied files
         self.__config_items = dict()
         for config_file in self.getParam('config_files') or set():
-            self.__config_items.update(AutotoolsConfigControllerBase.loadConfig(config_file))
+            self.__config_items.update(AutotoolsConfigController.loadConfig(config_file))
 
     def getConfigItem(self, params, name):
         """

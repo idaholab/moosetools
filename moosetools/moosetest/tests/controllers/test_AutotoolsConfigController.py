@@ -13,19 +13,19 @@ import unittest
 from unittest import mock
 from moosetools.base import MooseObject
 from moosetools.moosetest.base import make_differ
-from moosetools.moosetest.controllers import AutotoolsConfigControllerBase, AutotoolsConfigItem
+from moosetools.moosetest.controllers import AutotoolsConfigController, AutotoolsConfigItem
 
 
-class TestConfig(AutotoolsConfigControllerBase):
+class TestConfig(AutotoolsConfigController):
     @staticmethod
     def validParams():
-        params = AutotoolsConfigControllerBase.validParams()
+        params = AutotoolsConfigController.validParams()
         params.setValue('prefix', 'moose')
         return params
 
     @staticmethod
     def validObjectParams():
-        params = AutotoolsConfigControllerBase.validObjectParams()
+        params = AutotoolsConfigController.validObjectParams()
         params.add('ad_mode', allow=('SPARSE', 'NONSPARSE'),
                    user_data=AutotoolsConfigItem('MOOSE_SPARSE_AD', '0', {'0':'NONSPARSE', '1':'SPARSE'}))
         params.add('not_in_config',
@@ -58,21 +58,21 @@ class Test(unittest.TestCase):
 
     def test_loadConfig(self):
         config_file = os.path.join(os.path.dirname(__file__), 'TestConfig.h')
-        out = AutotoolsConfigControllerBase.loadConfig(config_file)
+        out = AutotoolsConfigController.loadConfig(config_file)
         self.assertEqual(out['MOOSE_SPARSE_AD'], '1')
         self.assertEqual(out['MOOSE_PACKAGE_NAME'], 'moose')
 
         with self.assertRaises(IOError) as e:
-            out = AutotoolsConfigControllerBase.loadConfig('wrong')
+            out = AutotoolsConfigController.loadConfig('wrong')
         self.assertEqual("The supplied file name, 'wrong', does not exist.", str(e.exception))
 
     def test_isFile(self):
         config_file = os.path.join(os.path.dirname(__file__), 'TestConfig.h')
         with mock.patch('os.path.isfile', return_value=True):
-            self.assertTrue(AutotoolsConfigControllerBase.isFile(('file0', 'file1')))
+            self.assertTrue(AutotoolsConfigController.isFile(('file0', 'file1')))
 
         with mock.patch('os.path.isfile', side_effect=[True, False]):
-            self.assertFalse(AutotoolsConfigControllerBase.isFile(('file0', 'file1')))
+            self.assertFalse(AutotoolsConfigController.isFile(('file0', 'file1')))
 
     def test_getConfigItem(self):
         config_file = os.path.join(os.path.dirname(__file__), 'TestConfig.h')
