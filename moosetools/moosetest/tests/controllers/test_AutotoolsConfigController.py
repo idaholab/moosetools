@@ -32,6 +32,8 @@ class TestConfig(AutotoolsConfigController):
                    user_data=AutotoolsConfigItem('MOOSE_NOT_CONFIGURED', '1', {'0':'NO', '1':'YES'}))
         params.add('no_map',
                    user_data=AutotoolsConfigItem('MOOSE_NO_MAP', '1', {'0':'NO', '1':'YES'}))
+        params.add('value_from_func', vtype=int,
+                   user_data=AutotoolsConfigItem('MOOSE_VALUE', '50', int))
         params.add('no_user_data')
         return params
 
@@ -93,10 +95,15 @@ class Test(unittest.TestCase):
             ctrl.getConfigItem(obj.getParam('moose'), 'no_user_data')
         self.assertEqual("The parameter 'no_user_data' does not contain a `AutotoolsConfigItem` object within the parameter 'user_data'.", str(e.exception))
 
-        ctrl._AutotoolsConfigControllerBase__config_items['MOOSE_NO_MAP'] = '42'
+        ctrl._AutotoolsConfigController__config_items['MOOSE_NO_MAP'] = '42'
         with self.assertRaises(RuntimeError) as e:
             ctrl.getConfigItem(obj.getParam('moose'), 'no_map')
         self.assertEqual("The value of 'no_map' in the loaded file does not have a registered value in the mapping for '42'. The available mapping values are: 0, 1", str(e.exception))
+
+        m_value, r_value, r_name = ctrl.getConfigItem(obj.getParam('moose'), 'value_from_func')
+        self.assertEqual(m_value, 1980)
+        self.assertEqual(r_value, '1980')
+        self.assertEqual(r_name, 'MOOSE_VALUE')
 
     def test_checkConfig(self):
         config_file = os.path.join(os.path.dirname(__file__), 'TestConfig.h')

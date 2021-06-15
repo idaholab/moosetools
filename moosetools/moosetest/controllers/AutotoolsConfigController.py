@@ -98,7 +98,7 @@ class AutotoolsConfigController(Controller):
             raise RuntimeError(f"The parameter '{name}' does not contain a `AutotoolsConfigItem` object within the parameter 'user_data'.")
 
         raw_value = self.__config_items.get(item.key, item.default)
-        mapped_value = item.mapping.get(raw_value, None)
+        mapped_value = item.mapping.get(raw_value, None) if hasattr(item.mapping, 'get') else item.mapping(raw_value)
         if mapped_value is None:
             msg = "The value of '{}' in the loaded file does not have a registered value in the mapping for '{}'. The available mapping values are: {}"
             raise RuntimeError(msg.format(name, raw_value, ', '.join(item.mapping.keys())))
