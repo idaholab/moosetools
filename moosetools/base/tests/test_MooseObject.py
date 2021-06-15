@@ -109,19 +109,19 @@ class TestMooseObject(unittest.TestCase):
         self.assertEqual("The parameter 'wrong' does not exist.", me.exception.message)
 
         with self.assertLogs(level='WARNING') as log:
-            obj = MooseObject(error_mode=parameters.InputParameters.ErrorMode.WARNING)
+            obj = MooseObject(_error_mode=parameters.InputParameters.ErrorMode.WARNING)
             obj.getParam('wrong')
         self.assertEqual(len(log.output), 1)
         self.assertIn("The parameter 'wrong' does not exist.", log.output[0])
 
         with self.assertLogs(level='ERROR') as log:
-            obj = MooseObject(error_mode=parameters.InputParameters.ErrorMode.ERROR)
+            obj = MooseObject(_error_mode=parameters.InputParameters.ErrorMode.ERROR)
             obj.getParam('wrong')
         self.assertEqual(len(log.output), 1)
         self.assertIn("The parameter 'wrong' does not exist.", log.output[0])
 
         with self.assertLogs(level='CRITICAL') as log:
-            obj = MooseObject(error_mode=parameters.InputParameters.ErrorMode.CRITICAL)
+            obj = MooseObject(_error_mode=parameters.InputParameters.ErrorMode.CRITICAL)
             obj.getParam('wrong')
         self.assertEqual(len(log.output), 1)
         self.assertIn("The parameter 'wrong' does not exist.", log.output[0])
@@ -131,7 +131,7 @@ class TestMooseObject(unittest.TestCase):
         self.assertEqual(obj.getParam('year'), 1980)
 
     def testResetAndStatus(self):
-        obj = MooseObject(error_mode=parameters.InputParameters.ErrorMode.CRITICAL)
+        obj = MooseObject(_error_mode=parameters.InputParameters.ErrorMode.CRITICAL)
         self.assertEqual(obj.status(), 0)
         with self.assertLogs(level='ERROR'):
             obj.getParam('wrong')

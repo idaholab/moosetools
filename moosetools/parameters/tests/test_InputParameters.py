@@ -21,13 +21,13 @@ class TestInputParameters(unittest.TestCase):
     def testAdd(self):
         params = InputParameters()
         params.add('foo')
-        self.assertEqual(list(params.keys()), ['error_mode', 'foo'])
+        self.assertEqual(list(params.keys(private=True)), ['_moose_object', '_error_mode', 'foo'])
         self.assertFalse(params.isValid('foo'))
         self.assertIn('foo', params)
         self.assertIsNone(params.getValue('foo'))
         self.assertTrue(params.hasParameter('foo'))
 
-        params.setValue('error_mode',
+        params.setValue('_error_mode',
                         InputParameters.ErrorMode.ERROR)  # use error to capture return
         with self.assertLogs(level='ERROR') as log:
             params.add('foo')
@@ -60,13 +60,49 @@ class TestInputParameters(unittest.TestCase):
         self.assertIn('foo', params)
         self.assertIn('bar', params)
 
+        params.setValue('_error_mode', InputParameters.ErrorMode.ERROR)
+        with self.assertLogs(level='ERROR') as log:
+            params += params2
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("The supplied parameter 'bar' already exists", log.output[0])
+
+    def testAppend(self):
+        params = InputParameters()
+        params.add('year')
+
+        params2 = InputParameters()
+        params2.add('month')
+        params2.add('day')
+
+        params.append(params2, 'month')
+        self.assertIn('year', params)
+        self.assertIn('month', params)
+        self.assertNotIn('day', params)
+
+        params.setValue('_error_mode', InputParameters.ErrorMode.ERROR)
+        with self.assertLogs(level='ERROR') as log:
+            params.append(params2, 'minute')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("The parameter name 'minute' does not exist in", log.output[0])
+
+        with self.assertLogs(level='ERROR') as log:
+            params.append(params2, 'month')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("The supplied parameter 'month' already exists", log.output[0])
+
     def testItems(self):
         params = InputParameters()
         params.add('foo', 1949)
         params.add('bar', 1980)
 
-        gold = [('error_mode', InputParameters.ErrorMode.EXCEPTION), ('foo', 1949), ('bar', 1980)]
+        gold = [('foo', 1949), ('bar', 1980)]
         for i, (k, v) in enumerate(params.items()):
+            self.assertEqual(k, gold[i][0])
+            self.assertEqual(v, gold[i][1])
+
+        gold = [('_moose_object', None), ('_error_mode', InputParameters.ErrorMode.EXCEPTION),
+                ('foo', 1949), ('bar', 1980)]
+        for i, (k, v) in enumerate(params.items(private=True)):
             self.assertEqual(k, gold[i][0])
             self.assertEqual(v, gold[i][1])
 
@@ -75,8 +111,12 @@ class TestInputParameters(unittest.TestCase):
         params.add('foo', 1949)
         params.add('bar', 1980)
 
-        gold = [InputParameters.ErrorMode.EXCEPTION, 1949, 1980]
+        gold = [1949, 1980]
         for i, v in enumerate(params.values()):
+            self.assertEqual(v, gold[i])
+
+        gold = [None, InputParameters.ErrorMode.EXCEPTION, 1949, 1980]
+        for i, v in enumerate(params.values(private=True)):
             self.assertEqual(v, gold[i])
 
     def testKeys(self):
@@ -84,8 +124,12 @@ class TestInputParameters(unittest.TestCase):
         params.add('foo', 1949)
         params.add('bar', 1980)
 
-        gold = ['error_mode', 'foo', 'bar']
+        gold = ['foo', 'bar']
         for i, v in enumerate(params.keys()):
+            self.assertEqual(v, gold[i])
+
+        gold = ['_moose_object', '_error_mode', 'foo', 'bar']
+        for i, v in enumerate(params.keys(private=True)):
             self.assertEqual(v, gold[i])
 
     def testRemove(self):
@@ -126,7 +170,7 @@ class TestInputParameters(unittest.TestCase):
             params.setDefault('other', 1980)
         self.assertIn("The parameter 'other' does not exist", str(e.exception))
 
-        params.setValue('error_mode',
+        params.setValue('_error_mode',
                         InputParameters.ErrorMode.ERROR)  # use error to capture return
         with self.assertLogs(level='ERROR') as log:
             params.setDefault('foo', 'wrong')
@@ -203,13 +247,13 @@ class TestInputParameters(unittest.TestCase):
             params.setValue('foo', 1980, 2011)
         self.assertIn("Extra argument(s) found: 1980", str(e.exception))
 
-        params.setValue('error_mode', InputParameters.ErrorMode.ERROR)  # log to capture return
+        params.setValue('_error_mode', InputParameters.ErrorMode.ERROR)  # log to capture return
         with self.assertLogs(level='ERROR') as log:
             params.setValue('foo')
         self.assertEqual(len(log.output), 1)
         self.assertIn("One or more names must be supplied.", log.output[0])
 
-        params.setValue('error_mode', InputParameters.ErrorMode.ERROR)
+        params.setValue('_error_mode', InputParameters.ErrorMode.ERROR)
         with self.assertLogs(level='ERROR') as log:
             params.setValue('foo', 'wrong')
         self.assertEqual(len(log.output), 1)
@@ -252,28 +296,28 @@ class TestInputParameters(unittest.TestCase):
 
     def testErrorMode(self):
         params = InputParameters()
-        params.setValue('error_mode', InputParameters.ErrorMode.WARNING)
+        params.setValue('_error_mode', InputParameters.ErrorMode.WARNING)
         with self.assertLogs(level='WARNING') as log:
             self.assertIsNone(params.isValid('bar'))
         self.assertEqual(len(log.output), 1)
         self.assertIn("The parameter 'bar' does not exist", log.output[0])
 
         params = InputParameters()
-        params.setValue('error_mode', InputParameters.ErrorMode.ERROR)
+        params.setValue('_error_mode', InputParameters.ErrorMode.ERROR)
         with self.assertLogs(level='ERROR') as log:
             self.assertIsNone(params.isValid('bar'))
         self.assertEqual(len(log.output), 1)
         self.assertIn("The parameter 'bar' does not exist", log.output[0])
 
         params = InputParameters()
-        params.setValue('error_mode', InputParameters.ErrorMode.CRITICAL)
+        params.setValue('_error_mode', InputParameters.ErrorMode.CRITICAL)
         with self.assertLogs(level='CRITICAL') as log:
             self.assertIsNone(params.isValid('bar'))
         self.assertEqual(len(log.output), 1)
         self.assertIn("The parameter 'bar' does not exist", log.output[0])
 
         params = InputParameters()
-        params.setValue('error_mode', InputParameters.ErrorMode.EXCEPTION)
+        params.setValue('_error_mode', InputParameters.ErrorMode.EXCEPTION)
         with self.assertRaises(MooseException) as e:
             self.assertIsNone(params.isValid('bar'))
         self.assertIn("The parameter 'bar' does not exist", str(e.exception))
@@ -379,12 +423,17 @@ class TestInputParameters(unittest.TestCase):
             "The parameter 'year' has already been validated, the required state cannot be changed.",
             str(e.exception))
 
-        date.setValue('error_mode', InputParameters.ErrorMode.ERROR)
+        date.setValue('_error_mode', InputParameters.ErrorMode.ERROR)
         with self.assertLogs(level='ERROR') as log:
             value = date.isRequired('wrong')
         self.assertEqual(value, False)
         self.assertEqual(len(log.output), 1)
         self.assertIn("The parameter 'wrong' does not exist.", log.output[0])
+
+    def testUserData(self):
+        date = InputParameters()
+        date.add('year', user_data='YMD')
+        self.assertEqual(date.getUserData('year'), 'YMD')
 
     def testDeprecated(self):
         date = InputParameters()

@@ -40,7 +40,8 @@ class InputParameters(object):
             doc= "The `MooseObject` that the InputParameter object belongs, if provided the error " \
                  "logging will log via the `MooseObject`."
         )
-        self.add('error_mode',
+        self.add('_error_mode',
+                 private=True,
                  default=InputParameters.ErrorMode.EXCEPTION,
                  vtype=InputParameters.ErrorMode)
 
@@ -84,9 +85,32 @@ class InputParameters(object):
         Inputs:
            options[InputParameters]: An instance of an InputParameters object to append.
         """
-        for key in params.keys():
+        for key in params.keys():  # loop through non-private parameters in source
+            if key in self.__parameters:
+                msg = "The supplied parameter '{}' already exists."
+                self.__errorHelper(msg, key)
+                continue
+
             self.__parameters[key] = params._InputParameters__parameters[key]
         return self
+
+    def append(self, params, *keys):
+        """
+        Append specific Parameter objects, by name (*keys*) from the supplied `InputParameters`
+        object in *params*.
+        """
+        for key in keys:
+            if key not in params:
+                msg = "The parameter name '{}' does not exist in the supplied `InputParameters` object."
+                self.__errorHelper(msg, key)
+                continue
+
+            if (key in self.__parameters):
+                msg = "The supplied parameter '{}' already exists."
+                self.__errorHelper(msg, key)
+                continue
+
+            self.__parameters[key] = params._InputParameters__parameters[key]
 
     def parameter(self, *args):
         """
@@ -96,26 +120,32 @@ class InputParameters(object):
         """
         return self._getParameter(*args)
 
-    def items(self):
+    def items(self, private=False):
         """
-        Provides dict.items() functionality.
-        """
-        for name, param in self.__parameters.items():
-            if not param.private:
-                yield name, param.value
+        Provides dict.items() functionality to return public parameter values.
 
-    def values(self):
+        If *private* is True then parameters marked as private are also returned.
+        """
+        if private:
+            return [(key, param.value) for key, param in self.__parameters.items()]
+        return [(key, param.value) for key, param in self.__parameters.items() if not param.private]
+
+    def values(self, private=False):
         """
         Provides dict.values() functionality.
         """
-        for param in self.__parameters.values():
-            if not param.private:
-                yield param.value
+        if private:
+            return [param.value for param in self.__parameters.values()]
+        return [param.value for param in self.__parameters.values() if not param.private]
 
-    def keys(self):
+    def keys(self, private=False):
         """
-        Provides dict.keys() functionality.
+        Provides dict.keys() functionality to return the public parameter names.
+
+        If *private* is True then parameters marked as private are also returned.
         """
+        if private:
+            return self.__parameters.keys()
         return [key for key, value in self.__parameters.items() if not value.private]
 
     def remove(self, name):
@@ -177,6 +207,14 @@ class InputParameters(object):
         opt = self._getParameter(*args)
         if opt is not None:
             return opt.default
+
+    def getUserData(self, *args):
+        """
+        Return parameter "user data".
+        """
+        opt = self._getParameter(*args)
+        if opt is not None:
+            return opt.user_data
 
     def isDefault(self, *args):
         """
@@ -337,7 +375,7 @@ class InputParameters(object):
         Produce warning, error, or exception based on operation mode.
         """
         msg = text.format(*args, **kwargs)
-        mode = self.getValue('error_mode')
+        mode = self.getValue('_error_mode')
         log = self.getValue('_moose_object') or logging.getLogger(__name__)
         if mode == InputParameters.ErrorMode.WARNING:
             log.warning(msg)
