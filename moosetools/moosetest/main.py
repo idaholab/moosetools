@@ -215,7 +215,7 @@ def make_controllers(filename, root, plugin_dirs):
     # All Controller object type found by the Factory are automatically included with the default
     # configuration. This adds them to the configuration tree so they will be built by the factory
     c_types = set(child['type'] for child in c_node)
-    for name in c_factory._registered_types.keys():
+    for name in [key for key, value in c_factory._registered_types.items() if value.AUTO_BUILD]:
         if name not in c_types:
             c_node.append(f"_moosetools_{name}", type=name)
 

@@ -21,6 +21,8 @@ class EnvironmentController(Controller):
     """
     A controller to dictate if an object should run based on the environment.
     """
+    AUTO_BUILD = True
+
     @staticmethod
     def validParams():
         params = Controller.validParams()
