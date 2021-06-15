@@ -40,7 +40,8 @@ class InputParameters(object):
             doc= "The `MooseObject` that the InputParameter object belongs, if provided the error " \
                  "logging will log via the `MooseObject`."
         )
-        self.add('_error_mode', private=True,
+        self.add('_error_mode',
+                 private=True,
                  default=InputParameters.ErrorMode.EXCEPTION,
                  vtype=InputParameters.ErrorMode)
 
@@ -84,7 +85,7 @@ class InputParameters(object):
         Inputs:
            options[InputParameters]: An instance of an InputParameters object to append.
         """
-        for key in params.keys(): # loop through non-private parameters in source
+        for key in params.keys():  # loop through non-private parameters in source
             if key in self.__parameters:
                 msg = "The supplied parameter '{}' already exists."
                 self.__errorHelper(msg, key)

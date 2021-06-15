@@ -90,7 +90,6 @@ class TestInputParameters(unittest.TestCase):
         self.assertEqual(len(log.output), 1)
         self.assertIn("The supplied parameter 'month' already exists", log.output[0])
 
-
     def testItems(self):
         params = InputParameters()
         params.add('foo', 1949)
@@ -101,11 +100,11 @@ class TestInputParameters(unittest.TestCase):
             self.assertEqual(k, gold[i][0])
             self.assertEqual(v, gold[i][1])
 
-        gold = [('_moose_object', None), ('_error_mode', InputParameters.ErrorMode.EXCEPTION), ('foo', 1949), ('bar', 1980)]
+        gold = [('_moose_object', None), ('_error_mode', InputParameters.ErrorMode.EXCEPTION),
+                ('foo', 1949), ('bar', 1980)]
         for i, (k, v) in enumerate(params.items(private=True)):
             self.assertEqual(k, gold[i][0])
             self.assertEqual(v, gold[i][1])
-
 
     def testValues(self):
         params = InputParameters()
@@ -119,7 +118,6 @@ class TestInputParameters(unittest.TestCase):
         gold = [None, InputParameters.ErrorMode.EXCEPTION, 1949, 1980]
         for i, v in enumerate(params.values(private=True)):
             self.assertEqual(v, gold[i])
-
 
     def testKeys(self):
         params = InputParameters()

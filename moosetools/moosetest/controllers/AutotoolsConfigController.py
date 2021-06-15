@@ -15,14 +15,16 @@ from moosetools import mooseutils
 from moosetools.parameters import InputParameters
 from moosetools.moosetest.base import Controller
 
+
 @dataclasses.dataclass
 class AutotoolsConfigItem(object):
     """
     Helper class for for defining configuration items as meta data within object parameters.
     """
-    key: str = None # name of the item in the configuration (e.g., MOOSE_SPARSE_AD)
-    default: typing.Any = None # default raw value if the value is not within the configuration file
-    mapping: dict = None # mapping from configuration file values to parameter values
+    key: str = None  # name of the item in the configuration (e.g., MOOSE_SPARSE_AD)
+    default: typing.Any = None  # default raw value if the value is not within the configuration file
+    mapping: dict = None  # mapping from configuration file values to parameter values
+
 
 class AutotoolsConfigController(Controller):
     """
@@ -33,8 +35,12 @@ class AutotoolsConfigController(Controller):
     @staticmethod
     def validParams():
         params = Controller.validParams()
-        params.add('config_files', vtype=str, mutable=False, array=True,
-                   verify=(AutotoolsConfigController.isFile, "The supplied file name(s) must exist."),
+        params.add('config_files',
+                   vtype=str,
+                   mutable=False,
+                   array=True,
+                   verify=(AutotoolsConfigController.isFile,
+                           "The supplied file name(s) must exist."),
                    doc="The file(s) to read for the current application configuration.")
         return params
 
@@ -95,10 +101,13 @@ class AutotoolsConfigController(Controller):
         """
         item = params.getUserData(name)
         if item is None:
-            raise RuntimeError(f"The parameter '{name}' does not contain a `AutotoolsConfigItem` object within the parameter 'user_data'.")
+            raise RuntimeError(
+                f"The parameter '{name}' does not contain a `AutotoolsConfigItem` object within the parameter 'user_data'."
+            )
 
         raw_value = self.__config_items.get(item.key, item.default)
-        mapped_value = item.mapping.get(raw_value, None) if hasattr(item.mapping, 'get') else item.mapping(raw_value)
+        mapped_value = item.mapping.get(raw_value, None) if hasattr(
+            item.mapping, 'get') else item.mapping(raw_value)
         if mapped_value is None:
             msg = "The value of '{}' in the loaded file does not have a registered value in the mapping for '{}'. The available mapping values are: {}"
             raise RuntimeError(msg.format(name, raw_value, ', '.join(item.mapping.keys())))
@@ -119,7 +128,6 @@ class AutotoolsConfigController(Controller):
                 msg = "The application is configured with '{}' equal to '{}', which maps to a value of '{}'. However, the associated '{}' parameter for this test requires '{}'."
                 self.debug(msg, raw_name, raw_value, mapped_value, param_name, param_value)
                 self.skip('{} != {}', mapped_value, param_value)
-
 
     def execute(self, obj, params):
         """

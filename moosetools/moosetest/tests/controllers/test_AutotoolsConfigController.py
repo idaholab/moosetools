@@ -26,16 +26,28 @@ class TestConfig(AutotoolsConfigController):
     @staticmethod
     def validObjectParams():
         params = AutotoolsConfigController.validObjectParams()
-        params.add('ad_mode', allow=('SPARSE', 'NONSPARSE'),
-                   user_data=AutotoolsConfigItem('MOOSE_SPARSE_AD', '0', {'0':'NONSPARSE', '1':'SPARSE'}))
+        params.add('ad_mode',
+                   allow=('SPARSE', 'NONSPARSE'),
+                   user_data=AutotoolsConfigItem('MOOSE_SPARSE_AD', '0', {
+                       '0': 'NONSPARSE',
+                       '1': 'SPARSE'
+                   }))
         params.add('not_in_config',
-                   user_data=AutotoolsConfigItem('MOOSE_NOT_CONFIGURED', '1', {'0':'NO', '1':'YES'}))
+                   user_data=AutotoolsConfigItem('MOOSE_NOT_CONFIGURED', '1', {
+                       '0': 'NO',
+                       '1': 'YES'
+                   }))
         params.add('no_map',
-                   user_data=AutotoolsConfigItem('MOOSE_NO_MAP', '1', {'0':'NO', '1':'YES'}))
-        params.add('value_from_func', vtype=int,
+                   user_data=AutotoolsConfigItem('MOOSE_NO_MAP', '1', {
+                       '0': 'NO',
+                       '1': 'YES'
+                   }))
+        params.add('value_from_func',
+                   vtype=int,
                    user_data=AutotoolsConfigItem('MOOSE_VALUE', '50', int))
         params.add('no_user_data')
         return params
+
 
 class TestDiffer(MooseObject):
     pass
@@ -44,7 +56,7 @@ class TestDiffer(MooseObject):
 class Test(unittest.TestCase):
     def testBasic(self):
         config_file = os.path.join(os.path.dirname(__file__), 'TestConfig.h')
-        ctrl = TestConfig(config_files=(config_file,), log_level='DEBUG')
+        ctrl = TestConfig(config_files=(config_file, ), log_level='DEBUG')
         obj = make_differ(TestDiffer, (ctrl, ))
 
         ctrl.execute(obj, obj.getParam('moose'))
@@ -56,7 +68,9 @@ class Test(unittest.TestCase):
             ctrl.execute(obj, obj.getParam('moose'))
         self.assertFalse(ctrl.isRunnable())
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The application is configured with 'MOOSE_SPARSE_AD' equal to '1', which maps to a value of 'SPARSE'. However, the associated 'ad_mode' parameter for this test requires 'NONSPARSE'.", log.output[0])
+        self.assertIn(
+            "The application is configured with 'MOOSE_SPARSE_AD' equal to '1', which maps to a value of 'SPARSE'. However, the associated 'ad_mode' parameter for this test requires 'NONSPARSE'.",
+            log.output[0])
 
     def test_loadConfig(self):
         config_file = os.path.join(os.path.dirname(__file__), 'TestConfig.h')
@@ -78,7 +92,7 @@ class Test(unittest.TestCase):
 
     def test_getConfigItem(self):
         config_file = os.path.join(os.path.dirname(__file__), 'TestConfig.h')
-        ctrl = TestConfig(config_files=(config_file,), log_level='DEBUG')
+        ctrl = TestConfig(config_files=(config_file, ), log_level='DEBUG')
         obj = make_differ(TestDiffer, (ctrl, ))
 
         m_value, r_value, r_name = ctrl.getConfigItem(obj.getParam('moose'), 'ad_mode')
@@ -93,12 +107,16 @@ class Test(unittest.TestCase):
 
         with self.assertRaises(RuntimeError) as e:
             ctrl.getConfigItem(obj.getParam('moose'), 'no_user_data')
-        self.assertEqual("The parameter 'no_user_data' does not contain a `AutotoolsConfigItem` object within the parameter 'user_data'.", str(e.exception))
+        self.assertEqual(
+            "The parameter 'no_user_data' does not contain a `AutotoolsConfigItem` object within the parameter 'user_data'.",
+            str(e.exception))
 
         ctrl._AutotoolsConfigController__config_items['MOOSE_NO_MAP'] = '42'
         with self.assertRaises(RuntimeError) as e:
             ctrl.getConfigItem(obj.getParam('moose'), 'no_map')
-        self.assertEqual("The value of 'no_map' in the loaded file does not have a registered value in the mapping for '42'. The available mapping values are: 0, 1", str(e.exception))
+        self.assertEqual(
+            "The value of 'no_map' in the loaded file does not have a registered value in the mapping for '42'. The available mapping values are: 0, 1",
+            str(e.exception))
 
         m_value, r_value, r_name = ctrl.getConfigItem(obj.getParam('moose'), 'value_from_func')
         self.assertEqual(m_value, 1980)
@@ -107,7 +125,7 @@ class Test(unittest.TestCase):
 
     def test_checkConfig(self):
         config_file = os.path.join(os.path.dirname(__file__), 'TestConfig.h')
-        ctrl = TestConfig(config_files=(config_file,), log_level='DEBUG')
+        ctrl = TestConfig(config_files=(config_file, ), log_level='DEBUG')
         obj = make_differ(TestDiffer, (ctrl, ))
         ctrl.checkConfig(obj.getParam('moose'), 'ad_mode')
 
@@ -115,8 +133,9 @@ class Test(unittest.TestCase):
         with self.assertLogs(level='DEBUG') as log:
             ctrl.execute(obj, obj.getParam('moose'))
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The application is configured with 'MOOSE_SPARSE_AD' equal to '1', which maps to a value of 'SPARSE'. However, the associated 'ad_mode' parameter for this test requires 'NONSPARSE'.", log.output[0])
-
+        self.assertIn(
+            "The application is configured with 'MOOSE_SPARSE_AD' equal to '1', which maps to a value of 'SPARSE'. However, the associated 'ad_mode' parameter for this test requires 'NONSPARSE'.",
+            log.output[0])
 
 
 if __name__ == '__main__':
