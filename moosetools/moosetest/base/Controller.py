@@ -28,6 +28,8 @@ class Controller(MooseObject):
     The `Controller` objects within this repository are added by default, custom objects can be
     added by the [Controllers] block with the '.moosetools' configure file.
     """
+    AUTO_BUILD = False
+
     @staticmethod
     def validParams():
         params = MooseObject.validParams()

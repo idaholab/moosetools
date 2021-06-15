@@ -488,6 +488,10 @@ class TestParameter(unittest.TestCase):
         self.assertTrue(opt.is_validated)
         self.assertTrue(sub.parameter('year').is_validated)
 
+    def testUserData(self):
+        opt = Parameter('year', user_data=dict(person='Andrew'))
+        self.assertEqual(opt.user_data, dict(person='Andrew'))
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)

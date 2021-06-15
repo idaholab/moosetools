@@ -45,6 +45,7 @@ class Parameter(object):
         verify[tuple]: Define a custom verify function and error message. The first item must
                        be a callable function with a single argument, the second item must be a str.
         mutable[bool]: Do not allow the value to change after validation.
+        user_data: Arbitrary meta data for use by objects.
     """
     def __init__(self,
                  name,
@@ -57,7 +58,8 @@ class Parameter(object):
                  required=False,
                  private=None,
                  verify=None,
-                 mutable=True):
+                 mutable=True,
+                 user_data=None):
 
         # Force vtype to be a tuple to allow multiple types to be defined
         if isinstance(vtype, type):
@@ -76,6 +78,7 @@ class Parameter(object):
         self.__set_by_user = False  # flag indicating if the parameter was set after construction
         self.__mutable = mutable  # flag indicating if the parameter can change after construction
         self.__validated = False  # set by validate method, used with mutable
+        self.__user_data = user_data
 
         if not isinstance(self.__name, str):
             msg = "The supplied 'name' argument must be a 'str', but {} was provided."
@@ -216,6 +219,11 @@ class Parameter(object):
     def is_validated(self):
         """Return True if `validate` was called."""
         return self.__validated
+
+    @property
+    def user_data(self):
+        """Return data supplied as "userdata" to __init__."""
+        return self.__user_data
 
     def setRequired(self, value):
         """
