@@ -69,16 +69,16 @@ class EnvironmentController(Controller):
         min_py_version = params.getValue('python_minimum_version')
         if (min_py_version is not None) and (packaging.version.parse(min_py_version) >
                                              packaging.version.parse(sys_py_version)):
-            self.skip('{} > {}', min_py_version, sys_py_version)
+            self.skip('Python {} > {}', min_py_version, sys_py_version)
             self.debug(
                 "The system python version {} is less then the allowed minimum version of {}",
                 sys_py_version, min_py_version)
 
         # Python max. version
         max_py_version = params.getValue('python_maximum_version')
-        if (max_py_version is not None) and (packaging.version.parse(max_py_version) <=
+        if (max_py_version is not None) and (packaging.version.parse(max_py_version) <
                                              packaging.version.parse(sys_py_version)):
-            self.skip('{} < {}', max_py_version, sys_py_version)
+            self.skip('Python {} < {}', max_py_version, sys_py_version)
             self.debug(
                 "The system python version {} is greater then the allowed maximum version of {}",
                 sys_py_version, max_py_version)

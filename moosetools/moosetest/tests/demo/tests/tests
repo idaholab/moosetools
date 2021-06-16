@@ -12,8 +12,8 @@
       type = RunCommand
       command = 'sleep 3'
       [diff]
-        type = ConsoleDiff
-        text_in_stderr = 'sleep'
+        type = ConsoleDiffer
+        text_in_stdout = 'sleep'
       []
     []
   []
