@@ -21,7 +21,7 @@ from moosetools.moosetest import discover, run, fuzzer
 from moosetools.moosetest.base import Controller, Formatter, make_runner, make_differ
 from moosetools.moosetest.base import make_runner, make_differ
 from moosetools.moosetest.runners import RunCommand
-from moosetools.moosetest.differs import ConsoleDiff
+from moosetools.moosetest.differs import ConsoleDiffer
 from moosetools.moosetest.controllers import EnvironmentController
 from moosetools.moosetest.formatters import BasicFormatter
 

@@ -281,7 +281,7 @@ class InputParameters(object):
         Inputs:
             name[str]: The name of the Parameter to check
         """
-        param = self._getParameter(*args)
+        param = self._getParameter(*args, suppress_error=True)
         return param is not None
 
     def update(self, *args, **kwargs):
@@ -338,7 +338,7 @@ class InputParameters(object):
                 out.append(param.toString(prefix=prefix, level=level))
         return '\n\n'.join(out)
 
-    def _getParameter(self, *args):
+    def _getParameter(self, *args, suppress_error=False):
         """
         A helper for returning the a Parameter object that handles nested InputParameters.
 
@@ -361,13 +361,15 @@ class InputParameters(object):
                 return self._getParameter(*sub_args)
 
         if opt is None:
-            self.__errorHelper("The parameter '{}' does not exist.", args[0])
+            if not suppress_error:
+                self.__errorHelper("The parameter '{}' does not exist.", args[0])
             return None
         elif opt.isInstance(InputParameters) and len(args) > 1:
             value = opt.value or opt.default
-            return value._getParameter(*args[1:])
+            return value._getParameter(*args[1:], suppress_error=suppress_error)
         elif (not opt.isInstance(InputParameters)) and len(args) > 1:
             self.__errorHelper("Extra argument(s) found: {}", ', '.join(str(a) for a in args[1:]))
+            return None
         else:
             return opt
 

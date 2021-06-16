@@ -11,7 +11,7 @@ import re
 from moosetools.moosetest.base import Differ
 
 
-class ConsoleDiff(Differ):
+class ConsoleDiffer(Differ):
     """
     A tool for testing for the existence of text within `sys.stdour` and/or `sys.stderr`.
     """

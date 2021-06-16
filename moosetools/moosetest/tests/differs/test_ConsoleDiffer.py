@@ -12,17 +12,17 @@ import io
 import logging
 import unittest
 from unittest import mock
-from moosetools.moosetest.differs import ConsoleDiff
+from moosetools.moosetest.differs import ConsoleDiffer
 
 
-class TestConsoleDiff(unittest.TestCase):
+class TestConsoleDiffer(unittest.TestCase):
     def testDefault(self):
-        obj = ConsoleDiff(name='diff')
+        obj = ConsoleDiffer(name='diff')
         obj.execute(0, '', '')
         self.assertEqual(obj.status(), 0)
 
     def testTextIn(self):
-        obj = ConsoleDiff(name='diff', text_in='andrew')
+        obj = ConsoleDiffer(name='diff', text_in='andrew')
         obj.execute(0, 'andrew', '')
         self.assertEqual(obj.status(), 0)
 
@@ -37,7 +37,7 @@ class TestConsoleDiff(unittest.TestCase):
         self.assertEqual(obj.status(), 1)
 
     def testTextNotIn(self):
-        obj = ConsoleDiff(name='diff', text_not_in='andrew')
+        obj = ConsoleDiffer(name='diff', text_not_in='andrew')
         obj.execute(0, 'bob', 'julie')
         self.assertEqual(obj.status(), 0)
 
@@ -57,7 +57,7 @@ class TestConsoleDiff(unittest.TestCase):
         self.assertEqual(obj.status(), 1)
 
     def testTextInStdout(self):
-        obj = ConsoleDiff(name='diff', text_in_stdout='andrew')
+        obj = ConsoleDiffer(name='diff', text_in_stdout='andrew')
         obj.execute(0, 'andrew', 'andrew')
         self.assertEqual(obj.status(), 0)
 
@@ -70,7 +70,7 @@ class TestConsoleDiff(unittest.TestCase):
         self.assertEqual(obj.status(), 1)
 
     def testTextNotInStdout(self):
-        obj = ConsoleDiff(name='diff', text_not_in_stdout='andrew')
+        obj = ConsoleDiffer(name='diff', text_not_in_stdout='andrew')
         obj.execute(0, 'bob', 'andrew')
         self.assertEqual(obj.status(), 0)
 
@@ -83,7 +83,7 @@ class TestConsoleDiff(unittest.TestCase):
         self.assertEqual(obj.status(), 1)
 
     def testTextInStderr(self):
-        obj = ConsoleDiff(name='diff', text_in_stderr='andrew')
+        obj = ConsoleDiffer(name='diff', text_in_stderr='andrew')
         obj.execute(0, 'andrew', 'andrew')
         self.assertEqual(obj.status(), 0)
 
@@ -96,7 +96,7 @@ class TestConsoleDiff(unittest.TestCase):
         self.assertEqual(obj.status(), 1)
 
     def testTextNotInStderr(self):
-        obj = ConsoleDiff(name='diff', text_not_in_stderr='andrew')
+        obj = ConsoleDiffer(name='diff', text_not_in_stderr='andrew')
         obj.execute(0, 'andrew', 'bob')
         self.assertEqual(obj.status(), 0)
 
@@ -109,7 +109,7 @@ class TestConsoleDiff(unittest.TestCase):
         self.assertEqual(obj.status(), 1)
 
     def testReMatch(self):
-        obj = ConsoleDiff(name='diff', re_match='\d{4}-\d{2}-\d{2}')
+        obj = ConsoleDiffer(name='diff', re_match='\d{4}-\d{2}-\d{2}')
         obj.execute(0, '1980-06-24', '198-06-24')
         self.assertEqual(obj.status(), 0)
 
@@ -134,7 +134,7 @@ class TestConsoleDiff(unittest.TestCase):
         self.assertEqual(obj.status(), 1)
 
     def testReNotMatch(self):
-        obj = ConsoleDiff(name='diff', re_not_match='\d{4}-\d{2}-\d{2}')
+        obj = ConsoleDiffer(name='diff', re_not_match='\d{4}-\d{2}-\d{2}')
         obj.execute(0, '198-06-24', '198-06-24')
         self.assertEqual(obj.status(), 0)
 
@@ -159,7 +159,7 @@ class TestConsoleDiff(unittest.TestCase):
         self.assertEqual(obj.status(), 1)
 
     def testReMatchStdout(self):
-        obj = ConsoleDiff(name='diff', re_match_stdout='\d{4}-\d{2}-\d{2}')
+        obj = ConsoleDiffer(name='diff', re_match_stdout='\d{4}-\d{2}-\d{2}')
         obj.execute(0, '1980-06-24', '1980-06-24')
         self.assertEqual(obj.status(), 0)
 
@@ -172,7 +172,7 @@ class TestConsoleDiff(unittest.TestCase):
         self.assertEqual(obj.status(), 1)
 
     def testReNotMatchStdout(self):
-        obj = ConsoleDiff(name='diff', re_not_match_stdout='\d{4}-\d{2}-\d{2}')
+        obj = ConsoleDiffer(name='diff', re_not_match_stdout='\d{4}-\d{2}-\d{2}')
         obj.execute(0, '198-06-24', '1980-06-24')
         self.assertEqual(obj.status(), 0)
 
@@ -185,7 +185,7 @@ class TestConsoleDiff(unittest.TestCase):
         self.assertEqual(obj.status(), 1)
 
     def testReMatchStderr(self):
-        obj = ConsoleDiff(name='diff', re_match_stderr='\d{4}-\d{2}-\d{2}')
+        obj = ConsoleDiffer(name='diff', re_match_stderr='\d{4}-\d{2}-\d{2}')
         obj.execute(0, '1980-06-24', '1980-06-24')
         self.assertEqual(obj.status(), 0)
 
@@ -198,7 +198,7 @@ class TestConsoleDiff(unittest.TestCase):
         self.assertEqual(obj.status(), 1)
 
     def testReNotMatchStderr(self):
-        obj = ConsoleDiff(name='diff', re_not_match_stderr='\d{4}-\d{2}-\d{2}')
+        obj = ConsoleDiffer(name='diff', re_not_match_stderr='\d{4}-\d{2}-\d{2}')
         obj.execute(0, '1980-06-24', '198-06-24')
         self.assertEqual(obj.status(), 0)
 
