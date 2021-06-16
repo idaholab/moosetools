@@ -64,34 +64,42 @@ class Runner(MooseTestObject):
                    array=True,
                    doc="The 'Differ' object(s) to execute after execution of this object.")
 
+        # Parameters associated with file names
         params.add(
-            'base_dir',
+            'file',
+            default=InputParameters(),
+            doc="Parameters for managing file(s) associated with execution of the `Runner` object.")
+        f_params = params.getValue('file')
+        f_params.add(
+            'base',
             vtype=str,
             verify=(Runner.verifyBaseDirectory,
                     "The supplied directory must exist and be an absolute path."),
             doc=
-            "The base directory for the relative paths of the supplied names in the 'filenames' parameter."
-        )
-        params.add(
-            'filenames',
+            "The base directory for relative paths of the supplied names in the 'names' parameter.")
+        f_params.add(
+            'names',
             vtype=str,
             array=True,
             doc=
-            "Filename(s) that are expected to be created during execution of this object. The file(s) listed here are joined with the 'filenames' parameter from each differ. The combined set is what is used for associated error checking."
+            "File name(s) that are expected to be created during execution of this object. The file(s) listed here are joined with the 'filenames' parameter from each differ. The combined set is what is used for associated error checking."
         )
 
-        params.add(
-            'check_created_files',
+        f_params.add(
+            'check_created',
             vtype=bool,
             mutable=False,
             doc=
-            "Check that all files created are accounted for in the 'filenames' parameters of this `Runner` object and/or associated `Differ` objects. By default the check will be performed if the 'base_dir' is set."
+            "Check that all files created are accounted for in the 'names' parameter of this `Runner` object and/or associated `Differ` objects. By default the check will be performed if the 'base' is set."
         )
 
-        params.add('delete_output_before_running',
-                   vtype=bool,
-                   default=True,
-                   doc="Delete pre-existing output files before running test.")
+        f_params.add(
+            'clean',
+            vtype=bool,
+            default=True,
+            doc=
+            "Delete pre-existing file names defined in the 'names' parameter of this `Runner` object and/or associated `Differ` objects before calling the `execute` method."
+        )
 
         return params
 
@@ -154,14 +162,14 @@ class Runner(MooseTestObject):
         # Check that all paths are absolute
         non_abs = [fname for fname in self.__expected_files if not os.path.isabs(fname)]
         if non_abs:
-            msg = "The following file(s) were not defined as an absolute path or as a relative path to the 'base_dir' parameter:\n  {}"
+            msg = "The following file(s) were not defined as an absolute path or as a relative path to the 'file_base' parameter:\n  {}"
             self.error(msg, '\n  '.join(non_abs))
             return
 
         # Check that the file is not under version control
         root_dir = mooseutils.git_root_dir()
         if root_dir:
-            git_files = set(mooseutils.git_ls_files(self.getParam('base_dir') or root_dir))
+            git_files = set(mooseutils.git_ls_files(self.getParam('file', 'base') or root_dir))
             intersect = git_files.intersection(self.__expected_files)
             if intersect:
                 msg = "The following file(s) are being tracked with 'git', thus cannot be expected to be created by the execution of this object:\n  {}."
@@ -169,7 +177,7 @@ class Runner(MooseTestObject):
                 return
 
         # Remove expected output
-        if self.getParam('delete_output_before_running'):
+        if self.getParam('file', 'clean'):
             for fname in self.__expected_files:
                 if os.path.isfile(fname):
                     self.info("Removing file: {}", fname)
@@ -183,14 +191,14 @@ class Runner(MooseTestObject):
             return
 
         # Store directory content
-        check_created_files = self.getParam('check_created_files')
-        if check_created_files and not self.isParamValid('base_dir'):
-            msg = "When 'check_created_files' is enabled, the 'base_dir' parameter must be defined to limit the check to the correct location."
+        check_created_files = self.getParam('file', 'check_created')
+        if check_created_files and not self.isParamValid('file', 'base'):
+            msg = "When 'file_check_created' is enabled, the 'file_base' parameter must be defined to limit the check to the correct location."
             self.error(msg)
             return
         elif check_created_files or ((check_created_files is None)
-                                     and self.isParamValid('base_dir')):
-            base_dir = self.getParam('base_dir')
+                                     and self.isParamValid('file', 'base')):
+            base_dir = self.getParam('file', 'base')
             self.__pre_execute_files = set(os.path.join(base_dir, f) for f in os.listdir())
 
     def _postExecuteExpectedFiles(self):
@@ -206,8 +214,7 @@ class Runner(MooseTestObject):
 
         # check for other files
         if self.__pre_execute_files is not None:
-            base_dir = self.getParam('base_dir')
-            post_execute_files = set(os.path.join(base_dir, f) for f in os.listdir())
+            post_execute_files = set(os.listdir(self.getParam('file', 'base')))
             diff = post_execute_files.difference(self.__pre_execute_files)
             if diff and set(self.__expected_files) != diff:
                 msg = "The following file(s) were created but not expected:\n  {}"
@@ -223,13 +230,13 @@ class Runner(MooseTestObject):
         return expected
 
     @staticmethod
-    def filenames(obj, filenames_param='filenames', base_dir_param='base_dir'):
+    def filenames(obj):
         """
         Return a set of filenames gathered from the 'filenames' parameters, with relative paths
         being prefixed with the 'base_dir' parameter (if it exists).
         """
-        filenames = obj.getParam(filenames_param) or list()
-        base_dir = obj.getParam(base_dir_param)
+        filenames = set(obj.getParam('file', 'names') or list())
+        base_dir = obj.getParam('file', 'base')
         if base_dir is not None:
             filenames_abs = list()
             for fname in filenames:
