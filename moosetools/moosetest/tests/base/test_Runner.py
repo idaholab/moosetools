@@ -93,7 +93,8 @@ class TestRunner(unittest.TestCase):
         self.assertIn("When 'check_created_files' is enabled, the 'base_dir'", log.output[0])
         self.assertIsNone(runner.getParam('differs'))
 
-        runner = moosetest.base.Runner(name='run', base_dir=os.path.dirname(__file__))
+        runner = moosetest.base.Runner(name='run',
+                                       base_dir=os.path.abspath(os.path.dirname(__file__)))
         with mock.patch('os.listdir', return_value=['/foo/file']):
             runner.preExecute()
         self.assertEqual(runner._Runner__pre_execute_files, set(['/foo/file']))
@@ -108,7 +109,8 @@ class TestRunner(unittest.TestCase):
         self.assertEqual(len(log.output), 1)
         self.assertIn("The following file(s) were not created as expected:", log.output[0])
 
-        runner = moosetest.base.Runner(name='run', base_dir=os.path.dirname(__file__))
+        runner = moosetest.base.Runner(name='run',
+                                       base_dir=os.path.abspath(os.path.dirname(__file__)))
         with mock.patch('os.listdir',
                         side_effect=[['/foo/file'],
                                      ['/foo/file',
@@ -128,7 +130,7 @@ class TestRunner(unittest.TestCase):
                                        filenames=('/runner_0', 'runner_1'))
 
         expected = runner._getExpectedFiles()
-        self.assertEqual(expected, set(['/differ_a', 'differ_b', '/runner_0', 'runner_1']))
+        self.assertEqual(expected, ('/runner_0', 'runner_1', '/differ_a', 'differ_b'))
 
         with mock.patch('os.path.isdir', return_value=True):
             runner.parameters().setValue('base_dir', '/base')
@@ -136,9 +138,7 @@ class TestRunner(unittest.TestCase):
             d1.parameters().setValue('base_dir', '/base')
 
         expected = runner._getExpectedFiles()
-        print(expected)
-        self.assertEqual(expected,
-                         set(['/differ_a', '/base/differ_b', '/runner_0', '/base/runner_1']))
+        self.assertEqual(expected, ['/runner_0', '/base/runner_1', '/differ_a', '/base/differ_b'])
 
 
 if __name__ == '__main__':

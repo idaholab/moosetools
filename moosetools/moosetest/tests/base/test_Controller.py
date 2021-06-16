@@ -36,11 +36,11 @@ class TestController(unittest.TestCase):
         self.assertTrue(ctrl.isRunnable())
         ctrl.skip("Don't do it!")
         self.assertFalse(ctrl.isRunnable())
-        self.assertIn("Don't do it!", ctrl.reasons())
+        self.assertIn("Don't do it!", ctrl.getReasons())
 
         ctrl.reset()
         self.assertTrue(ctrl.isRunnable())
-        self.assertNotIn("Don't do it!", ctrl.reasons())
+        self.assertNotIn("Don't do it!", ctrl.getReasons())
 
     def testValidObjectParams(self):
         params = moosetest.base.Controller.validObjectParams()

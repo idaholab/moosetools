@@ -7,8 +7,10 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
+from .MooseTestObject import MooseTestObject
 from .Controller import Controller
 from .Runner import Runner, make_runner
 from .Differ import Differ, make_differ
+from .FileDiffer import FileDiffer
 from .Formatter import Formatter
 from .TestCase import TestCase, State, RedirectOutput

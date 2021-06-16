@@ -32,7 +32,7 @@ class TestEnvironmentController(unittest.TestCase):
 
         ctrl.execute(obj, obj.getParam('env'))
         self.assertEqual(ctrl.isRunnable(), True)
-        self.assertEqual(ctrl.reasons(), [])
+        self.assertEqual(ctrl.getReasons(), [])
 
     def testPlatform(self):
         ctrl = EnvironmentController()
@@ -41,12 +41,12 @@ class TestEnvironmentController(unittest.TestCase):
         with mock.patch('platform.system', return_value='Darwin'):
             ctrl.execute(obj, obj.getParam('env'))
         self.assertEqual(ctrl.isRunnable(), True)
-        self.assertEqual(ctrl.reasons(), [])
+        self.assertEqual(ctrl.getReasons(), [])
 
         with mock.patch('platform.system', return_value='Linux'):
             ctrl.execute(obj, obj.getParam('env'))
         self.assertEqual(ctrl.isRunnable(), False)
-        self.assertEqual(ctrl.reasons(), ["'Linux' not in ('Darwin',)"])
+        self.assertEqual(ctrl.getReasons(), ["'Linux' not in ('Darwin',)"])
 
     def testMinVersion(self):
         ctrl = EnvironmentController()
@@ -55,12 +55,12 @@ class TestEnvironmentController(unittest.TestCase):
         with mock.patch('platform.python_version', return_value='2013.5.15'):
             ctrl.execute(obj, obj.getParam('env'))
         self.assertEqual(ctrl.isRunnable(), True)
-        self.assertEqual(ctrl.reasons(), [])
+        self.assertEqual(ctrl.getReasons(), [])
 
         with mock.patch('platform.python_version', return_value='1949.8.27'):
             ctrl.execute(obj, obj.getParam('env'))
         self.assertEqual(ctrl.isRunnable(), False)
-        self.assertEqual(ctrl.reasons(), ['1980.6.24 > 1949.8.27'])
+        self.assertEqual(ctrl.getReasons(), ['Python 1980.6.24 > 1949.8.27'])
 
     def testMaxVersion(self):
         ctrl = EnvironmentController()
@@ -68,12 +68,12 @@ class TestEnvironmentController(unittest.TestCase):
 
         ctrl.execute(obj, obj.getParam('env'))
         self.assertEqual(ctrl.isRunnable(), True)
-        self.assertEqual(ctrl.reasons(), [])
+        self.assertEqual(ctrl.getReasons(), [])
 
         with mock.patch('platform.python_version', return_value='2013.5.15'):
             ctrl.execute(obj, obj.getParam('env'))
         self.assertEqual(ctrl.isRunnable(), False)
-        self.assertEqual(ctrl.reasons(), ['1980.6.24 < 2013.5.15'])
+        self.assertEqual(ctrl.getReasons(), ['Python 1980.6.24 < 2013.5.15'])
 
     def testRequired(self):
         ctrl = EnvironmentController()
@@ -82,12 +82,12 @@ class TestEnvironmentController(unittest.TestCase):
 
         ctrl.execute(obj, obj.getParam('env'))
         self.assertEqual(ctrl.isRunnable(), True)
-        self.assertEqual(ctrl.reasons(), [])
+        self.assertEqual(ctrl.getReasons(), [])
 
         with mock.patch('moosetools.mooseutils.check_configuration', return_value=['sys', 'io']):
             ctrl.execute(obj, obj.getParam('env'))
         self.assertEqual(ctrl.isRunnable(), False)
-        self.assertEqual(ctrl.reasons(), ['missing python package(s)'])
+        self.assertEqual(ctrl.getReasons(), ['missing python package(s)'])
 
 
 if __name__ == '__main__':

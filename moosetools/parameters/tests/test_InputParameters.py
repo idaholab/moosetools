@@ -249,6 +249,10 @@ class TestInputParameters(unittest.TestCase):
 
         params.setValue('_error_mode', InputParameters.ErrorMode.ERROR)  # log to capture return
         with self.assertLogs(level='ERROR') as log:
+            params.setValue('foo', 1980, 2011)
+
+        params.setValue('_error_mode', InputParameters.ErrorMode.ERROR)  # log to capture return
+        with self.assertLogs(level='ERROR') as log:
             params.setValue('foo')
         self.assertEqual(len(log.output), 1)
         self.assertIn("One or more names must be supplied.", log.output[0])

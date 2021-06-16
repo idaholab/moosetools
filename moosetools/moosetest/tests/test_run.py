@@ -69,9 +69,9 @@ class TestRunExecuteHelpers(unittest.TestCase):
         data = conn.result['test']
         self.assertEqual(data.state, TestCase.Result.PASS)
         self.assertEqual(data.returncode, 0)
-        self.assertEqual(data.stdout, "")
-        self.assertIn("sleep 0", data.stderr)
-        self.assertEqual(data.reasons, None)
+        self.assertEqual(data.stderr, "")
+        self.assertIn("sleep 0", data.stdout)
+        self.assertEqual(data.reasons, [])
 
         # Exception
         with mock.patch('moosetools.moosetest.base.TestCase.execute',
@@ -115,9 +115,9 @@ class TestRunExecuteHelpers(unittest.TestCase):
         data = r['test0']
         self.assertEqual(data.state, TestCase.Result.PASS)
         self.assertEqual(data.returncode, 0)
-        self.assertEqual(data.stdout, "")
-        self.assertIn("sleep 0.2", data.stderr)
-        self.assertEqual(data.reasons, None)
+        self.assertEqual(data.stderr, "")
+        self.assertIn("sleep 0.2", data.stdout)
+        self.assertEqual(data.reasons, [])
 
         u, p, s, r = q.get()
         self.assertEqual(u, tc1.unique_id)
@@ -133,9 +133,9 @@ class TestRunExecuteHelpers(unittest.TestCase):
         data = r['test1']
         self.assertEqual(data.state, TestCase.Result.PASS)
         self.assertEqual(data.returncode, 0)
-        self.assertEqual(data.stdout, "")
-        self.assertIn("sleep 0.3", data.stderr)
-        self.assertEqual(data.reasons, None)
+        self.assertEqual(data.stderr, "")
+        self.assertIn("sleep 0.3", data.stdout)
+        self.assertEqual(data.reasons, [])
 
         # Exception and skip
         with mock.patch('moosetools.moosetest.base.TestCase.execute',
@@ -229,9 +229,6 @@ class TestReportHelper(unittest.TestCase):
         tc_results.assert_called_once_with(None)
         fm_results.assert_called_once_with(tc0)
 
-        #tc0.setProgress(
-        #_report_progress_and_results(tc0, fm, TestCase.Progress.FINISHED, None, None)
-
 
 @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
 class TestRun(unittest.TestCase):
@@ -314,13 +311,13 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_state,
                         name='Andrew',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
         self.assertCall(self._r_results,
                         name='Andrew',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         returncode=2011,
@@ -342,13 +339,13 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_state,
                         name='Andrew',
                         state=TestCase.Result.ERROR,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
         self.assertCall(self._r_results,
                         name='Andrew',
                         state=TestCase.Result.ERROR,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         returncode=2011,
@@ -425,13 +422,13 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_state,
                         name='Andrew',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
         self.assertCall(self._r_results,
                         name='Andrew',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         stdout=TestRun.IN('controller stdout'),
@@ -452,13 +449,13 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_state,
                         name='Andrew',
                         state=TestCase.Result.FATAL,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
         self.assertCall(self._r_results,
                         name='Andrew',
                         state=TestCase.Result.FATAL,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         returncode=None,
@@ -479,13 +476,13 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_state,
                         name='Andrew',
                         state=TestCase.Result.FATAL,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
         self.assertCall(self._r_results,
                         name='Andrew',
                         state=TestCase.Result.FATAL,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         returncode=None,
@@ -590,13 +587,13 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_state,
                         name='Andrew',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
         self.assertCall(self._r_results,
                         name='Andrew',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         stdout='',
@@ -605,20 +602,20 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._d_state.call_args_list[0],
                         name='a',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
         self.assertCall(self._d_state.call_args_list[1],
                         name='b',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
 
         self.assertCall(self._d_results.call_args_list[0],
                         name='a',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         stdout='',
@@ -626,7 +623,7 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._d_results.call_args_list[1],
                         name='b',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         stdout=TestRun.IN('differ stdout'),
@@ -647,13 +644,13 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_state,
                         name='Andrew',
                         state=TestCase.Result.DIFF,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
         self.assertCall(self._r_results,
                         name='Andrew',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         stdout='',
@@ -662,20 +659,20 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._d_state.call_args_list[0],
                         name='a',
                         state=TestCase.Result.DIFF,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
         self.assertCall(self._d_state.call_args_list[1],
                         name='b',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
 
         self.assertCall(self._d_results.call_args_list[0],
                         name='a',
                         state=TestCase.Result.DIFF,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         stdout='',
@@ -683,7 +680,7 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._d_results.call_args_list[1],
                         name='b',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         stdout='',
@@ -703,13 +700,13 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_state,
                         name='Andrew',
                         state=TestCase.Result.EXCEPTION,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
         self.assertCall(self._r_results,
                         name='Andrew',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         stdout='',
@@ -718,7 +715,7 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._d_state.call_args_list[0],
                         name='a',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
         self.assertCall(self._d_state.call_args_list[1],
@@ -731,7 +728,7 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._d_results.call_args_list[0],
                         name='a',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         stdout='',
@@ -816,13 +813,13 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_state,
                         name='Andrew',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
         self.assertCall(self._r_results,
                         name='Andrew',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         returncode=2011,
@@ -838,7 +835,7 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._d_state.call_args_list[1],
                         name='b',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY)
 
@@ -853,7 +850,7 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._d_results.call_args_list[1],
                         name='b',
                         state=TestCase.Result.PASS,
-                        reasons=None,
+                        reasons=[],
                         percent=100,
                         duration=TestRun.ANY,
                         stdout='',
@@ -877,13 +874,13 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_state.call_args_list[0],
                         name='Just Andrew',
                         state=TestCase.Result.ERROR,
-                        reasons=None,
+                        reasons=[],
                         percent=TestRun.ANY,
                         duration=TestRun.ANY)
         self.assertCall(self._r_results.call_args_list[0],
                         name='Just Andrew',
                         state=TestCase.Result.ERROR,
-                        reasons=None,
+                        reasons=[],
                         percent=TestRun.ANY,
                         duration=TestRun.ANY,
                         returncode=2011,
@@ -938,20 +935,17 @@ class TestRun(unittest.TestCase):
         self.assertEqual(self._r_state.call_count, 5)
         self.assertEqual(self._r_results.call_count, 5)
 
-        print(self._r_state.call_args_list)
-        print(self._r_results.call_args_list)
-
         # Only look at first and last, the middle can change depending how fast works fire up
         self.assertCall(self._r_state.call_args_list[0],
                         name='0',
                         state=TestCase.Result.ERROR,
-                        reasons=None,
+                        reasons=[],
                         percent=TestRun.ANY,
                         duration=TestRun.ANY)
         self.assertCall(self._r_results.call_args_list[0],
                         name='0',
                         state=TestCase.Result.ERROR,
-                        reasons=None,
+                        reasons=[],
                         percent=TestRun.ANY,
                         duration=TestRun.ANY,
                         returncode=2011,
@@ -1017,13 +1011,13 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_state.call_args_list[0],
                         name='Just Andrew',
                         state=TestCase.Result.ERROR,
-                        reasons=None,
+                        reasons=[],
                         percent=TestRun.ANY,
                         duration=TestRun.ANY)
         self.assertCall(self._r_results.call_args_list[0],
                         name='Just Andrew',
                         state=TestCase.Result.ERROR,
-                        reasons=None,
+                        reasons=[],
                         percent=TestRun.ANY,
                         duration=TestRun.ANY,
                         returncode=2011,

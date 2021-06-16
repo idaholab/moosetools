@@ -16,11 +16,12 @@ from moosetools import moosetree
 from moosetools import pyhit
 from moosetools import factory
 from moosetools import base
+from moosetools import mooseutils
 from moosetools.moosetest import discover, run, fuzzer
 from moosetools.moosetest.base import Controller, Formatter, make_runner, make_differ
 from moosetools.moosetest.base import make_runner, make_differ
 from moosetools.moosetest.runners import RunCommand
-from moosetools.moosetest.differs import ConsoleDiff
+from moosetools.moosetest.differs import ConsoleDiffer
 from moosetools.moosetest.controllers import EnvironmentController
 from moosetools.moosetest.formatters import BasicFormatter
 
@@ -46,6 +47,10 @@ def cli_args():
 class TestHarness(base.MooseObject):
     """
     Object for extracting general configuration options from a HIT file.
+
+    !alert info title=Build with `make_harness` function
+    This object should be created the the `make_harness` function, which provides handling of the
+    current working directory with respect to the configuration file.
     """
     @staticmethod
     def validParams():
@@ -87,6 +92,12 @@ class TestHarness(base.MooseObject):
     def __init__(self, *args, **kwargs):
         base.MooseObject.__init__(self, *args, **kwargs)
         logging.basicConfig(level=self.getParam('log_level'))
+
+        # Update the "plugin_dirs" to be absolute paths
+        plugin_dirs = list()
+        for p_dir in self.getParam('plugin_dirs'):
+            plugin_dirs.append(os.path.abspath(p_dir))
+        self.parameters().setValue('plugin_dirs', tuple(plugin_dirs))
 
     def applyCommandLineArguments(self, args):
         """
@@ -154,15 +165,6 @@ def make_harness(filename, root, cli_args):
         raise RuntimeError(msg)
     root['type'] = 'TestHarness'
 
-    # Paths in in the configure file are related to the file, this updates them to be absolute
-    plugin_dirs = list()
-    hit_plugin_dirs = root.get('plugin_dirs', None)
-    if hit_plugin_dirs is not None:
-        base_dir = os.path.dirname(filename)
-        for p_dir in hit_plugin_dirs.split(' '):
-            plugin_dirs.append(os.path.abspath(os.path.join(base_dir, p_dir)))
-        root['plugin_dirs'] = ' '.join(plugin_dirs)
-
     # Build a factory capable of creating the TestHarness object
     f = factory.Factory()
     f.register('TestHarness', TestHarness)
@@ -170,10 +172,14 @@ def make_harness(filename, root, cli_args):
         msg = "An error occurred during registration of the TestHarness type, see console message(s) for details."
         raise RuntimeError(msg)
 
+    # Setup the environment variables
+    setup_environment(filename, root)
+
     # Use the Parser is used to correctly convert HIT to InputParameters
     w = list()
     p = factory.Parser(f, w)
-    p._parseNode(filename, root)
+    with mooseutils.CurrentWorkingDirectory(os.path.dirname(filename)):
+        p._parseNode(filename, root)
     if p.status() > 0:
         msg = "An error occurred during parsing of the root level parameters for creation of the TestHarness object, see console message(s) for details."
         raise RuntimeError(msg)
@@ -192,7 +198,8 @@ def make_controllers(filename, root, plugin_dirs):
     """
     Create the `Controller` object from the [Controllers] block of the `pyhit.Node` of *root*.
 
-    The *filename* is provided for error reporting and should be the file used for generating
+    The *filename* is provided for error reporting and setting the current working directory for
+    creating object defined in the configuration file. It should be the file used for generating
     the tree structure in *root*.
 
     The *plugin_dirs* should contain a list of absolute paths to include when registering Controller
@@ -222,7 +229,8 @@ def make_controllers(filename, root, plugin_dirs):
     # Use the Parser to create the Controller objects
     controllers = list()
     c_parser = factory.Parser(c_factory, controllers)
-    c_parser.parse(filename, c_node)
+    with mooseutils.CurrentWorkingDirectory(os.path.dirname(filename)):
+        c_parser.parse(filename, c_node)
     if c_parser.status() > 0:
         msg = "An error occurred during parsing of the Controller block, see console message(s) for details."
         raise RuntimeError(msg)
@@ -234,11 +242,8 @@ def make_formatter(filename, root, plugin_dirs):
     """
     Create the `Formatter` object from the [Formatter] block of the `pyhit.Node` of *root*.
 
-    The *filename* is provided for error reporting and should be the file used for generating
-    the tree structure in *root*.
-
-    The *plugin_dirs* should contain a list of absolute paths to include when registering Formatter
-    objects with the factory. By default, a `BasicFormatter` is created.
+    By default, a `BasicFormatter` is created. Refer to `make_controllers` function for information
+    on the supplied input arguments.
     """
 
     # Locate/create the [Formatter] node
@@ -256,12 +261,28 @@ def make_formatter(filename, root, plugin_dirs):
     # Create the Formatter object by parsing the input file
     formatters = list()
     f_parser = factory.Parser(f_factory, formatters)
-    f_parser._parseNode(filename, f_node)
+    with mooseutils.CurrentWorkingDirectory(os.path.dirname(filename)):
+        f_parser._parseNode(filename, f_node)
     if f_parser.status() > 0:
         msg = "An error occurred during parsing of the root level parameters for creation of the Formatter object, see console message(s) for details."
         raise RuntimeError(msg)
 
     return formatters[0]
+
+
+def setup_environment(filename, root):
+    """
+    Update environment from the [Environment] block.
+    """
+    e_node = moosetree.find(root, func=lambda n: n.fullpath == '/Environment')
+    if e_node is not None:
+        for name, value in e_node.params():
+            if name not in os.environ:
+                with mooseutils.CurrentWorkingDirectory(os.path.dirname(filename)):
+                    path = mooseutils.eval_path(value)
+                    if os.path.exists(path):
+                        value = os.path.abspath(path)
+                    os.environ[name] = value
 
 
 def _locate_config(start):

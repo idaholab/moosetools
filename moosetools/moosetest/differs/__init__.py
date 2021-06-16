@@ -7,4 +7,4 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from .ConsoleDiff import ConsoleDiff
+from .ConsoleDiffer import ConsoleDiffer

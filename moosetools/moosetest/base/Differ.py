@@ -11,7 +11,7 @@ import io
 import copy
 import platform
 import logging
-from moosetools.base import MooseObject
+from .MooseTestObject import MooseTestObject
 
 
 def make_differ(cls, controllers=None, **kwargs):
@@ -26,7 +26,7 @@ def make_differ(cls, controllers=None, **kwargs):
     return cls(params, **kwargs)
 
 
-class Differ(MooseObject):
+class Differ(MooseTestObject):
     """
     Base class for analyzing the results from a `moosetest.base.Runner` after a "run".
 
@@ -35,7 +35,7 @@ class Differ(MooseObject):
     """
     @staticmethod
     def validParams():
-        params = MooseObject.validParams()
+        params = MooseTestObject.validParams()
         params.setRequired('name', True)
 
         params.add(
@@ -75,6 +75,6 @@ class Differ(MooseObject):
         prior to running this object.
 
         Refer to `moosetools.base.TestCase` for how this function is called and
-        `moosetools.moosetest.differs.ConsoleDiff` for an example implementation.
+        `moosetools.moosetest.differs.ConsoleDiffer` for an example implementation.
         """
         raise NotImplementedError("The 'execute' method must be overridden.")
