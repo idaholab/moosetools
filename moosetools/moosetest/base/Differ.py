@@ -11,7 +11,9 @@ import io
 import copy
 import platform
 import logging
+from moosetools.parameters import InputParameters
 from .MooseTestObject import MooseTestObject
+
 
 def make_differ(cls, controllers=None, **kwargs):
     """

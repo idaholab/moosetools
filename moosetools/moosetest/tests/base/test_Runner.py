@@ -122,6 +122,11 @@ class TestRunner(unittest.TestCase):
         self.assertIn("The following file(s) were created but not expected:\n  /bar/file",
                       log.output[0])
 
+        runner.parameters().setValue('file', 'ignore_patterns', ('/bar/*', ))
+        with mock.patch('os.listdir', side_effect=[['/foo/file'], ['/foo/file', '/bar/file']]):
+            runner.preExecute()
+            runner.postExecute()
+
     def test_getExpectedFiles(self):
         d0 = moosetest.base.make_differ(moosetest.base.Differ, name='a', file_names=('/differ_a', ))
         d1 = moosetest.base.make_differ(moosetest.base.Differ, name='b', file_names=('differ_b', ))
@@ -130,7 +135,7 @@ class TestRunner(unittest.TestCase):
                                        file_names=('/runner_0', 'runner_1'))
 
         expected = runner._getExpectedFiles()
-        self.assertEqual(expected, ('/runner_0', 'runner_1', '/differ_a', 'differ_b'))
+        self.assertEqual(expected, ['/runner_0', 'runner_1', '/differ_a', 'differ_b'])
 
         with mock.patch('os.path.isdir', return_value=True):
             runner.parameters().setValue('file', 'base', '/base')
@@ -138,8 +143,8 @@ class TestRunner(unittest.TestCase):
             d1.parameters().setValue('file', 'base', '/base')
 
         expected = runner._getExpectedFiles()
-        self.assertEqual(expected,
-                         set(['/differ_a', '/base/differ_b', '/runner_0', '/base/runner_1']))
+        self.assertEqual(expected, ['/runner_0', '/base/runner_1', '/differ_a', '/base/differ_b'])
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)

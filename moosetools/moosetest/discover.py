@@ -54,9 +54,9 @@ class MooseTestFactory(factory.Factory):
 
     def create(self, otype, params):
 
-        # Set the "base_dir", if not set, to location of HIT file that created the object
-        if not params.isValid('base_dir') and ('_hit_filename' in params):
-            params.setValue('base_dir', os.path.dirname(params.getValue('_hit_filename')))
+        # Set the "file_base", if not set, to location of HIT file that created the object
+        if not params.isValid('file', 'base') and ('_hit_filename' in params):
+            params.setValue('file', 'base', os.path.dirname(params.getValue('_hit_filename')))
 
         return factory.Factory.create(self, otype, params)
 
@@ -101,6 +101,11 @@ class MooseTestWarehouse(factory.Warehouse):
             prefix = self.getParam('specfile').replace(self.getParam('root_dir'), '').strip(os.sep)
             obj.parameters().setValue('name', f"{prefix}:{base}")
             factory.Warehouse.append(self, obj)
+
+        # Set the "file_base", if not set, to location of HIT file that created the object
+        if not obj.isParamValid('file', 'base') and ('_hit_filename' in obj.parameters()):
+            obj.parameters().setValue('file', 'base',
+                                      os.path.dirname(obj.getParam('_hit_filename')))
 
         # Propagate construction errors of object
         if obj.status():
