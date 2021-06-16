@@ -14,7 +14,3 @@ from . import differs
 from .discover import discover
 from .run import run, fuzzer
 from .main import main
-
-import logging
-
-logging.basicConfig()

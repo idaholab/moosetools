@@ -13,7 +13,7 @@
       command = 'sleep 3'
       [diff]
         type = ConsoleDiff
-        text_in_stderr = 'sleep'
+        text_in_stdout = 'sleep'
       []
     []
   []

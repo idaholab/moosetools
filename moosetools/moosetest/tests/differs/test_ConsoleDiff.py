@@ -133,6 +133,31 @@ class TestConsoleDiff(unittest.TestCase):
             log.output[0])
         self.assertEqual(obj.status(), 1)
 
+    def testReNotMatch(self):
+        obj = ConsoleDiff(name='diff', re_not_match='\d{4}-\d{2}-\d{2}')
+        obj.execute(0, '198-06-24', '198-06-24')
+        self.assertEqual(obj.status(), 0)
+
+        obj.execute(0, '198-06-24', '198-06-24')
+        self.assertEqual(obj.status(), 0)
+
+        with self.assertLogs(level='ERROR') as log:
+            obj.execute(0, '1980-06-24', '')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn(
+            "The regular expression of 're_not_match' parameter, '\\d{4}-\\d{2}-\\d{2}', did produce a match in the output of sys.stdout or sys.stderr:\n1980-06-24\n",
+            log.output[0])
+        self.assertEqual(obj.status(), 1)
+
+        obj.reset()
+        with self.assertLogs(level='ERROR') as log:
+            obj.execute(0, '', '1980-06-24')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn(
+            "The regular expression of 're_not_match' parameter, '\\d{4}-\\d{2}-\\d{2}', did produce a match in the output of sys.stdout or sys.stderr:\n\n1980-06-24",
+            log.output[0])
+        self.assertEqual(obj.status(), 1)
+
     def testReMatchStdout(self):
         obj = ConsoleDiff(name='diff', re_match_stdout='\d{4}-\d{2}-\d{2}')
         obj.execute(0, '1980-06-24', '1980-06-24')
@@ -142,7 +167,20 @@ class TestConsoleDiff(unittest.TestCase):
             obj.execute(0, '198-06-24', '1980-06-24')
         self.assertEqual(len(log.output), 1)
         self.assertIn(
-            "The regular expression of 're_match' parameter, '\d{4}-\d{2}-\d{2}', did not produce a match in the output",
+            "The regular expression of 're_match_stdout' parameter, '\\d{4}-\\d{2}-\\d{2}', did not produce a match in the output of sys.stdout:\n198-06-24",
+            log.output[0])
+        self.assertEqual(obj.status(), 1)
+
+    def testReNotMatchStdout(self):
+        obj = ConsoleDiff(name='diff', re_not_match_stdout='\d{4}-\d{2}-\d{2}')
+        obj.execute(0, '198-06-24', '1980-06-24')
+        self.assertEqual(obj.status(), 0)
+
+        with self.assertLogs(level='ERROR') as log:
+            obj.execute(0, '1980-06-24', '1980-06-24')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn(
+            "The regular expression of 're_not_match_stdout' parameter, '\\d{4}-\\d{2}-\\d{2}', did produce a match in the output of sys.stdout:\n1980-06-24",
             log.output[0])
         self.assertEqual(obj.status(), 1)
 
@@ -155,7 +193,20 @@ class TestConsoleDiff(unittest.TestCase):
             obj.execute(0, '1980-06-24', '198-06-24')
         self.assertEqual(len(log.output), 1)
         self.assertIn(
-            "The regular expression of 're_match' parameter, '\d{4}-\d{2}-\d{2}', did not produce a match in the output",
+            "The regular expression of 're_match_stderr' parameter, '\\d{4}-\\d{2}-\\d{2}', did not produce a match in the output of sys.stderr:\n198-06-24",
+            log.output[0])
+        self.assertEqual(obj.status(), 1)
+
+    def testReNotMatchStderr(self):
+        obj = ConsoleDiff(name='diff', re_not_match_stderr='\d{4}-\d{2}-\d{2}')
+        obj.execute(0, '1980-06-24', '198-06-24')
+        self.assertEqual(obj.status(), 0)
+
+        with self.assertLogs(level='ERROR') as log:
+            obj.execute(0, '1980-06-24', '1980-06-24')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn(
+            "The regular expression of 're_not_match_stderr' parameter, '\\d{4}-\\d{2}-\\d{2}', did produce a match in the output of sys.stderr:\n1980-06-24",
             log.output[0])
         self.assertEqual(obj.status(), 1)
 

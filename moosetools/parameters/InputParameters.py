@@ -72,11 +72,11 @@ class InputParameters(object):
 
         self.__parameters[args[0]] = self.__PARAM_TYPE__(*args, **kwargs)
 
-    def __contains__(self, name):
+    def __contains__(self, *args):
         """
         Allows keys to be tested via "in" keyword.
         """
-        return name in self.__parameters
+        return self.hasParameter(*args)
 
     def __iadd__(self, params):
         """
@@ -274,14 +274,15 @@ class InputParameters(object):
         if obj is not None:
             return obj.value
 
-    def hasParameter(self, name):
+    def hasParameter(self, *args):
         """
         Test that the parameter exists.
 
         Inputs:
             name[str]: The name of the Parameter to check
         """
-        return name in self.__parameters
+        param = self._getParameter(*args)
+        return param is not None
 
     def update(self, *args, **kwargs):
         """"
@@ -331,7 +332,7 @@ class InputParameters(object):
         Create a string of all parameters using Parameter.toString
         """
         out = []
-        keys = keys or self.keys()
+        keys = keys or self.__parameters.keys()  #self.keys()
         for key, param in self.__parameters.items():
             if key in keys:
                 out.append(param.toString(prefix=prefix, level=level))
@@ -356,7 +357,7 @@ class InputParameters(object):
         if (opt is None) and ('_' in args[0]):
             group, subname = args[0].split('_', 1)
             sub_args = [group, subname] + list(args[1:]) if len(args) > 1 else [group, subname]
-            if self.hasParameter(group):
+            if group in self.__parameters:
                 return self._getParameter(*sub_args)
 
         if opt is None:

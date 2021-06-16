@@ -7,11 +7,9 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-import uuid
-import enum
 import os
 from moosetools import mooseutils
-from moosetools import base
+from .MooseTestObject import MooseTestObject
 from .Differ import Differ
 
 
@@ -50,7 +48,7 @@ def make_runner(cls, controllers=None, **kwargs):
     return cls(params, **kwargs)
 
 
-class Runner(base.MooseObject):
+class Runner(MooseTestObject):
     """
     Base class for defining a task to be "run", via the `moosetest.run` function.
 
@@ -59,7 +57,7 @@ class Runner(base.MooseObject):
     """
     @staticmethod
     def validParams():
-        params = base.MooseObject.validParams()
+        params = MooseTestObject.validParams()
         params.setRequired('name', True)
         params.add('differs',
                    vtype=Differ,
@@ -108,7 +106,7 @@ class Runner(base.MooseObject):
         return os.path.isdir(value) and os.path.isabs(value)
 
     def __init__(self, *args, **kwargs):
-        base.MooseObject.__init__(self, *args, **kwargs)
+        MooseTestObject.__init__(self, *args, **kwargs)
         self.__expected_files = None
         self.__pre_execute_files = None
 
@@ -150,7 +148,7 @@ class Runner(base.MooseObject):
         Prepare for inspection of expected file prior to execution.
         """
 
-        # Create set of expected files from this object and Differ objects, accounting for 'base_dir'
+        # Set of expected files from this object and Differ objects, accounting for 'base_dir'
         self.__expected_files = self._getExpectedFiles()
 
         # Check that all paths are absolute
@@ -172,7 +170,10 @@ class Runner(base.MooseObject):
 
         # Remove expected output
         if self.getParam('delete_output_before_running'):
-            [os.remove(fname) for fname in self.__expected_files if os.path.isfile(fname)]
+            for fname in self.__expected_files:
+                if os.path.isfile(fname):
+                    self.info("Removing file: {}", fname)
+                    os.remove(fname)
 
         # Check that expected files do not exist
         exist = [fname for fname in self.__expected_files if os.path.isfile(fname)]
@@ -189,7 +190,8 @@ class Runner(base.MooseObject):
             return
         elif check_created_files or ((check_created_files is None)
                                      and self.isParamValid('base_dir')):
-            self.__pre_execute_files = set(os.listdir(self.getParam('base_dir')))
+            base_dir = self.getParam('base_dir')
+            self.__pre_execute_files = set(os.path.join(base_dir, f) for f in os.listdir())
 
     def _postExecuteExpectedFiles(self):
         """
@@ -204,11 +206,12 @@ class Runner(base.MooseObject):
 
         # check for other files
         if self.__pre_execute_files is not None:
-            post_execute_files = set(os.listdir(self.getParam('base_dir')))
+            base_dir = self.getParam('base_dir')
+            post_execute_files = set(os.path.join(base_dir, f) for f in os.listdir())
             diff = post_execute_files.difference(self.__pre_execute_files)
-            if self.__expected_files != diff:
+            if diff and set(self.__expected_files) != diff:
                 msg = "The following file(s) were created but not expected:\n  {}"
-                self.error(msg, '\n  '.join(diff.difference(self.__expected_files)))
+                self.error(msg, '\n  '.join(diff.difference(set(self.__expected_files))))
 
     def _getExpectedFiles(self):
         """
@@ -216,23 +219,24 @@ class Runner(base.MooseObject):
         """
         expected = Runner.filenames(self)
         for differ in self.getParam('differs') or set():
-            expected.update(Runner.filenames(differ))
+            expected += Runner.filenames(differ)
         return expected
 
     @staticmethod
-    def filenames(obj):
+    def filenames(obj, filenames_param='filenames', base_dir_param='base_dir'):
         """
         Return a set of filenames gathered from the 'filenames' parameters, with relative paths
         being prefixed with the 'base_dir' parameter (if it exists).
         """
-        filenames = set(obj.getParam('filenames') or list())
-        base_dir = obj.getParam('base_dir')
+        filenames = obj.getParam(filenames_param) or list()
+        base_dir = obj.getParam(base_dir_param)
         if base_dir is not None:
-            filenames_abs = set()
+            filenames_abs = list()
             for fname in filenames:
                 if os.path.isabs(fname):
-                    filenames_abs.add(fname)
+                    filenames_abs.append(fname)
                 else:
-                    filenames_abs.add(os.path.join(base_dir, fname))
+                    filenames_abs.append(os.path.join(base_dir, fname))
             filenames = filenames_abs
+
         return filenames

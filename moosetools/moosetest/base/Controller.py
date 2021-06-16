@@ -11,10 +11,10 @@ import io
 import platform
 import logging
 from moosetools.parameters import InputParameters
-from moosetools.base import MooseObject
+from .MooseTestObject import MooseTestObject
 
 
-class Controller(MooseObject):
+class Controller(MooseTestObject):
     """
     An object to dictate if a `moosetest.base.Runner` or `moosetest.base.Differ` should execute.
 
@@ -32,7 +32,7 @@ class Controller(MooseObject):
 
     @staticmethod
     def validParams():
-        params = MooseObject.validParams()
+        params = MooseTestObject.validParams()
         params.add('prefix',
                    vtype=str,
                    required=True,
@@ -51,27 +51,15 @@ class Controller(MooseObject):
 
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('name', self.__class__.__name__)
-        MooseObject.__init__(self, *args, **kwargs)
+        MooseTestObject.__init__(self, *args, **kwargs)
         self.__runnable = True
-        self.__reasons = list()
 
     def reset(self):
         """
         Reset the "runnable" state, the skip reasons, and the log status.
         """
         self.__runnable = True
-        self.__reasons = list()
-        MooseObject.reset(self)
-
-    def reasons(self):
-        """
-        Return the reasons for skipping that were created with the `skip` method.
-
-        The skip reasons are cleared with the `reset` method.
-
-        See `moosetest.base.TestCase` for details of how this method is used.
-        """
-        return self.__reasons
+        MooseTestObject.reset(self)
 
     def isRunnable(self):
         """
@@ -97,7 +85,7 @@ class Controller(MooseObject):
         `moosetest.controllers.EnvironmentController` for an example.
         """
         self.__runnable = False
-        self.__reasons.append(msg.format(*args, **kwargs))
+        self.reason(msg, *args, **kwargs)
 
     def execute(self, obj, params):
         """

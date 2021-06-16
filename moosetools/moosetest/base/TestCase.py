@@ -74,22 +74,25 @@ class RedirectOutput(object):
         A replacement IO object for sys.stdout/err that stores content in *out*, which should be a
         `dict` of `io.StringIO` objects.
         """
-        def __init__(self, out):
+        def __init__(self, out, prefix=''):
+            self._prefix = prefix
             self._out = out
 
         def write(self, message):
-            self._out[multiprocessing.current_process().pid].write(message)
+            self._out[multiprocessing.current_process().pid].write(
+                textwrap.indent(message, self._prefix))
 
         def flush(self):
             pass
 
-    def __init__(self):
+    def __init__(self, prefix=''):
         self._stdout = collections.defaultdict(io.StringIO)
         self._stderr = collections.defaultdict(io.StringIO)
 
         self._sys_stdout = sys.stdout
         self._sys_stderr = sys.stderr
 
+        self._prefix = prefix
         self._logging_handlers = list()  # storage for (handler, formatter) for resetting stream
 
     @property
@@ -111,8 +114,8 @@ class RedirectOutput(object):
         Setup redirection when entering the context (`with...`).
         """
         self._logging_handlers = list()
-        sys.stdout = RedirectOutput.SysRedirect(self._stdout)
-        sys.stderr = RedirectOutput.SysRedirect(self._stderr)
+        sys.stdout = RedirectOutput.SysRedirect(self._stdout, prefix=self._prefix)
+        sys.stderr = RedirectOutput.SysRedirect(self._stderr, prefix=self._prefix)
 
         logger = logging.getLogger()
         for h in logger.handlers:
@@ -562,7 +565,7 @@ class TestCase(MooseObject):
                             "An error occurred, on the controller, within the `execute` method of the {} controller with '{}' object.",
                             type(controller).__name__, obj.name())
                         return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr,
-                                             None)
+                                             controller.getReasons())
 
                     # Stop if an error is logged on the object, due to execution of Controller
                     if obj.status():
@@ -570,12 +573,12 @@ class TestCase(MooseObject):
                             "An error occurred, on the object, within the `execute` method of the {} controller with '{}' object.",
                             type(controller).__name__, obj.name())
                         return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr,
-                                             None)
+                                             obj.getReasons())
 
                     # Skip it...maybe
                     if not controller.isRunnable():
                         return TestCase.Data(TestCase.Result.SKIP, None, out.stdout, out.stderr,
-                                             controller.reasons())
+                                             controller.getReasons())
 
                 except Exception as ex:
                     self.error(
@@ -598,7 +601,8 @@ class TestCase(MooseObject):
                     self.error(
                         "An error occurred within the `preExecute` method of the '{}' object.",
                         obj.name())
-                    return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+                    return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr,
+                                         obj.getReasons())
 
             except Exception as ex:
                 self.exception(
@@ -616,7 +620,8 @@ class TestCase(MooseObject):
                                                                Differ) else TestCase.Result.ERROR
                     self.error("An error occurred within the `execute` method of the '{}' object.",
                                obj.name())
-                    execute_failure = TestCase.Data(state, rcode, out.stdout, out.stderr, None)
+                    execute_failure = TestCase.Data(state, rcode, out.stdout, out.stderr,
+                                                    obj.getReasons())
 
             except Exception as ex:
                 self.exception(
@@ -633,7 +638,8 @@ class TestCase(MooseObject):
                     self.error(
                         "An error occurred within the `postExecute` method of the '{}' object.",
                         obj.name())
-                    return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+                    return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr,
+                                         obj.getReasons())
 
             except Exception as ex:
                 self.exception(
@@ -644,6 +650,6 @@ class TestCase(MooseObject):
             if execute_failure is not None:
                 return execute_failure
 
-        stdout += out.stdout
-        stderr += out.stderr
-        return TestCase.Data(TestCase.Result.PASS, rcode, stdout, stderr, None)
+        stdout += textwrap.indent(out.stdout, mooseutils.color_text('sys.stdout > ', 'grey_30'))
+        stderr += textwrap.indent(out.stderr, mooseutils.color_text('sys.stderr > ', 'grey_30'))
+        return TestCase.Data(TestCase.Result.PASS, rcode, stdout, stderr, obj.getReasons())

@@ -82,7 +82,7 @@ class BasicFormatter(Formatter):
                        "provided terminal width is inferred, if possible, otherwise a default width of 80 is utilized.")
         params.add('print_state',
                    vtype=TestCase.Result,
-                   default=TestCase.Result.TIMEOUT,
+                   default=TestCase.Result.DIFF,
                    doc="The minimum state of results to display.")
         params.add('differ_indent',
                    default=' ' * 4,
@@ -164,6 +164,7 @@ class BasicFormatter(Formatter):
         Return the results text from a `Differ` object. (override)
         """
         kwargs['indent'] = self.getParam('differ_indent')
+        kwargs['name']
         return self._formatResult(**kwargs)
 
     def formatComplete(self, complete, **kwargs):
@@ -246,13 +247,13 @@ class BasicFormatter(Formatter):
             stdout = kwargs.get('stdout')
             if stdout:
                 prefix = indent + state.format(name) + ' '
-                stdout = textwrap.indent('sys.stdout:\n' + self.shortenLines(kwargs.get('stdout')),
-                                         prefix, lambda *args: True)
+                stdout = textwrap.indent(self.shortenLines(kwargs.get('stdout')), prefix,
+                                         lambda *args: True)
 
             stderr = kwargs.get('stderr')
             if stderr:
                 prefix = indent + state.format(name) + ' '
-                stderr = textwrap.indent('sys.stderr:\n' + self.shortenLines(kwargs.get('stderr')),
-                                         prefix, lambda *args: True)
+                stderr = textwrap.indent(self.shortenLines(kwargs.get('stderr')), prefix,
+                                         lambda *args: True)
 
             return (stdout + stderr).strip('\n')

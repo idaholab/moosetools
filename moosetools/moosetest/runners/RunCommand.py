@@ -44,7 +44,7 @@ class RunCommand(Runner):
 
         cmd = self.getParam('command')
         str_cmd = ' '.join(cmd)
-        self.info('RUNNING COMMAND:\n{0}\n{1}\n{0}'.format('-' * len(str_cmd), str_cmd))
+        print('RUNNING COMMAND:\n{0}\n{1}\n{0}'.format('-' * len(str_cmd), str_cmd))
         out = subprocess.run(cmd, **kwargs)
         sys.stdout.write(out.stdout)
         sys.stderr.write(out.stderr)

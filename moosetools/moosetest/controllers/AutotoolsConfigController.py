@@ -67,7 +67,7 @@ class AutotoolsConfigController(Controller):
         """
         Return True if the all the file names in *config_files* exist.
         """
-        return all(os.path.isfile(f) for f in config_files)
+        return all(os.path.isfile(mooseutils.eval_path(f)) for f in config_files)
 
     @staticmethod
     def loadConfig(filename):
@@ -99,7 +99,8 @@ class AutotoolsConfigController(Controller):
         # Build a map of configure options from the supplied files
         self.__config_items = dict()
         for config_file in self.getParam('config_files') or set():
-            self.__config_items.update(AutotoolsConfigController.loadConfig(config_file))
+            self.__config_items.update(
+                AutotoolsConfigController.loadConfig(mooseutils.eval_path(config_file)))
 
     def getConfigItem(self, params, name):
         """

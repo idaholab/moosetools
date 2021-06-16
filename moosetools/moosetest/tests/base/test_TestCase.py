@@ -172,7 +172,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.returncode, 2011)
         self.assertEqual(out.stdout, '')
         self.assertEqual(out.stderr, '')
-        self.assertEqual(out.reasons, None)
+        self.assertEqual(out.reasons, [])
 
         # No error, with stdout and stderr
         obj.setValue('stdout', True)
@@ -180,9 +180,9 @@ class TestTestCase(unittest.TestCase):
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.PASS)
         self.assertEqual(out.returncode, 2011)
-        self.assertEqual(out.stdout, 'runner stdout\n')
+        self.assertIn('runner stdout\n', out.stdout)
         self.assertIn('runner stderr\n', out.stderr)
-        self.assertEqual(out.reasons, None)
+        self.assertEqual(out.reasons, [])
 
         # Error
         obj.setValue('error', True)
@@ -194,7 +194,7 @@ class TestTestCase(unittest.TestCase):
         self.assertIn('runner error', out.stderr)
         self.assertIn("An error occurred within the `execute` method of the 'a' object.",
                       out.stderr)
-        self.assertEqual(out.reasons, None)
+        self.assertEqual(out.reasons, [])
 
         # Exception
         obj.setValue('raise', True)
@@ -233,7 +233,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.stdout, '')
         self.assertIn("An error occurred within the `preExecute` method of the 'a' object.",
                       out.stderr)
-        self.assertEqual(out.reasons, None)
+        self.assertEqual(out.reasons, [])
 
         # Exception on preExecute
         with mock.patch('moosetools.moosetest.base.Runner.preExecute', side_effect=Exception()):
@@ -256,7 +256,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.stdout, 'runner stdout\n')
         self.assertIn("An error occurred within the `postExecute` method of the 'a' object.",
                       out.stderr)
-        self.assertEqual(out.reasons, None)
+        self.assertEqual(out.reasons, [])
 
         # Exception on postExecute
         with mock.patch('moosetools.moosetest.base.Runner.postExecute', side_effect=Exception()):
@@ -280,7 +280,7 @@ class TestTestCase(unittest.TestCase):
         self.assertIn('runner error', out.stderr)
         self.assertIn("An error occurred within the `execute` method of the 'a' object.",
                       out.stderr)
-        self.assertEqual(out.reasons, None)
+        self.assertEqual(out.reasons, [])
 
         # Error on execute, postExecute still runs
         obj.setValue('error', False)
@@ -308,7 +308,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.returncode, 2013)
         self.assertEqual(out.stdout, '')
         self.assertEqual(out.stderr, '')
-        self.assertEqual(out.reasons, None)
+        self.assertEqual(out.reasons, [])
 
         # No error, with stdout and stderr
         obj.setValue('stdout', True)
@@ -316,9 +316,9 @@ class TestTestCase(unittest.TestCase):
         out = tc._executeObject(obj)
         self.assertEqual(out.state, TestCase.Result.PASS)
         self.assertEqual(out.returncode, 2013)
-        self.assertEqual(out.stdout, 'differ stdout\n')
+        self.assertIn('differ stdout\n', out.stdout)
         self.assertIn('differ stderr\n', out.stderr)
-        self.assertEqual(out.reasons, None)
+        self.assertEqual(out.reasons, [])
 
         # Error
         obj.setValue('error', True)
@@ -330,7 +330,7 @@ class TestTestCase(unittest.TestCase):
         self.assertIn('differ error', out.stderr)
         self.assertIn("An error occurred within the `execute` method of the 'a' object.",
                       out.stderr)
-        self.assertEqual(out.reasons, None)
+        self.assertEqual(out.reasons, [])
 
         # Exception
         obj.setValue('raise', True)
@@ -375,7 +375,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.returncode, 2011)
         self.assertEqual(out.stdout, '')
         self.assertEqual(out.stderr, '')
-        self.assertEqual(out.reasons, None)
+        self.assertEqual(out.reasons, [])
 
         with mock.patch("moosetools.moosetest.base.Controller.reset") as func:
             func.side_effect = Exception("raise")
@@ -411,7 +411,7 @@ class TestTestCase(unittest.TestCase):
         self.assertIn(
             "An error occurred, on the controller, within the `execute` method of the TestController controller with 'a' object.",
             out.stderr)
-        self.assertEqual(out.reasons, None)
+        self.assertEqual(out.reasons, [])
 
         with mock.patch("moosetools.moosetest.base.Runner.status") as func:
             func.return_value = 1
@@ -422,7 +422,7 @@ class TestTestCase(unittest.TestCase):
         self.assertIn(
             "An error occurred, on the object, within the `execute` method of the TestController controller with 'a' object.",
             out.stderr)
-        self.assertEqual(out.reasons, None)
+        self.assertEqual(out.reasons, [])
 
         ctrl.setValue('skip', True)
         out = tc._executeObject(obj)
@@ -443,8 +443,8 @@ class TestTestCase(unittest.TestCase):
         s, r = tc.execute()
         self.assertEqual(s, TestCase.Result.PASS)
         self.assertEqual(list(r.keys()), ['r', 'd'])
-        self.assertEqual(r['r'], TestCase.Data(TestCase.Result.PASS, 2011, '', '', None))
-        self.assertEqual(r['d'], TestCase.Data(TestCase.Result.PASS, 2013, '', '', None))
+        self.assertEqual(r['r'], TestCase.Data(TestCase.Result.PASS, 2011, '', '', []))
+        self.assertEqual(r['d'], TestCase.Data(TestCase.Result.PASS, 2013, '', '', []))
 
         ## RUNNER ################################
         # Reset Exception, Runner
@@ -503,7 +503,7 @@ class TestTestCase(unittest.TestCase):
         self.assertIn(
             "An error occurred, on the object, within the `execute` method of the TestController controller with 'r' object.",
             r['r'].stderr)
-        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['r'].reasons, [])
 
         # Skip, Controller with Runner
         ct.setValue('skip', True)
@@ -528,7 +528,7 @@ class TestTestCase(unittest.TestCase):
         self.assertIn("runner error", r['r'].stderr)
         self.assertIn("An error occurred within the `execute` method of the 'r' object",
                       r['r'].stderr)
-        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['r'].reasons, [])
         rr.setValue('error', False)
 
         # Exception on Runner
@@ -556,7 +556,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].returncode, 2011)
         self.assertEqual(r['r'].stdout, '')
         self.assertEqual(r['r'].stdout, '')
-        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['r'].reasons, [])
         self.assertEqual(r['d'].state, TestCase.Result.FATAL)
         self.assertEqual(r['d'].returncode, None)
         self.assertEqual(r['d'].stdout, '')
@@ -574,7 +574,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].returncode, 2011)
         self.assertEqual(r['r'].stdout, '')
         self.assertEqual(r['r'].stdout, '')
-        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['r'].reasons, [])
         self.assertEqual(r['d'].state, TestCase.Result.FATAL)
         self.assertEqual(r['d'].returncode, None)
         self.assertEqual(r['d'].stdout, '')
@@ -593,7 +593,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].returncode, 2011)
         self.assertEqual(r['r'].stdout, '')
         self.assertEqual(r['r'].stdout, '')
-        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['r'].reasons, [])
         self.assertEqual(r['d'].state, TestCase.Result.FATAL)
         self.assertEqual(r['d'].returncode, None)
         self.assertEqual(r['d'].stdout, '')
@@ -614,14 +614,14 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].returncode, 2011)
         self.assertEqual(r['r'].stdout, '')
         self.assertEqual(r['r'].stdout, '')
-        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['r'].reasons, [])
         self.assertEqual(r['d'].state, TestCase.Result.FATAL)
         self.assertEqual(r['d'].returncode, None)
         self.assertEqual(r['d'].stdout, '')
         self.assertIn(
             "An error occurred, on the object, within the `execute` method of the TestController controller with 'd' object.",
             r['d'].stderr)
-        self.assertEqual(r['d'].reasons, None)
+        self.assertEqual(r['d'].reasons, [])
 
         # Skip, Controller with Differ
         ct.setValue('skip', True)
@@ -633,7 +633,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].returncode, 2011)
         self.assertEqual(r['r'].stdout, '')
         self.assertEqual(r['r'].stdout, '')
-        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['r'].reasons, [])
         self.assertEqual(r['d'].state, TestCase.Result.SKIP)
         self.assertEqual(r['d'].returncode, None)
         self.assertEqual(r['d'].stdout, '')
@@ -652,14 +652,14 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].returncode, 2011)
         self.assertEqual(r['r'].stdout, '')
         self.assertEqual(r['r'].stdout, '')
-        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['r'].reasons, [])
         self.assertEqual(r['d'].state, TestCase.Result.DIFF)
         self.assertEqual(r['d'].returncode, 2013)
         self.assertEqual(r['d'].stdout, '')
         self.assertIn("differ error", r['d'].stderr)
         self.assertIn("An error occurred within the `execute` method of the 'd' object",
                       r['d'].stderr)
-        self.assertEqual(r['d'].reasons, None)
+        self.assertEqual(r['d'].reasons, [])
         dr.setValue('error', False)
 
         # Exception on Differ
@@ -671,7 +671,7 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].returncode, 2011)
         self.assertEqual(r['r'].stdout, '')
         self.assertEqual(r['r'].stdout, '')
-        self.assertEqual(r['r'].reasons, None)
+        self.assertEqual(r['r'].reasons, [])
         self.assertEqual(r['d'].state, TestCase.Result.EXCEPTION)
         self.assertEqual(r['d'].returncode, None)
         self.assertEqual(r['d'].stdout, '')
