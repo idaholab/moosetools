@@ -16,13 +16,14 @@ class FileDiffer(Differ):
     """
     Base Differ object for performing file comparisons.
 
-    The main purpose is provide pairs of filenames for comparision, (created, gold), that
+    The main purpose is provide pairs of file names for comparison, (created, gold), that
     can be iterated over using the `pairs` method.
     """
     def validParams():
         params = Differ.validParams()
-        params.add('gold_filenames', vtype=str, array=True, doc="")
-        params.add('gold_dir', vtype=str, default='gold', doc="")
+        f_params = params.getValue('file')
+        f_params.add('goldnames', vtype=str, array=True, doc="")
+        f_params.add('golddir', vtype=str, default='gold', doc="")
         return params
 
     def __init__(self, *args, **kwargs):
@@ -37,11 +38,11 @@ class FileDiffer(Differ):
 
         filenames = Runner.filenames(self)
 
-        if self.isParamValid('gold_filenames'):
-            gold_filenames = Runner.filenames(self, 'gold_filenames')
+        if self.isParamValid('file', 'goldnames'):
+            gold_filenames = Runner.filenames(self, ('file', 'goldnames'))
 
         else:
-            gold_dir = self.getParam('gold_dir')
+            gold_dir = self.getParam('file', 'golddir')
             gold_filenames = list()
             for filename in filenames:
                 d, f = os.path.split(filename)
