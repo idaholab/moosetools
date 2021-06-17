@@ -156,7 +156,7 @@ class Runner(MooseTestObject):
         sys.stderr, are passed to any `Differ` object(s) supplied to in the "differs" input
         parameter.
 
-        Refer to `moosetools.base.TestCase` for how this function is called and
+        Refer to `moosetools.core.TestCase` for how this function is called and
         `moosetools.moosetest.runners.RunCommand` for an example implementation.
         """
         raise NotImplementedError("The 'execute' method must be overridden.")

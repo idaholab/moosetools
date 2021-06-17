@@ -23,7 +23,7 @@ if platform.python_version() >= "3.7":
     import dataclasses
 
 from moosetools import mooseutils
-from moosetools.base import MooseObject
+from moosetools.core import MooseObject
 from .Runner import Runner
 from .Differ import Differ
 from .Controller import Controller

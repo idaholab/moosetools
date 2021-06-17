@@ -19,7 +19,7 @@ def make_differ(cls, controllers=None, **kwargs):
     """
     Create a `Differ` object given the *cls* with the `validObjectParams` of the *controllers*.
 
-    This function operates in the same fashion as `moosetools.base.make_runner`.
+    This function operates in the same fashion as `moosetools.core.make_runner`.
     """
     params = cls.validParams()
     for ctrl in controllers or []:
@@ -80,7 +80,7 @@ class Differ(MooseTestObject):
         arguments are the output for the `moosetest.base.Runner` object that was executed
         prior to running this object.
 
-        Refer to `moosetools.base.TestCase` for how this function is called and
+        Refer to `moosetools.core.TestCase` for how this function is called and
         `moosetools.moosetest.differs.ConsoleDiffer` for an example implementation.
         """
         raise NotImplementedError("The 'execute' method must be overridden.")

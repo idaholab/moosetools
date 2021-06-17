@@ -13,7 +13,7 @@ import glob
 import pkgutil
 import importlib
 import inspect
-from moosetools.base import MooseObject
+from moosetools.core import MooseObject
 
 
 class Factory(MooseObject):

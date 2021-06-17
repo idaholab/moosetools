@@ -61,7 +61,7 @@ class TestMakeHarness(unittest.TestCase):
                 th = make_harness('.moosetest', pyhit.Node(None), None)
             self.assertIn("An error occurred during parsing of the", str(ex.exception))
 
-        with mock.patch('moosetools.base.MooseObject.status', side_effect=(0, 0, 1)):
+        with mock.patch('moosetools.core.MooseObject.status', side_effect=(0, 0, 1)):
             with self.assertRaises(RuntimeError) as ex, mock.patch(
                     'os.path.isdir', return_value=True), mock.patch('os.chdir'):
                 th = make_harness('.moosetest', pyhit.Node(None), None)

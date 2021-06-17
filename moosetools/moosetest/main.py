@@ -15,7 +15,7 @@ from moosetools import parameters
 from moosetools import moosetree
 from moosetools import pyhit
 from moosetools import factory
-from moosetools import base
+from moosetools import core
 from moosetools import mooseutils
 from moosetools.moosetest import discover, run, fuzzer
 from moosetools.moosetest.base import Controller, Formatter, make_runner, make_differ

@@ -13,7 +13,7 @@ import sys
 import re
 import time
 import logging
-from moosetools import base
+from moosetools import core
 from moosetools import moosetree
 from moosetools import pyhit
 from .Factory import Factory
