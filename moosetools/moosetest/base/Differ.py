@@ -11,6 +11,7 @@ import io
 import copy
 import platform
 import logging
+from moosetools.parameters import InputParameters
 from .MooseTestObject import MooseTestObject
 
 
@@ -39,15 +40,20 @@ class Differ(MooseTestObject):
         params.setRequired('name', True)
 
         params.add(
-            'base_dir',
+            'file',
+            default=InputParameters(),
+            doc="Parameters for managing file(s) associated with execution of the `Differ` object.")
+        f_params = params.getValue('file')
+        f_params.add(
+            'base',
             vtype=str,
             doc=
-            "The base directory for the relative paths of the supplied names in the 'filenames' parameter."
-        )
-        params.add('filenames',
-                   vtype=str,
-                   array=True,
-                   doc="Filename(s) to be inspected by this object.")
+            "The base directory for relative paths of the supplied names in the 'names' parameter.")
+        f_params.add(
+            'names',
+            vtype=str,
+            array=True,
+            doc="File name(s) that are expected to be created during execution of this object.")
         return params
 
     def preExecute(self):
