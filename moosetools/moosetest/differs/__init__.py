@@ -8,3 +8,4 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 from .ConsoleDiffer import ConsoleDiffer
+from .CSVDiffer import CSVDiffer

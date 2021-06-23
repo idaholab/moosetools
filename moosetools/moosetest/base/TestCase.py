@@ -487,8 +487,15 @@ class TestCase(MooseObject):
         # The results to be returned
         results = dict()
 
+        # Get the working directory, this parameter is tested for validity in the Runner so raise
+        # an exception if it doesn't exist
+        working_dir = self._runner.getParam('working_dir')
+        if not os.path.isdir(working_dir):
+            raise RuntimeError(f"The 'working_dir' does not exist: {working_dir}")
+
         # Execute the runner, if it does not return a PASS state, then execution is complete
-        r_data = self._executeObject(self._runner)
+        with mooseutils.CurrentWorkingDirectory(working_dir):
+            r_data = self._executeObject(self._runner)
         results[self._runner.name()] = r_data
         if r_data.state.level > 0:
             return r_data.state, results
@@ -498,7 +505,8 @@ class TestCase(MooseObject):
         # state level.
         state = r_data.state
         for obj in self._differs:
-            d_data = self._executeObject(obj, r_data.returncode, r_data.stdout, r_data.stderr)
+            with mooseutils.CurrentWorkingDirectory(working_dir):
+                d_data = self._executeObject(obj, r_data.returncode, r_data.stdout, r_data.stderr)
             results[obj.name()] = d_data
             if (d_data.state.level >= self._min_fail_state.level) and (d_data.state.level >
                                                                        state.level):
@@ -650,6 +658,14 @@ class TestCase(MooseObject):
             if execute_failure is not None:
                 return execute_failure
 
-        stdout += textwrap.indent(out.stdout, mooseutils.color_text('sys.stdout > ', 'grey_30'))
-        stderr += textwrap.indent(out.stderr, mooseutils.color_text('sys.stderr > ', 'grey_30'))
+            stdout += out.stdout
+            stderr += out.stderr
+
+        #TODO: This prefixing should be moved to BasicFormatter, don't recall why it is here
+        #stdout += textwrap.indent(stdout, mooseutils.color_text('sys.stdout > ', 'grey_30'))
+        #stderr += textwrap.indent(stderr, mooseutils.color_text('sys.stderr > ', 'grey_30'))
+        #
+        # I think what is need is a way to distinguish between output from moosetest errors/messages
+        # vs. output from the execute methods...
+        #
         return TestCase.Data(TestCase.Result.PASS, rcode, stdout, stderr, obj.getReasons())

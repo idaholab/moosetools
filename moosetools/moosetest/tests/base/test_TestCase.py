@@ -545,6 +545,11 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(r['r'].reasons, None)
         rr.setValue('raise', False)
 
+        # Runner working_dir Exception
+        with mock.patch('os.path.isdir', return_value=False), self.assertRaises(RuntimeError) as e:
+            tc.execute()
+        self.assertIn("The 'working_dir' does not exist", str(e.exception))
+
         ## DIFFER ################################
         # Reset Exception, Differ
         with mock.patch("moosetools.moosetest.base.Differ.reset") as func:

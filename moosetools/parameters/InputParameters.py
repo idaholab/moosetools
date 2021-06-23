@@ -13,6 +13,7 @@ import enum
 import logging
 import copy
 
+from moosetools import core
 from .Parameter import Parameter
 
 
@@ -387,7 +388,6 @@ class InputParameters(object):
         elif mode == InputParameters.ErrorMode.CRITICAL:
             log.critical(msg)
         elif mode == InputParameters.ErrorMode.EXCEPTION:
-            from moosetools import core
             raise core.MooseException(msg)
 
     # The following are deprecated
