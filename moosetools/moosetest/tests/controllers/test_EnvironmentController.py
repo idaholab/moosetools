@@ -13,7 +13,7 @@ import logging
 import unittest
 from unittest import mock
 from moosetools.parameters import InputParameters
-from moosetools.base import MooseException, MooseObject
+from moosetools.core import MooseException, MooseObject
 from moosetools.moosetest.controllers import EnvironmentController
 from moosetools.moosetest.base import make_differ
 

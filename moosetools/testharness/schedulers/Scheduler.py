@@ -9,7 +9,7 @@
 
 import sys
 from moosetools.testharness.JobDAG import JobDAG
-from moosetools.base import MooseObject
+from moosetools.core import MooseObject
 import os, traceback
 from time import sleep
 from timeit import default_timer as clock

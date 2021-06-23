@@ -11,7 +11,7 @@
 import os
 import unittest
 from unittest import mock
-from moosetools.base import MooseObject
+from moosetools.core import MooseObject
 from moosetools.moosetest.base import make_differ
 from moosetools.moosetest.controllers import AutotoolsConfigController, AutotoolsConfigItem
 

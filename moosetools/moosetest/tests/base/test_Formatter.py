@@ -16,7 +16,7 @@ import unittest
 import time
 from unittest import mock
 from moosetools.parameters import InputParameters
-from moosetools.base import MooseException
+from moosetools.core import MooseException
 from moosetools import moosetest
 from moosetools.moosetest.base import make_runner, Runner, make_differ, Differ
 from moosetools.moosetest.base import Controller, Formatter, TestCase, State, RedirectOutput

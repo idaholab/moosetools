@@ -8,7 +8,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import time
-from moosetools.base import MooseObject
+from moosetools.core import MooseObject
 from .TestCase import TestCase, RedirectOutput
 
 
