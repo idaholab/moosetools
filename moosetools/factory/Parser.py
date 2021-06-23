@@ -20,14 +20,14 @@ from .Factory import Factory
 from .Warehouse import Warehouse
 
 
-class Parser(base.MooseObject):
+class Parser(core.MooseObject):
     """
-    The `Parser` object is designed for creating instances of `base.MooseObject` objects with
+    The `Parser` object is designed for creating instances of `core.MooseObject` objects with
     parameters populated from a HIT input file.
     """
     @staticmethod
     def validParams():
-        params = base.MooseObject.validParams()
+        params = core.MooseObject.validParams()
         params.add('_factory', private=True, required=True, vtype=Factory)
         params.add('_warehouse', private=True, required=True, vtype=(Warehouse, list))
         params.add('iteration_method',
@@ -46,7 +46,7 @@ class Parser(base.MooseObject):
         """
         kwargs.setdefault('_factory', factory)
         kwargs.setdefault('_warehouse', warehouse)
-        base.MooseObject.__init__(self, **kwargs)
+        core.MooseObject.__init__(self, **kwargs)
 
     @property
     def factory(self):
@@ -65,8 +65,8 @@ class Parser(base.MooseObject):
         it is omitted then the file is opened to create the *root*.
 
         This method should not raise exceptions. It reports all problems with logging errors. Prior
-        to running it resets the error counts (see `base.MooseObject.reset()`). As such the
-        `status` method (see `base.MooseObject.status()`) will return a non-zero code if an
+        to running it resets the error counts (see `core.MooseObject.reset()`). As such the
+        `status` method (see `core.MooseObject.status()`) will return a non-zero code if an
         error occurred.
         """
         if root is None:
@@ -90,7 +90,7 @@ class Parser(base.MooseObject):
 
     def _parseNode(self, filename, node):
         """
-        Instantiate a `base.MooseObject` for a supplied `pyhit.Node`.
+        Instantiate a `core.MooseObject` for a supplied `pyhit.Node`.
 
         The *filename* is provided for error reporting. The *node* is a `pyhit.Node` that should
         contain a "type" parameter that gives the type of object to be constructed. This type must

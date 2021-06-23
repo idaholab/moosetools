@@ -10,7 +10,7 @@
 from moosetools import core
 
 
-class CustomObject(base.MooseObject):
+class CustomObject(core.MooseObject):
     pass
 
 

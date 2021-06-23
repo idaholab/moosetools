@@ -31,7 +31,7 @@ def make_runner(cls, controllers=None, **kwargs):
     will contain parameters relevant to the environment that can be set.
 
     The *\*\*kwargs* arguments are applied to the default parameters as done for the base
-    `base.MooseObject` class. Implementing the following will demonstrate that the "platform"
+    `core.MooseObject` class. Implementing the following will demonstrate that the "platform"
     parameter can be set for the `Runner` object, using the "env" prefix.
 
     ```python

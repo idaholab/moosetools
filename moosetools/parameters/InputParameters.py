@@ -388,7 +388,7 @@ class InputParameters(object):
             log.critical(msg)
         elif mode == InputParameters.ErrorMode.EXCEPTION:
             from moosetools import core
-            raise base.MooseException(msg)
+            raise core.MooseException(msg)
 
     # The following are deprecated
     def addParam(self, name, *args, required=False):

@@ -13,12 +13,12 @@ import glob
 import pkgutil
 import importlib
 import inspect
-from moosetools.core import MooseObject
+from moosetools import core
 
 
-class Factory(MooseObject):
+class Factory(core.MooseObject):
     """
-    The `Factory` object exists as a convenient way to create `base.MooseObject` objects that
+    The `Factory` object exists as a convenient way to create `core.MooseObject` objects that
     exist within a directory without requiring PYTHONPATH.
 
     It was originally designed to be utilized via the `factory.Parser` for creating objects from HIT
@@ -26,14 +26,14 @@ class Factory(MooseObject):
     """
     @staticmethod
     def validParams():
-        params = MooseObject.validParams()
+        params = core.MooseObject.validParams()
         params.add('plugin_dirs',
                    vtype=str,
                    array=True,
                    doc="List of directories to search for plugins.")
         params.add('plugin_types',
                    array=True,
-                   default=(MooseObject, ),
+                   default=(core.MooseObject, ),
                    doc="The python type of the plugins to load.")
         return params
 
@@ -42,7 +42,7 @@ class Factory(MooseObject):
         Create `factory.Factory` object, the type of objects to load and the location can be
         provided via the keyword arguments, as defined in the `validParams` function.
         """
-        MooseObject.__init__(self, **kwargs)
+        core.MooseObject.__init__(self, **kwargs)
         self._registered_types = dict()
 
     def register(self, name, object_type):
@@ -95,8 +95,8 @@ class Factory(MooseObject):
         Loop through the supplied plugin directories and register the objects of the supplied type.
 
         This method should not raise exceptions. It reports all problems with logging errors. Prior
-        to running it resets the error counts (see `base.MooseObject.reset()`). As such the
-        `status` method (see `base.MooseObject.status()`) will return a non-zero code if an
+        to running it resets the error counts (see `core.MooseObject.reset()`). As such the
+        `status` method (see `core.MooseObject.status()`) will return a non-zero code if an
         error occurred.
         """
         self.reset()

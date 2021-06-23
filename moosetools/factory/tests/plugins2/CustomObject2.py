@@ -10,5 +10,5 @@
 from moosetools import core
 
 
-class CustomObject2(base.MooseObject):
+class CustomObject2(core.MooseObject):
     pass

@@ -522,7 +522,7 @@ class TestCase(MooseObject):
         """
 
         # The supplied *obj* as well as the `Controller` objects are expected to be a
-        # `base.MooseObject` derived objects. As such the built-in logging capability is leveraged.
+        # `core.MooseObject` derived objects. As such the built-in logging capability is leveraged.
         # When executing any object the first step is to clear any logged errors, which is done by
         # calling the `reset` method. All calls are also wrapped in a try-statement to catch any
         # unexpected problems and the output is redirected such that it can be reported to the root

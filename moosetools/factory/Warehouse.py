@@ -8,23 +8,23 @@
 #* Licensed under LGPL 2.1, please see LICENSE for details
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
-from moosetools.core import MooseObject
+from moosetools import core
 
 
-class Warehouse(MooseObject):
+class Warehouse(core.MooseObject):
     """
-    The `Warehouse` object is a basic storage container for `base.MooseObject` objects.
+    The `Warehouse` object is a basic storage container for `core.MooseObject` objects.
 
     It was originally designed to be utilized via the `factory.Parser` for storing objects from HIT
     input files.
     """
     @staticmethod
     def validParams():
-        params = MooseObject.validParams()
+        params = core.MooseObject.validParams()
         return params
 
     def __init__(self, *args, **kwargs):
-        MooseObject.__init__(self, *args, **kwargs)
+        core.MooseObject.__init__(self, *args, **kwargs)
         self.__objects = list()
 
     def __len__(self):

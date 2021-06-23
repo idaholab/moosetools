@@ -10,7 +10,7 @@
 from moosetools import core
 
 
-class MooseTestObject(base.MooseObject):
+class MooseTestObject(core.MooseObject):
     """
     Base object for `moosetest` objects.
 
@@ -22,11 +22,11 @@ class MooseTestObject(base.MooseObject):
     """
     @staticmethod
     def validParams():
-        params = base.MooseObject.validParams()
+        params = core.MooseObject.validParams()
         return params
 
     def __init__(self, *args, **kwargs):
-        base.MooseObject.__init__(self, *args, **kwargs)
+        core.MooseObject.__init__(self, *args, **kwargs)
         self.__reasons = list()
 
     def reset(self):
@@ -34,7 +34,7 @@ class MooseTestObject(base.MooseObject):
         Reset the the stored "reasons".
         """
         self.__reasons = list()
-        base.MooseObject.reset(self)
+        core.MooseObject.reset(self)
 
     def getReasons(self):
         """

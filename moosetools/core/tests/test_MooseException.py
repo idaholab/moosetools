@@ -13,8 +13,8 @@ from moosetools import core
 
 class TestMooseException(unittest.TestCase):
     def testRaise(self):
-        with self.assertRaises(base.MooseException) as me:
-            raise base.MooseException("Something {} {word}", "is", word="wrong")
+        with self.assertRaises(core.MooseException) as me:
+            raise core.MooseException("Something {} {word}", "is", word="wrong")
         self.assertEqual(me.exception.message, "Something is wrong")
 
 
