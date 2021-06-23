@@ -13,7 +13,7 @@ import sys
 import re
 import unittest
 
-from moosetools.base import MooseException
+from moosetools.core import MooseException
 from moosetools.parameters import InputParameters, Parameter
 
 

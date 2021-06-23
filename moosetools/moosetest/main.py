@@ -15,7 +15,7 @@ from moosetools import parameters
 from moosetools import moosetree
 from moosetools import pyhit
 from moosetools import factory
-from moosetools import base
+from moosetools import core
 from moosetools import mooseutils
 from moosetools.moosetest import discover, run, fuzzer
 from moosetools.moosetest.base import Controller, Formatter, make_runner, make_differ
@@ -44,7 +44,7 @@ def cli_args():
     return parser.parse_args()
 
 
-class TestHarness(base.MooseObject):
+class TestHarness(core.MooseObject):
     """
     Object for extracting general configuration options from a HIT file.
 
@@ -54,7 +54,7 @@ class TestHarness(base.MooseObject):
     """
     @staticmethod
     def validParams():
-        params = base.MooseObject.validParams()
+        params = core.MooseObject.validParams()
         params.add(
             'plugin_dirs',
             default=tuple(),
@@ -90,7 +90,7 @@ class TestHarness(base.MooseObject):
         return params
 
     def __init__(self, *args, **kwargs):
-        base.MooseObject.__init__(self, *args, **kwargs)
+        core.MooseObject.__init__(self, *args, **kwargs)
         logging.basicConfig(level=self.getParam('log_level'))
 
         # Update the "plugin_dirs" to be absolute paths

@@ -14,7 +14,7 @@ import logging
 import unittest
 from unittest import mock
 from moosetools.parameters import InputParameters
-from moosetools.base import MooseException
+from moosetools.core import MooseException
 from moosetools import moosetest
 
 

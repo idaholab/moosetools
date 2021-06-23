@@ -13,7 +13,7 @@ import subprocess
 from signal import SIGTERM
 
 from moosetools import mooseutils
-from moosetools.base import MooseObject
+from moosetools.core import MooseObject
 from moosetools.testharness import util
 from moosetools.testharness.StatusSystem import StatusSystem
 

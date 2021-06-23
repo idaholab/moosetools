@@ -9,7 +9,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import unittest
-from moosetools.base import MooseObject
+from moosetools.core import MooseObject
 from moosetools.moosetest.base import MooseTestObject
 
 

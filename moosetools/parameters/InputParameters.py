@@ -20,7 +20,7 @@ class InputParameters(object):
     """
     A warehouse for creating and storing options
     """
-    from moosetools import base  # Avoid cyclic imports
+    from moosetools import core  # Avoid cyclic imports
 
     __PARAM_TYPE__ = Parameter
 
@@ -387,8 +387,8 @@ class InputParameters(object):
         elif mode == InputParameters.ErrorMode.CRITICAL:
             log.critical(msg)
         elif mode == InputParameters.ErrorMode.EXCEPTION:
-            from moosetools import base
-            raise base.MooseException(msg)
+            from moosetools import core
+            raise core.MooseException(msg)
 
     # The following are deprecated
     def addParam(self, name, *args, required=False):
