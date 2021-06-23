@@ -36,10 +36,9 @@ class FileDiffer(Differ):
         """
         Differ.preExecute(self)
 
-        filenames = Runner.filenames(self)
-
+        filenames = self.getParam('file', 'names') or tuple()
         if self.isParamValid('file', 'goldnames'):
-            gold_filenames = Runner.filenames(self, ('file', 'goldnames'))
+            gold_filenames = self.getParam('file', 'goldnames') or tuple()
 
         else:
             gold_dir = self.getParam('file', 'golddir')

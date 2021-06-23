@@ -172,8 +172,8 @@ class ConsoleDiffer(Differ):
         # EXIT CODE
         nonzero_exit_expected = self.getParam('nonzero_exit_expected')
         if nonzero_exit_expected and rcode == 0:
-            log.error("A non-zero exit code was expected, but not produced.")
+            self.error("A non-zero exit code was expected, but not produced.")
         elif not nonzero_exit_expected and rcode > 0:
-            log.error(
-                "A non-zero exit code was not expected, but and exit code of '{}' was produced.",
+            self.error(
+                "A non-zero exit code was not expected, but an exit code of '{}' was produced.",
                 rcode)

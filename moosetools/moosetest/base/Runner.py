@@ -56,7 +56,21 @@ class Runner(MooseTestObject):
 
     The `Runner` object is designed to be as simple as possible. Child objects must override a
     single method: `execute`.
+
+    !alert info title=Working Directory
+    A `Runner` object is expected to be executed from within a `TestCase` object. In particular, when
+    executed the working directory is set to "working_dir" parameter. As such, the use of
+    `os.getcwd()` is expected to be correct within this object.
     """
+    @staticmethod
+    def isDirectory(path):
+        """
+        Helper for verify function.
+
+        Using 'os.path.isdir' directly yields problems when testing with mock.
+        """
+        return os.path.isdir(path)
+
     @staticmethod
     def validParams():
         params = MooseTestObject.validParams()
@@ -66,6 +80,15 @@ class Runner(MooseTestObject):
                    array=True,
                    doc="The 'Differ' object(s) to execute after execution of this object.")
 
+        params.add(
+            'working_dir',
+            vtype=str,
+            default=os.getcwd(),
+            verify=(Runner.isDirectory, "The supplied working directory must exist."),
+            doc=
+            "The working directory for the execution of this `Runner` object. This parameter is automatically utilized when running the object via a `moosetest.run` function."
+        )
+
         # Parameters associated with file names
         params.add(
             'file',
@@ -73,26 +96,19 @@ class Runner(MooseTestObject):
             doc="Parameters for managing file(s) associated with execution of the `Runner` object.")
         f_params = params.getValue('file')
         f_params.add(
-            'base',
-            vtype=str,
-            verify=(Runner.verifyBaseDirectory,
-                    "The supplied directory must exist and be an absolute path."),
-            doc=
-            "The base directory for relative paths of the supplied names in the 'names' parameter.")
-        f_params.add(
             'names',
             vtype=str,
             array=True,
             doc=
-            "File name(s) that are expected to be created during execution of this object. The file(s) listed here are joined with the 'filenames' parameter from each differ. The combined set is what is used for associated error checking."
+            "File name(s) that are expected to be created during execution of this object. The file(s) listed here are joined with the 'filenames' parameter from each `Differ` object. The combined set is what is used for associated error checking."
         )
 
         f_params.add(
             'check_created',
             vtype=bool,
-            mutable=False,
+            default=True,
             doc=
-            "Check that all files created are accounted for in the 'names' parameter of this `Runner` object and/or associated `Differ` objects. By default the check will be performed if the 'base' is set."
+            "Check that all files created are accounted for in the 'names' parameter of this `Runner` object and/or associated `Differ` objects."
         )
 
         f_params.add(
@@ -112,16 +128,6 @@ class Runner(MooseTestObject):
         )
 
         return params
-
-    @staticmethod
-    def verifyBaseDirectory(value):
-        """
-        Verify function for 'file_base' parameter.
-
-        Usually a lambda is supplied to the verify argument when adding the parameter; however,
-        lambda functions cannot be pickled so they fail when being run with multiprocessing.
-        """
-        return os.path.isdir(value) and os.path.isabs(value)
 
     def __init__(self, *args, **kwargs):
         MooseTestObject.__init__(self, *args, **kwargs)
@@ -166,20 +172,13 @@ class Runner(MooseTestObject):
         Prepare for inspection of expected file prior to execution.
         """
 
-        # Create set of expected files from this object and Differ objects, accounting for 'file_base'
+        # Create set of expected files from this object and Differ objects
         self.__expected_files = self._getExpectedFiles()
-
-        # Check that all paths are absolute
-        non_abs = [fname for fname in self.__expected_files if not os.path.isabs(fname)]
-        if non_abs:
-            msg = "The following file(s) were not defined as an absolute path or as a relative path to the 'file_base' parameter:\n  {}"
-            self.error(msg, '\n  '.join(non_abs))
-            return
 
         # Check that the file is not under version control
         root_dir = mooseutils.git_root_dir()
         if root_dir:
-            git_files = set(mooseutils.git_ls_files(self.getParam('file', 'base') or root_dir))
+            git_files = set(mooseutils.git_ls_files() or root_dir)
             intersect = git_files.intersection(self.__expected_files)
             if intersect:
                 msg = "The following file(s) are being tracked with 'git', thus cannot be expected to be created by the execution of this object:\n  {}."
@@ -201,17 +200,8 @@ class Runner(MooseTestObject):
             return
 
         # Store directory content
-        base_dir = self.getParam('file_base')
-        check_created_files = self.getParam('file', 'check_created')
-        if (check_created_files is None) and (base_dir is not None):
-            check_created_files = True
-
-        if check_created_files and (base_dir is None):
-            msg = "When 'file_check_created' is enabled, the 'file_base' parameter must be defined to limit the check to the correct location."
-            self.error(msg)
-            return
-        elif check_created_files:
-            self.__pre_execute_files = set(os.listdir(base_dir))
+        if self.getParam('file', 'check_created'):
+            self.__pre_execute_files = set(os.listdir())
 
     def _postExecuteExpectedFiles(self):
         """
@@ -226,7 +216,7 @@ class Runner(MooseTestObject):
 
         # check for other files
         if self.__pre_execute_files is not None:
-            post_execute_files = set(os.listdir(self.getParam('file', 'base')))
+            post_execute_files = set(os.listdir())
 
             # remove ignored pattern(s)
             ignore_patterns = self.getParam('file', 'ignore_patterns') or tuple()
@@ -242,26 +232,7 @@ class Runner(MooseTestObject):
         """
         Build the list of expected files.
         """
-        expected = Runner.filenames(self)
+        expected = set(self.getParam('file', 'names') or tuple())
         for differ in self.getParam('differs') or set():
-            expected += Runner.filenames(differ)
+            expected |= set(differ.getParam('file', 'names') or tuple())
         return expected
-
-    @staticmethod
-    def filenames(obj, file_names_param=('file', 'names')):
-        """
-        Return a set of filenames gathered from the 'filenames' parameters, with relative paths
-        being prefixed with the 'file_base' parameter (if it exists).
-        """
-        filenames = list(obj.getParam(*file_names_param) or list())
-        base_dir = obj.getParam('file', 'base')
-        if base_dir is not None:
-            filenames_abs = list()
-            for fname in filenames:
-                if os.path.isabs(fname):
-                    filenames_abs.append(fname)
-                else:
-                    filenames_abs.append(os.path.join(base_dir, fname))
-            filenames = filenames_abs
-
-        return filenames
