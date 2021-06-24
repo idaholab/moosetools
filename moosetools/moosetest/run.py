@@ -278,13 +278,15 @@ def fuzzer(seed=1980,
            differ_fatal=0.1,
            differ_platform=0.1,
            differ_name_len=(6, 15),
-           runner_num=(1, 3),
+           runner_num=(1, 5),
            runner_raise=0.01,
            runner_error=0.1,
            runner_fatal=0.05,
            runner_sleep=(0.5, 10),
            runner_platform=0.1,
-           runner_name_len=(4, 29)):
+           runner_name_len=(4, 29),
+           requires_error=0.01,
+           requires_use=1):
     """
     A tool for calling `run` function with randomized test cases.
     """
@@ -364,6 +366,8 @@ def fuzzer(seed=1980,
             names = list(set(r.name() for r in runners
                              if r.name() != runners[index].name()))[:count]
             runners[index].parameters().setValue('requires', tuple(names))
+
+        groups.append(runners)
 
     # Formatter
     kwargs = dict()
