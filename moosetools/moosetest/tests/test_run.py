@@ -62,7 +62,6 @@ class TestRunExecuteHelpers(unittest.TestCase):
         conn = PipeProxy()
         _execute_testcase(tc, conn)
 
-        print(conn.result['test'].stderr)
         self.assertEqual(conn.state, TestCase.Result.PASS)
         self.assertIn('test', conn.result)
 
@@ -84,15 +83,15 @@ class TestRunExecuteHelpers(unittest.TestCase):
         data = conn.result['test']
         self.assertEqual(data.state, TestCase.Result.FATAL)
         self.assertEqual(data.returncode, None)
-        self.assertEqual(data.stdout, "")
+        self.assertEqual(data.stdout, None)
         self.assertIn("wrong", data.stderr)
         self.assertEqual(data.reasons, None)
 
     @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
     def test_execute_testcases(self):
 
-        r0 = make_runner(RunCommand, name='test0', command=('sleep', '0.2'))
-        r1 = make_runner(RunCommand, name='test1', command=('sleep', '0.3'))
+        r0 = make_runner(TestRunner, name='test0', sleep=0.2)
+        r1 = make_runner(TestRunner, name='test1', sleep=0.3)
 
         tc0 = TestCase(runner=r0)
         tc1 = TestCase(runner=r1)
@@ -114,9 +113,9 @@ class TestRunExecuteHelpers(unittest.TestCase):
         self.assertIn('test0', r)
         data = r['test0']
         self.assertEqual(data.state, TestCase.Result.PASS)
-        self.assertEqual(data.returncode, 0)
+        self.assertEqual(data.returncode, 2011)
+        self.assertEqual(data.stdout, "")
         self.assertEqual(data.stderr, "")
-        self.assertIn("sleep 0.2", data.stdout)
         self.assertEqual(data.reasons, [])
 
         u, p, s, r = q.get()
@@ -132,15 +131,14 @@ class TestRunExecuteHelpers(unittest.TestCase):
         self.assertIn('test1', r)
         data = r['test1']
         self.assertEqual(data.state, TestCase.Result.PASS)
-        self.assertEqual(data.returncode, 0)
+        self.assertEqual(data.returncode, 2011)
+        self.assertEqual(data.stdout, "")
         self.assertEqual(data.stderr, "")
-        self.assertIn("sleep 0.3", data.stdout)
         self.assertEqual(data.reasons, [])
 
-        # Exception and skip
-        with mock.patch('moosetools.moosetest.base.TestCase.execute',
-                        side_effect=[Exception("wrong"), None]):
-            _execute_testcases([tc0, tc1], q, 2)
+        # Exception and run
+        r0.parameters().setValue('raise', True)
+        _execute_testcases([tc0, tc1], q, 2)
 
         u, p, s, r = q.get()
         self.assertEqual(u, tc0.unique_id)
@@ -151,13 +149,53 @@ class TestRunExecuteHelpers(unittest.TestCase):
         u, p, s, r = q.get()
         self.assertEqual(u, tc0.unique_id)
         self.assertEqual(p, TestCase.Progress.FINISHED)
-        self.assertEqual(s, TestCase.Result.FATAL)
+        self.assertEqual(s, TestCase.Result.EXCEPTION)
         self.assertIn('test0', r)
         data = r['test0']
-        self.assertEqual(data.state, TestCase.Result.FATAL)
+        self.assertEqual(data.state, TestCase.Result.EXCEPTION)
         self.assertEqual(data.returncode, None)
         self.assertEqual(data.stdout, "")
-        self.assertIn("wrong", data.stderr)
+        self.assertIn("runner raise", data.stderr)
+        self.assertEqual(data.reasons, None)
+
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc1.unique_id)
+        self.assertEqual(p, TestCase.Progress.RUNNING)
+        self.assertEqual(s, None)
+        self.assertEqual(r, None)
+
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc1.unique_id)
+        self.assertEqual(p, TestCase.Progress.FINISHED)
+        self.assertEqual(s, TestCase.Result.PASS)
+        self.assertIn('test1', r)
+        data = r['test1']
+        self.assertEqual(data.state, TestCase.Result.PASS)
+        self.assertEqual(data.returncode, 2011)
+        self.assertEqual(data.stderr, "")
+        self.assertEqual(data.stdout, "")
+        self.assertEqual(data.reasons, [])
+
+        # Exception and skip
+        r1.parameters().setValue('requires', ('test0', ))
+        _execute_testcases([tc0, tc1], q, 2)
+
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc0.unique_id)
+        self.assertEqual(p, TestCase.Progress.RUNNING)
+        self.assertEqual(s, None)
+        self.assertEqual(r, None)
+
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc0.unique_id)
+        self.assertEqual(p, TestCase.Progress.FINISHED)
+        self.assertEqual(s, TestCase.Result.EXCEPTION)
+        self.assertIn('test0', r)
+        data = r['test0']
+        self.assertEqual(data.state, TestCase.Result.EXCEPTION)
+        self.assertEqual(data.returncode, None)
+        self.assertEqual(data.stdout, "")
+        self.assertIn("runner raise", data.stderr)
         self.assertEqual(data.reasons, None)
 
         u, p, s, r = q.get()
@@ -168,9 +206,43 @@ class TestRunExecuteHelpers(unittest.TestCase):
         data = r['test1']
         self.assertEqual(data.state, TestCase.Result.SKIP)
         self.assertEqual(data.returncode, None)
-        self.assertEqual(data.stdout, "")
-        self.assertIn("A previous", data.stderr)
-        self.assertEqual(data.reasons, ['dependency'])
+        self.assertEqual(
+            data.stderr,
+            "For the test 'test1', the required test(s) 'test0' have not executed and passed.")
+        self.assertEqual(data.stdout, None)
+        self.assertEqual(data.reasons, ['failed dependency'])
+
+        # 'Incorrect' requires
+        r0.parameters().setValue('requires', ('wrong', ))
+        _execute_testcases([tc0, tc1], q, 2)
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc0.unique_id)
+        self.assertEqual(p, TestCase.Progress.FINISHED)
+        self.assertEqual(s, TestCase.Result.FATAL)
+        self.assertIn('test0', r)
+        data = r['test0']
+        self.assertEqual(data.state, TestCase.Result.FATAL)
+        self.assertEqual(data.returncode, None)
+        self.assertEqual(data.stdout, None)
+        self.assertEqual(
+            data.stderr,
+            "For the test 'test0', the required test(s) 'wrong' have not executed. Either the names provided the the 'requires' parameter are incorrect or the tests are in the wrong order."
+        )
+        self.assertEqual(data.reasons, ['unknown required test(s)'])
+
+        u, p, s, r = q.get()
+        self.assertEqual(u, tc1.unique_id)
+        self.assertEqual(p, TestCase.Progress.FINISHED)
+        self.assertEqual(s, TestCase.Result.SKIP)
+        self.assertIn('test1', r)
+        data = r['test1']
+        self.assertEqual(data.state, TestCase.Result.SKIP)
+        self.assertEqual(data.returncode, None)
+        self.assertEqual(
+            data.stderr,
+            "For the test 'test1', the required test(s) 'test0' have not executed and passed.")
+        self.assertEqual(data.stdout, None)
+        self.assertEqual(data.reasons, ['failed dependency'])
 
         # Timeout
         r2 = make_runner(RunCommand, name='test2', command=('sleep', '2'))
@@ -191,8 +263,8 @@ class TestRunExecuteHelpers(unittest.TestCase):
         data = r['test2']
         self.assertEqual(data.state, TestCase.Result.TIMEOUT)
         self.assertEqual(data.returncode, None)
-        self.assertEqual(data.stdout, "")
-        self.assertEqual(data.stderr, "")
+        self.assertEqual(data.stdout, None)
+        self.assertEqual(data.stderr, None)
         self.assertEqual(data.reasons, ['max time (1) exceeded'])
 
 
@@ -403,8 +475,8 @@ class TestRun(unittest.TestCase):
                         percent=100,
                         duration=TestRun.ANY,
                         returncode=None,
-                        stdout='',
-                        stderr=TestRun.IN(''))
+                        stdout=None,
+                        stderr=None)
 
     def testRunnerWithController(self):
         c = TestController(stdout=True, stderr=True)
@@ -540,8 +612,8 @@ class TestRun(unittest.TestCase):
                         percent=100,
                         duration=TestRun.ANY,
                         returncode=None,
-                        stdout='',
-                        stderr='')
+                        stdout=None,
+                        stderr=None)
 
         # SKIP
         self.resetMockObjects()
@@ -765,8 +837,8 @@ class TestRun(unittest.TestCase):
                         reasons=['max time (0.5) exceeded'],
                         percent=100,
                         duration=TestRun.ANY,
-                        stdout='',
-                        stderr='')
+                        stdout=None,
+                        stderr=None)
 
     def testRunnerWithDiffersWithControllers(self):
         c = TestController()
@@ -858,8 +930,8 @@ class TestRun(unittest.TestCase):
 
     def testMaxFail(self):
         r0 = make_runner(TestRunner, name='Just Andrew', error=True)
-        r1 = make_runner(TestRunner, name='Other Andrew', sleep=0.5)
-        r2 = make_runner(TestRunner, name='Best Andrew')
+        r1 = make_runner(TestRunner, name='Other Andrew', requires=("Just Andrew", ), sleep=0.5)
+        r2 = make_runner(TestRunner, name='Best Andrew', requires=("Just Andrew", ))
         fm = Formatter()
 
         # This test helped me catch a logic bug. This is a single group, so only a single worker
@@ -890,34 +962,40 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_state.call_args_list[1],
                         name='Other Andrew',
                         state=TestCase.Result.SKIP,
-                        reasons=['dependency'],
+                        reasons=['failed dependency'],
                         percent=TestRun.ANY,
                         duration=TestRun.ANY)
-        self.assertCall(self._r_results.call_args_list[1],
-                        name='Other Andrew',
-                        state=TestCase.Result.SKIP,
-                        reasons=['dependency'],
-                        percent=TestRun.ANY,
-                        duration=TestRun.ANY,
-                        returncode=None,
-                        stdout='',
-                        stderr=TestRun.IN("A previous test case (Just Andrew)"))
+        self.assertCall(
+            self._r_results.call_args_list[1],
+            name='Other Andrew',
+            state=TestCase.Result.SKIP,
+            reasons=['failed dependency'],
+            percent=TestRun.ANY,
+            duration=TestRun.ANY,
+            returncode=None,
+            stdout=None,
+            stderr=TestRun.
+            IN("For the test 'Other Andrew', the required test(s) 'Just Andrew' have not executed and passed."
+               ))
 
         self.assertCall(self._r_state.call_args_list[2],
                         name='Best Andrew',
                         state=TestCase.Result.SKIP,
-                        reasons=['dependency'],
+                        reasons=['failed dependency'],
                         percent=100,
                         duration=TestRun.ANY)
-        self.assertCall(self._r_results.call_args_list[2],
-                        name='Best Andrew',
-                        state=TestCase.Result.SKIP,
-                        reasons=['dependency'],
-                        percent=100,
-                        duration=TestRun.ANY,
-                        returncode=None,
-                        stdout='',
-                        stderr=TestRun.IN("A previous test case (Just Andrew)"))
+        self.assertCall(
+            self._r_results.call_args_list[2],
+            name='Best Andrew',
+            state=TestCase.Result.SKIP,
+            reasons=['failed dependency'],
+            percent=100,
+            duration=TestRun.ANY,
+            returncode=None,
+            stdout=None,
+            stderr=TestRun.
+            IN("For the test 'Best Andrew', the required test(s) 'Just Andrew' have not executed and passed."
+               ))
 
         # Similar to above, but with individual groups
         groups = list()
@@ -999,8 +1077,8 @@ class TestRun(unittest.TestCase):
         # Same as first test in testMaxFails, but without the max fails
 
         r0 = make_runner(TestRunner, name='Just Andrew', error=True)
-        r1 = make_runner(TestRunner, name='Other Andrew', sleep=0.5)
-        r2 = make_runner(TestRunner, name='Best Andrew')
+        r1 = make_runner(TestRunner, name='Other Andrew', sleep=0.5, requires=('Just Andrew', ))
+        r2 = make_runner(TestRunner, name='Best Andrew', requires=('Other Andrew', ))
         fm = Formatter()
 
         rcode = run([[r0, r1, r2]], tuple(), fm)
@@ -1027,34 +1105,40 @@ class TestRun(unittest.TestCase):
         self.assertCall(self._r_state.call_args_list[1],
                         name='Other Andrew',
                         state=TestCase.Result.SKIP,
-                        reasons=['dependency'],
+                        reasons=['failed dependency'],
                         percent=TestRun.ANY,
                         duration=TestRun.ANY)
-        self.assertCall(self._r_results.call_args_list[1],
-                        name='Other Andrew',
-                        state=TestCase.Result.SKIP,
-                        reasons=['dependency'],
-                        percent=TestRun.ANY,
-                        duration=TestRun.ANY,
-                        returncode=None,
-                        stdout='',
-                        stderr=TestRun.IN("A previous test case (Just Andrew)"))
+        self.assertCall(
+            self._r_results.call_args_list[1],
+            name='Other Andrew',
+            state=TestCase.Result.SKIP,
+            reasons=['failed dependency'],
+            percent=TestRun.ANY,
+            duration=TestRun.ANY,
+            returncode=None,
+            stdout=None,
+            stderr=TestRun.
+            IN("For the test 'Other Andrew', the required test(s) 'Just Andrew' have not executed and passed."
+               ))
 
         self.assertCall(self._r_state.call_args_list[2],
                         name='Best Andrew',
                         state=TestCase.Result.SKIP,
-                        reasons=['dependency'],
+                        reasons=['failed dependency'],
                         percent=100,
                         duration=TestRun.ANY)
-        self.assertCall(self._r_results.call_args_list[2],
-                        name='Best Andrew',
-                        state=TestCase.Result.SKIP,
-                        reasons=['dependency'],
-                        percent=100,
-                        duration=TestRun.ANY,
-                        returncode=None,
-                        stdout='',
-                        stderr=TestRun.IN("A previous test case (Just Andrew)"))
+        self.assertCall(
+            self._r_results.call_args_list[2],
+            name='Best Andrew',
+            state=TestCase.Result.SKIP,
+            reasons=['failed dependency'],
+            percent=100,
+            duration=TestRun.ANY,
+            returncode=None,
+            stdout=None,
+            stderr=TestRun.
+            IN("For the test 'Best Andrew', the required test(s) 'Other Andrew' have not executed and passed."
+               ))
 
     @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
     def testFuzzer(self):

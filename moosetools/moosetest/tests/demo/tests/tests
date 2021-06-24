@@ -6,6 +6,7 @@
   [runner1]
     type = RunCommand
     command = 'sleep 3'
+    requires = 'runner0'
   []
   [group]
     [runner1]
