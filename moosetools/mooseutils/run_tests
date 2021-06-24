@@ -1,2 +1,2 @@
 coverage run --omit "./tests/**" --include "./*" -m unittest discover --verbose --start-directory "./tests"
-coverage report -m --fail-under=65
+coverage report -m --fail-under=55

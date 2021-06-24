@@ -56,7 +56,7 @@ class Tester(MooseObject):
         params.addParam('success_message', 'OK', "The successful message")
         params.addParam(
             'redirect_output', False,
-            "Redirect stdout to files. Neccessary when expecting an error when using parallel options"
+            "Redirect stdout to files. Necessary when expecting an error when using parallel options"
         )
 
         params.addParam('cli_args', "", "Additional arguments to be passed to the test.")

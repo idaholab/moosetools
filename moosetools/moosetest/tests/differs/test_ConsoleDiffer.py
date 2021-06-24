@@ -210,6 +210,29 @@ class TestConsoleDiffer(unittest.TestCase):
             log.output[0])
         self.assertEqual(obj.status(), 1)
 
+    def testNonZeroExit(self):
+        obj = ConsoleDiffer(name='diff', nonzero_exit_expected=True)
+        obj.execute(1, '', '')
+        self.assertEqual(obj.status(), 0)
+
+        with self.assertLogs(level='ERROR') as log:
+            obj.execute(0, '', '')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("A non-zero exit code was expected, but not produced.", log.output[0])
+        self.assertEqual(obj.status(), 1)
+
+        obj = ConsoleDiffer(name='diff', nonzero_exit_expected=False)
+        obj.execute(0, '', '')
+        self.assertEqual(obj.status(), 0)
+
+        with self.assertLogs(level='ERROR') as log:
+            obj.execute(1980, '', '')
+        self.assertEqual(len(log.output), 1)
+        self.assertIn(
+            "A non-zero exit code was not expected, but an exit code of '1980' was produced.",
+            log.output[0])
+        self.assertEqual(obj.status(), 1)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

@@ -31,6 +31,7 @@ from .VectorPostprocessorReader import VectorPostprocessorReader
 from .color_text import color_text
 from .log import color_log
 from .CurrentWorkingDirectory import CurrentWorkingDirectory
+from .csvdiff import CSVDiffer
 
 try:
     from .ImageDiffer import ImageDiffer

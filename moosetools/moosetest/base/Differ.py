@@ -33,6 +33,13 @@ class Differ(MooseTestObject):
 
     The `Differ` object is designed to be as simple as possible. Child objects must override a
     single method: `execute`.
+
+    !alert info title=Working Directory
+    A `Differ` object is expected to be encapsulated by a `Runner` object via the "differs" parameter
+    of the `Runner` object. As such, `Differ` objects are designed to be executed from within a
+    `TestCase` object. The working directory of this execution is managed by the `TestCase` object
+    and defined by the `Runner` object, please refer to the `Runner` documentation for further
+    details.
     """
     @staticmethod
     def validParams():
@@ -44,11 +51,6 @@ class Differ(MooseTestObject):
             default=InputParameters(),
             doc="Parameters for managing file(s) associated with execution of the `Differ` object.")
         f_params = params.getValue('file')
-        f_params.add(
-            'base',
-            vtype=str,
-            doc=
-            "The base directory for relative paths of the supplied names in the 'names' parameter.")
         f_params.add(
             'names',
             vtype=str,
