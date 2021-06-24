@@ -155,7 +155,8 @@ def _execute_testcase(tc, conn):
     except Exception:
         state = TestCase.Result.FATAL
         results = {
-            tc.name(): TestCase.Data(TestCase.Result.FATAL, None, '', traceback.format_exc(), None)
+            tc.name(): TestCase.Data(TestCase.Result.FATAL, None, None, traceback.format_exc(),
+                                     None)
         }
     conn.send((state, results))
 
@@ -174,21 +175,54 @@ def _execute_testcases(testcases, result_send, timeout):
 
     See the `run` function for use.
     """
-    skip_message = None
 
+    # Storage for the state of complete TestCase. This is used to make sure that tests with
+    # 'requires' parameter have executed and passed.
+    test_results = dict()
+
+    # TestCase objects are executed in order recieved
     for tc in testcases:
-        unique_id = tc.unique_id
 
-        if skip_message:
-            state = TestCase.Result.SKIP
-            results = {
-                tc.name(): TestCase.Data(TestCase.Result.SKIP, None, '', skip_message,
-                                         ['dependency'])
-            }
-            result_send.put((unique_id, TestCase.Progress.FINISHED, state, results))
-            continue
+        # If a TestCase Runner object has a 'requires' parameter, make sure that those tests have
+        # run and passed.
+        requires = tc.runner.getParam('requires')
+        if (requires is not None):
 
-        result_send.put((unique_id, TestCase.Progress.RUNNING, None, None))
+            # Case where the names do not exist, thus cannot have run. The 'discover' method creates
+            # the names for the Runner (i.e., TestCase) using HIT information. However, it is desired
+            # that handling 'requires' have no knowledge of HIT. Thus, the just check that the
+            # known names end with names in 'requires'.
+            not_in = [
+                name for name in requires if not any(k.endswith(name) for k in test_results.keys())
+            ]
+            if not_in:
+                msg = "For the test '{}', the required test(s) '{}' have not executed. Either the names provided the the 'requires' parameter are incorrect or the tests are in the wrong order.".format(
+                    tc.name(), ', '.join(not_in))
+                state = TestCase.Result.FATAL
+                results = {
+                    tc.name(): TestCase.Data(state, None, None, msg, ['unknown required test(s)'])
+                }
+                test_results[tc.name()] = state
+                result_send.put((tc.unique_id, TestCase.Progress.FINISHED, state, results))
+                continue
+
+            # Case when names do exist, but have not passed. See comment above for "not_in" variable.
+            not_pass = [
+                name for name in requires
+                if any((k.endswith(name) and v.level > 0) for k, v in test_results.items())
+            ]
+            if not_pass:
+                msg = "For the test '{}', the required test(s) '{}' have not executed and passed.".format(
+                    tc.name(), ', '.join(not_pass))
+                state = TestCase.Result.SKIP
+                results = {tc.name(): TestCase.Data(state, None, None, msg, ['failed dependency'])}
+                test_results[tc.name()] = state
+                result_send.put((tc.unique_id, TestCase.Progress.FINISHED, state, results))
+                continue
+
+        # Execute the TestCase object, this is done in separate process to allow for the timeout
+        # to be applied to the execution
+        result_send.put((tc.unique_id, TestCase.Progress.RUNNING, None, None))
         ctx = multiprocessing.get_context(MULTIPROCESSING_CONTEXT)
         conn_recv, conn_send = ctx.Pipe(False)
         proc = ctx.Process(target=_execute_testcase, args=(tc, conn_send))
@@ -201,16 +235,15 @@ def _execute_testcases(testcases, result_send, timeout):
             state = TestCase.Result.TIMEOUT
             results = {
                 tc.name():
-                TestCase.Data(TestCase.Result.TIMEOUT, None, '', '',
+                TestCase.Data(TestCase.Result.TIMEOUT, None, None, None,
                               [f'max time ({timeout}) exceeded'])
             }
 
         proc.join()
         proc.close()
 
-        result_send.put((unique_id, TestCase.Progress.FINISHED, state, results))
-        if (state.level > 0):
-            skip_message = f"A previous test case ({tc.name()}) in the group returned a non-zero state of {state}."
+        test_results[tc.name()] = state
+        result_send.put((tc.unique_id, TestCase.Progress.FINISHED, state, results))
 
 
 def _report_progress_and_results(tc, formatter, progress, state, results):
@@ -245,13 +278,15 @@ def fuzzer(seed=1980,
            differ_fatal=0.1,
            differ_platform=0.1,
            differ_name_len=(6, 15),
-           runner_num=(1, 3),
+           runner_num=(1, 5),
            runner_raise=0.01,
            runner_error=0.1,
            runner_fatal=0.05,
            runner_sleep=(0.5, 10),
            runner_platform=0.1,
-           runner_name_len=(4, 29)):
+           runner_name_len=(4, 29),
+           requires_error=0.01,
+           requires_use=1):
     """
     A tool for calling `run` function with randomized test cases.
     """
@@ -320,6 +355,17 @@ def fuzzer(seed=1980,
             kwargs['sleep'] = random.uniform(*runner_sleep)
             gen_platform(controllers, runner_platform, kwargs)
             runners.append(make_runner(TestRunner, controllers, **kwargs))
+
+            if gen_bool_with_odds(requires_error):
+                index = random.randint(0, len(runners) - 1)
+                runners[index].parameters().setValue('requires', (gen_name((3, 8)), ))
+
+        if gen_bool_with_odds(requires_use) and len(runners) > 2:
+            index = random.randint(0, len(runners) - 1)
+            count = random.randint(0, len(runners) - 2)
+            names = list(set(r.name() for r in runners
+                             if r.name() != runners[index].name()))[:count]
+            runners[index].parameters().setValue('requires', tuple(names))
 
         groups.append(runners)
 
