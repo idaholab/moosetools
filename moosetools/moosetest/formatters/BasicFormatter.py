@@ -245,15 +245,19 @@ class BasicFormatter(Formatter):
         max_state = self.getParam('print_state')
         if state.level >= max_state.level:
             stdout = kwargs.get('stdout')
-            if stdout:
+            if stdout is not None:
                 prefix = indent + state.format(name) + ' '
                 stdout = textwrap.indent(self.shortenLines(kwargs.get('stdout')), prefix,
                                          lambda *args: True)
+            else:
+                stdout = ''
 
             stderr = kwargs.get('stderr')
-            if stderr:
+            if stderr is not None:
                 prefix = indent + state.format(name) + ' '
                 stderr = textwrap.indent(self.shortenLines(kwargs.get('stderr')), prefix,
                                          lambda *args: True)
+            else:
+                stderr = ''
 
             return (stdout + stderr).strip('\n')

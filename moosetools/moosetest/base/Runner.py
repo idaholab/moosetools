@@ -89,6 +89,14 @@ class Runner(MooseTestObject):
             "The working directory for the execution of this `Runner` object. This parameter is automatically utilized when running the object via a `moosetest.run` function."
         )
 
+        params.add(
+            'requires',
+            vtype=str,
+            array=True,
+            doc=
+            "The name(s) of tests within a group (e.g, a test specification file) that are required to execute prior to running."
+        )
+
         # Parameters associated with file names
         params.add(
             'file',

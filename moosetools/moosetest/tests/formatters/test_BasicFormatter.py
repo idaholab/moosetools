@@ -151,6 +151,12 @@ class TestBasicFormatter(unittest.TestCase):
         self.assertIn('regular output', text)
         self.assertIn('error output', text)
 
+        kwargs['stdout'] = None
+        kwargs['stderr'] = None
+        with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
+            text = obj._formatResult(**kwargs)
+        self.assertIn('', text)
+
     def test_formatRunnerState(self):
         obj = BasicFormatter()
         with mock.patch('moosetools.moosetest.formatters.BasicFormatter._formatState') as fm:
