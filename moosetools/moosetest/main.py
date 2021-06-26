@@ -9,7 +9,6 @@
 
 import os
 import sys
-import logging
 import argparse
 from moosetools import parameters
 from moosetools import moosetree
@@ -17,93 +16,21 @@ from moosetools import pyhit
 from moosetools import factory
 from moosetools import core
 from moosetools import mooseutils
-from moosetools.moosetest import discover, run, fuzzer
-from moosetools.moosetest.base import Controller, Formatter, make_runner, make_differ
-from moosetools.moosetest.base import make_runner, make_differ
-from moosetools.moosetest.runners import RunCommand
-from moosetools.moosetest.differs import ConsoleDiffer
-from moosetools.moosetest.controllers import EnvironmentController
-from moosetools.moosetest.formatters import BasicFormatter
-
-# Local directory, to be used for getting the included Controller/Formatter objects
-LOCAL_DIR = os.path.abspath(os.path.dirname(__file__))
-
+#from moosetools.moosetest import discover, run, fuzzer
+# These imports are needed so the various Factory objects register the locally available objects
+from moosetools.moosetest import base
+#from moosetools.moosetest.base import TestHarness
+from moosetools.moosetest import formatters, controllers
 
 def cli_args():
     """
-    Return command line arguments.
+    Create the ArgumentParser object from the `TestHarness` base object. The only argument used
+    within the `main` function is the --config option. All objects are created
     """
-    parser = argparse.ArgumentParser(description='Testing system inspired by MOOSE')
-    parser.add_argument('--demo',
-                        action='store_true',
-                        help="Ignore all other arguments and run a demonstration.")
-    parser.add_argument('--config', default=os.getcwd(), type=str,
-                        help="The configuration file or directory. If a directory is provided a " \
-                             "'.moosetest' file is searched up the directory tree beginning at " \
-                             "the supplied location (default: %(default)s).")
-    return parser.parse_args()
-
-
-class TestHarness(core.MooseObject):
-    """
-    Object for extracting general configuration options from a HIT file.
-
-    !alert info title=Build with `make_harness` function
-    This object should be created the the `make_harness` function, which provides handling of the
-    current working directory with respect to the configuration file.
-    """
-    @staticmethod
-    def validParams():
-        params = core.MooseObject.validParams()
-        params.add(
-            'plugin_dirs',
-            default=tuple(),
-            vtype=str,
-            array=True,
-            doc=
-            "List of directories to search for plugins, the location should be relative to the configure file."
-        )
-
-        params.add('n_threads',
-                   default=os.cpu_count(),
-                   vtype=int,
-                   doc="The number of threads to utilize when running tests.")
-        params.add(
-            'spec_file_names',
-            vtype=str,
-            array=True,
-            default=('tests', ),
-            doc="List of file names (e.g., 'tests') that contain test specifications to run.")
-        params.add('spec_file_blocks',
-                   vtype=str,
-                   array=True,
-                   default=('Tests', ),
-                   doc="List of top-level test specifications (e.g., `[Tests]`) HIT blocks to run.")
-        params.add('timeout',
-                   default=300.,
-                   vtype=float,
-                   doc="Number of seconds allowed for the execution of a test case.")
-        params.add('max_failures',
-                   default=50,
-                   vtype=int,
-                   doc="The maximum number of failures allowed before terminating all test cases.")
-        return params
-
-    def __init__(self, *args, **kwargs):
-        core.MooseObject.__init__(self, *args, **kwargs)
-        logging.basicConfig(level=self.getParam('log_level'))
-
-        # Update the "plugin_dirs" to be absolute paths
-        plugin_dirs = list()
-        for p_dir in self.getParam('plugin_dirs'):
-            plugin_dirs.append(os.path.abspath(p_dir))
-        self.parameters().setValue('plugin_dirs', tuple(plugin_dirs))
-
-    def applyCommandLineArguments(self, args):
-        """
-        Apply options provided via the command line to the TestHarness object parameters.
-        """
-        pass
+    parser = base.TestHarness.createCommandLineParser(base.TestHarness.validParams())
+    parser.add_help = False
+    known, _ = parser.parse_known_args()
+    return known
 
 
 def main():
@@ -114,97 +41,69 @@ def main():
     moosetools repository.
     """
 
-    # Extract command-line arguments
+    # Locate/load configuration
     args = cli_args()
-    if args.demo:
-        return fuzzer()
-
-    # Locate the config
     filename = _locate_config(args.config)
-
-    # Load the config (pyhit.Node)
     root = _load_config(filename)
 
-    # Create the TestHarness object from the configuration, after this point the cli_args should
-    # no longer be used. They are applied to the TestHarness object in this function by calling
-    # the TestHarness.applyCommandLineArguments method.
-    harness = make_harness(filename, root, args)
-    del args  # just to avoid accidental use in the future
+    # Setup the environment variables from [Environment] block
+    _setup_environment(filename, root)
 
-    # Create the Controller objects and Formatter
-    controllers = make_controllers(filename, root, harness.getParam('plugin_dirs'))
-    formatter = make_formatter(filename, root, harness.getParam('plugin_dirs'))
+    # Create the Controller, Formatter, and TestHarness objects
+    controllers =_make_controllers(filename, root)
+    formatter = _make_formatter(filename, root)
+    harness = _make_harness(filename, root, controllers, formatter)
 
-    # Locate the tests to execute
-    groups = discover(os.getcwd(), harness.getParam('spec_file_names'),
-                      harness.getParam('spec_file_blocks'), harness.getParam('plugin_dirs'),
-                      controllers, harness.getParam('n_threads'))
-
-    # Execute the tests
-    rcode = run(groups, controllers, formatter, harness.getParam('n_threads'),
-                harness.getParam('timeout'), harness.getParam('max_failures'))
-
-    return rcode
+    return harness.run()
 
 
-def make_harness(filename, root, cli_args):
+def _make_harness(filename, root, controllers, formatter):
     """
-    Create the `TestHarness` object from top-level parameters in the `pyhit.Node` of *root*.
+    Create the `Controller` object from the [TestHarness] block of the `pyhit.Node` of *root*.
 
-    The *filename* is provided for error reporting and should be the file used for generating
-    the tree structure in *root*. The *cli_args* input is passed to the created `TestHarness` object
-    via the `applyCommandLineArguments` method.
+    The *filename* is provided for error reporting and setting the current working directory for
+    creating object defined in the configuration file. It should be the file used for generating
+    the tree structure in *root*.
 
-    It is expected that the file that produced *root* has top-level parameters, which are used to
-    create a `TestHarness` object.
+    The *controllers* and *formatter* are applied to the created `TestHarness` object via the
+    parameters by the same name.
     """
     # Top-level parameters are used to build the TestHarness object. Creating custom `TestHarness`
     # objects is not-supported, so don't allow "type" to be set.
-    if 'type' in root:
-        msg = "The 'type' parameter must NOT be defined in the top-level of the configuration."
-        raise RuntimeError(msg)
-    root['type'] = 'TestHarness'
+    h_node = moosetree.find(root, func=lambda n: n.fullpath == '/TestHarness')
+    if h_node is None:
+        h_node = root.append('TestHarness', type='TestHarness')
 
     # Build a factory capable of creating the TestHarness object
-    f = factory.Factory()
-    f.register('TestHarness', TestHarness)
-    if f.status() > 0:
+    plugin_dirs = os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()
+    h_factory = factory.Factory(plugin_dirs=tuple(plugin_dirs), plugin_types=(base.TestHarness,))
+    h_factory.load()
+    if h_factory.status() > 0:
         msg = "An error occurred during registration of the TestHarness type, see console message(s) for details."
         raise RuntimeError(msg)
 
-    # Setup the environment variables
-    setup_environment(filename, root)
-
     # Use the Parser is used to correctly convert HIT to InputParameters
     w = list()
-    p = factory.Parser(f, w)
+    p = factory.Parser(h_factory, w)
     with mooseutils.CurrentWorkingDirectory(os.path.dirname(filename)):
-        p._parseNode(filename, root)
+        p._parseNode(filename, h_node)
     if p.status() > 0:
         msg = "An error occurred during parsing of the root level parameters for creation of the TestHarness object, see console message(s) for details."
         raise RuntimeError(msg)
 
-    # Apply the command line arguments to update TestHarness object parameters
     harness = w[0]
-    harness.applyCommandLineArguments(cli_args)
-    if harness.status() > 0:
-        msg = "An error occurred applying the command line arguments to the TestHarness object, see console message(s) for details."
-        raise RuntimeError(msg)
-
+    harness.parameters().setValue('_controllers', controllers)
+    harness.parameters().setValue('_formatter', formatter)
     return harness
 
 
-def make_controllers(filename, root, plugin_dirs):
+def _make_controllers(filename, root, *kwargs):
     """
     Create the `Controller` object from the [Controllers] block of the `pyhit.Node` of *root*.
 
     The *filename* is provided for error reporting and setting the current working directory for
     creating object defined in the configuration file. It should be the file used for generating
     the tree structure in *root*.
-
-    The *plugin_dirs* should contain a list of absolute paths to include when registering Controller
-    objects with the factory. By default, regardless of the contents of *root*, all registered
-    Controller objects are created.
     """
 
     # Locate/create the [Controllers] node
@@ -213,14 +112,16 @@ def make_controllers(filename, root, plugin_dirs):
         c_node = root.append('Controllers')
 
     # Factory for building Controller objects
-    c_factory = factory.Factory(plugin_dirs=plugin_dirs, plugin_types=(Controller, ))
+    plugin_dirs = os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()
+    c_factory = factory.Factory(plugin_dirs=tuple(plugin_dirs), plugin_types=(base.Controller, ))
     c_factory.load()
     if c_factory.status() > 0:
         msg = "An error occurred registering the Controller type, see console message(s) for details."
         raise RuntimeError(msg)
 
     # All Controller object type found by the Factory are automatically included with the default
-    # configuration. This adds them to the configuration tree so they will be built by the factory
+    # configuration, if the static AUTO_BUILD member variable is True. This adds these objects to the
+    # configuration tree so they will be built by the factory
     c_types = set(child['type'] for child in c_node)
     for name in [key for key, value in c_factory._registered_types.items() if value.AUTO_BUILD]:
         if name not in c_types:
@@ -238,21 +139,22 @@ def make_controllers(filename, root, plugin_dirs):
     return tuple(controllers)
 
 
-def make_formatter(filename, root, plugin_dirs):
+def _make_formatter(filename, root):
     """
     Create the `Formatter` object from the [Formatter] block of the `pyhit.Node` of *root*.
 
     By default, a `BasicFormatter` is created. Refer to `make_controllers` function for information
     on the supplied input arguments.
     """
-
+    #from moosetools.moosetest.formatters import BasicFormatter
     # Locate/create the [Formatter] node
     f_node = moosetree.find(root, func=lambda n: n.fullpath == '/Formatter')
     if f_node is None:
         f_node = root.append('Formatter', type='BasicFormatter')
 
     # Factory for building Formatter objects
-    f_factory = factory.Factory(plugin_dirs=plugin_dirs, plugin_types=(Formatter, ))
+    plugin_dirs = os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()
+    f_factory = factory.Factory(plugin_dirs=tuple(plugin_dirs), plugin_types=(base.Formatter, ))
     f_factory.load()
     if f_factory.status() > 0:
         msg = "An error occurred registering the Formatter type, see console message(s) for details."
@@ -270,10 +172,18 @@ def make_formatter(filename, root, plugin_dirs):
     return formatters[0]
 
 
-def setup_environment(filename, root):
+def _setup_environment(filename, root):
+    """
+    Set environment variables from the top-level parameters
+
+    """
+    for name, value in root.params():
+        os.environ[name] = value
+
+
     """
     Update environment from the [Environment] block.
-    """
+
     e_node = moosetree.find(root, func=lambda n: n.fullpath == '/Environment')
     if e_node is not None:
         for name, value in e_node.params():
@@ -283,6 +193,7 @@ def setup_environment(filename, root):
                     if os.path.exists(path):
                         value = os.path.abspath(path)
                     os.environ[name] = value
+    """
 
 
 def _locate_config(start):
