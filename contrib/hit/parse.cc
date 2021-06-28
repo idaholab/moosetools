@@ -438,7 +438,7 @@ Section::render(int indent, const std::string & indent_text, int maxlen)
 Node *
 Section::clone(bool absolute_path)
 {
-  auto n = new Section(absolute_path ? fullpath() :_path);
+  auto n = new Section(absolute_path ? fullpath() : _path);
   // Although we don't usually copy over tokens for cloned nodes, we make an exception here
   // in order to "remember" whether or not the user used the legacy "../" section closing marker.
   n->tokens() = tokens();

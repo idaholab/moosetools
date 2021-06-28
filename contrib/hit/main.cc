@@ -407,7 +407,10 @@ diff(int argc, char ** argv)
 {
   Flags flags("hit diff left.i right.i\nhit diff -left <files> -right <files>\n  Compare (merged) "
               "inputs on the left with "
-              "(merged) inputs on the right.");
+              "(merged) inputs on the right.\n");
+  flags.add("v", "verbose diff");
+  flags.add("C", "output color");
+  flags.add("color", "output color");
   flags.add("h", "print help");
   flags.add("help", "print help");
   flags.addVector("left", "Left hand inputs");
@@ -427,6 +430,15 @@ diff(int argc, char ** argv)
     std::cout << flags.usage();
     return 1;
   }
+
+  bool use_color = flags.have("C");
+
+  // terminal colors
+  std::string color_red = use_color ? "\33[31m" : "";
+  std::string color_green = use_color ? "\33[32m" : "";
+  std::string color_blue = use_color ? "\33[34m" : "";
+  std::string color_yellow = use_color ? "\33[33m" : "";
+  std::string color_default = use_color ? "\33[39m" : "";
 
   auto left_files =
       flags.have("left") ? flags.vecVal("left") : std::vector<std::string>{positional[0]};
@@ -470,40 +482,57 @@ diff(int argc, char ** argv)
     auto it = right_params.find(lparam.first);
     if (it == right_params.end())
     {
-      missing_right << lparam.first << " (" << lparam.second->filename() << ':'
-                    << lparam.second->line() << ") is missing on the right.\n";
+      missing_right << color_red << lparam.first << color_blue << " (" << lparam.second->filename()
+                    << ':' << lparam.second->line() << ")" << color_default
+                    << " is missing on the right.\n";
       missing_right_root.addChild(lparam.second->clone(/*absolute_path = */ true));
     }
     else if (lparam.second->strVal() != it->second->strVal())
-      diff_val << "    " << lparam.first << " (" << lparam.second->filename() << ':'
-               << lparam.second->line() << ") has value\n      '" << lparam.second->strVal()
-               << "' on the left, and value\n      '" << it->second->strVal()
-               << "' on the right.\n";
+      diff_val << "    " << color_yellow << lparam.first << color_blue << " ("
+               << lparam.second->filename() << ':' << lparam.second->line() << ")" << color_default
+               << " has differing values\n      '" << color_red << lparam.second->strVal()
+               << color_default << "' ->"
+               << (lparam.second->strVal().size() > 40 ? "\n    '" : " '") << color_green
+               << it->second->strVal() << color_default << "'\n";
   }
 
   // params on right but not on left
   for (const auto & rparam : right_params)
     if (left_params.count(rparam.first) == 0)
     {
-      missing_left << rparam.first << " (" << rparam.second->filename() << ':'
-                   << rparam.second->line() << ") is missing on the left.\n";
+      missing_left << color_green << rparam.first << color_blue << " (" << rparam.second->filename()
+                   << ':' << rparam.second->line() << ")" << color_default
+                   << " is missing on the left.\n";
       missing_left_root.addChild(rparam.second->clone(/*absolute_path = */ true));
     }
 
-  // output verbose report
-  if (missing_left.str().size())
-  {
-    std::cout << "Parameters missing on the left:\n";
-    // std::cout << missing_left.str() << '\n';
-    hit::explode(&missing_left_root);
-    std::cout << missing_left_root.render(4) << "\n\n";
-  }
+  // output report
+  bool verbose = flags.have("v");
+
   if (missing_right.str().size())
   {
-    std::cout << "Parameters missing on the right:\n";
-    // std::cout << missing_right.str() << '\n';
-    hit::explode(&missing_right_root);
-    std::cout << missing_right_root.render(4) << "\n\n";
+    std::cout << "Parameters removed left -> right:\n" << color_red;
+    if (verbose)
+      std::cout << missing_right.str() << '\n';
+    else
+    {
+      hit::explode(&missing_right_root);
+      std::cout << missing_right_root.render(4) << "\n\n";
+    }
+    std::cout << color_default;
+  }
+
+  if (missing_left.str().size())
+  {
+    std::cout << "Parameters added left -> right:\n" << color_green;
+    if (verbose)
+      std::cout << missing_left.str() << '\n';
+    else
+    {
+      hit::explode(&missing_left_root);
+      std::cout << missing_left_root.render(4) << "\n\n";
+    }
+    std::cout << color_default;
   }
 
   if (diff_val.str().size())
