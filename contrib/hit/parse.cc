@@ -388,7 +388,7 @@ Comment::render(int indent, const std::string & indent_text, int /*maxlen*/)
 }
 
 Node *
-Comment::clone()
+Comment::clone(bool)
 {
   auto n = new Comment(_text, _isinline);
   n->tokens() = tokens();
@@ -436,9 +436,9 @@ Section::render(int indent, const std::string & indent_text, int maxlen)
 }
 
 Node *
-Section::clone()
+Section::clone(bool absolute_path)
 {
-  auto n = new Section(_path);
+  auto n = new Section(absolute_path ? fullpath() :_path);
   // Although we don't usually copy over tokens for cloned nodes, we make an exception here
   // in order to "remember" whether or not the user used the legacy "../" section closing marker.
   n->tokens() = tokens();
@@ -523,9 +523,9 @@ Field::render(int indent, const std::string & indent_text, int maxlen)
 }
 
 Node *
-Field::clone()
+Field::clone(bool absolute_path)
 {
-  auto n = new Field(_field, _kind, _val);
+  auto n = new Field(absolute_path ? fullpath() : _field, _kind, _val);
   n->tokens() = tokens();
   return n;
 }

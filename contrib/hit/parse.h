@@ -183,7 +183,7 @@ public:
   Node * root();
   /// clone returns a complete (deep) copy of this node.  The caller will be responsible for
   /// managing the memory/deallocation of the returned clone node.
-  virtual Node * clone() = 0;
+  virtual Node * clone(bool absolute_path = false) = 0;
 
   /// render builds an hit syntax/text that is equivalent to the hit tree starting at this
   /// node (and downward) - i.e. parsing this function's returned string would yield a node tree
@@ -336,7 +336,7 @@ Node::paramInner(Node * n)
   return n->vecStrVal();
 }
 
-/// Comment repsents an in-file comment (i.e. "# some comment text...")
+/// Comment represents an in-file comment (i.e. "# some comment text...")
 class Comment : public Node
 {
 public:
@@ -347,7 +347,7 @@ public:
 
   virtual std::string
   render(int indent = 0, const std::string & indent_text = default_indent, int maxlen = 0) override;
-  virtual Node * clone() override;
+  virtual Node * clone(bool absolute_path = false) override;
 
 private:
   std::string _text;
@@ -365,7 +365,7 @@ public:
   {
     return "\n";
   }
-  virtual Node * clone() override { return new Blank(); };
+  virtual Node * clone(bool absolute_path = false) override { return new Blank(); };
 };
 
 /// Section represents a hit section including the section header path and all entries inside
@@ -380,7 +380,7 @@ public:
 
   virtual std::string
   render(int indent = 0, const std::string & indent_text = default_indent, int maxlen = 0) override;
-  virtual Node * clone() override;
+  virtual Node * clone(bool absolute_path = false) override;
 
 private:
   std::string _path;
@@ -408,7 +408,7 @@ public:
 
   virtual std::string
   render(int indent = 0, const std::string & indent_text = default_indent, int maxlen = 0) override;
-  virtual Node * clone() override;
+  virtual Node * clone(bool absolute_path = false) override;
 
   /// kind returns the semantic type of the value stored in this field (e.g. Int, Bool, Float,
   /// String).
@@ -554,6 +554,21 @@ private:
                  std::vector<Node *> & unused);
 
   std::vector<Pattern> _patterns;
+};
+
+class GatherParamWalker : public Walker
+{
+public:
+  typedef std::map<std::string, hit::Node *> ParamMap;
+  GatherParamWalker(ParamMap & map) : _map(map) {}
+  void walk(const std::string & fullpath, const std::string & /*nodepath*/, hit::Node * n) override
+  {
+    if (n->type() == hit::NodeType::Field)
+      _map[fullpath] = n;
+  }
+
+private:
+  ParamMap & _map;
 };
 
 } // namespace hit

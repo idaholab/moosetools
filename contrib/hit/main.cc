@@ -16,6 +16,7 @@ int findParam(int argc, char ** argv);
 int validate(int argc, char ** argv);
 int format(int argc, char ** argv);
 int merge(int argc, char ** argv);
+int diff(int argc, char ** argv);
 
 int
 main(int argc, char ** argv)
@@ -36,6 +37,8 @@ main(int argc, char ** argv)
     return format(argc - 2, argv + 2);
   else if (subcmd == "merge")
     return merge(argc - 2, argv + 2);
+  else if (subcmd == "diff")
+    return diff(argc - 2, argv + 2);
   else if (subcmd == "braceexpr")
   {
     std::stringstream ss;
@@ -59,8 +62,10 @@ main(int argc, char ** argv)
 struct Flag
 {
   bool arg;
+  bool vec;
   bool have;
   std::string val;
+  std::vector<std::string> vec_val;
   std::string help;
 };
 
@@ -71,13 +76,19 @@ public:
   void add(std::string name, std::string help, std::string def = "__NONE__")
   {
     if (def == "__NONE__")
-      flags[name] = {false, false, "", help};
+      flags[name] = {false, false, false, "", {}, help};
     else
-      flags[name] = {true, false, def, help};
+      flags[name] = {true, false, false, def, {}, help};
+  }
+
+  void addVector(std::string name, std::string help)
+  {
+    flags[name] = {false, true, false, "", {}, help};
   }
 
   bool have(std::string flag) { return flags.count(flag) > 0 && flags[flag].have; }
   std::string val(std::string flag) { return flags[flag].val; }
+  std::vector<std::string> vecVal(std::string flag) { return flags[flag].vec_val; }
   std::string usage()
   {
     std::stringstream ss;
@@ -88,7 +99,12 @@ public:
       if (flag.arg)
         ss << "-" << pair.first << " <arg>    " << flag.help << " (default='" << flag.val << "')\n";
       else
-        ss << "-" << pair.first << "    " << flag.help << " (default=false)\n";
+      {
+        if (flag.vec)
+          ss << "-" << pair.first << "    " << flag.help << '\n';
+        else
+          ss << "-" << pair.first << "    " << flag.help << " (default=false)\n";
+      }
     }
     return ss.str();
   }
@@ -123,6 +139,12 @@ parseOpts(int argc, char ** argv, Flags & flags)
       i++;
       flag.val = argv[i];
     }
+    else if (flag.vec)
+      while (i < argc - 1 && argv[i + 1][0] != '-')
+      {
+        i++;
+        flag.vec_val.push_back(argv[i]);
+      }
   }
 
   std::vector<std::string> positional;
@@ -279,6 +301,11 @@ format(int argc, char ** argv)
     std::string fname(positional[i]);
     std::istream && f =
         (fname == "-" ? (std::istream &&) std::cin : (std::istream &&) std::ifstream(fname));
+    if (!f)
+    {
+      std::cerr << "Can't open '" << fname << "'\n";
+      return 1;
+    }
     std::string input(std::istreambuf_iterator<char>(f), {});
 
     try
@@ -301,6 +328,34 @@ format(int argc, char ** argv)
   }
 
   return ret;
+}
+
+std::unique_ptr<hit::Node>
+readMerged(const std::vector<std::string> & input_filenames)
+{
+  std::unique_ptr<hit::Node> combined_root;
+
+  for (auto & input_filename : input_filenames)
+  {
+    std::ifstream f(input_filename);
+    if (!f)
+    {
+      std::cerr << "Can't open '" << input_filename << "'\n";
+      return nullptr;
+    }
+
+    std::string input((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+
+    std::unique_ptr<hit::Node> root(hit::parse(input_filename, input));
+    hit::explode(root.get());
+
+    if (!combined_root)
+      combined_root = std::move(root);
+    else
+      hit::merge(root.get(), combined_root.get());
+  }
+
+  return combined_root;
 }
 
 int
@@ -345,6 +400,117 @@ merge(int argc, char ** argv)
   output << root->render();
 
   return 0;
+}
+
+int
+diff(int argc, char ** argv)
+{
+  Flags flags("hit diff left.i right.i\nhit diff -left <files> -right <files>\n  Compare (merged) "
+              "inputs on the left with "
+              "(merged) inputs on the right.");
+  flags.add("h", "print help");
+  flags.add("help", "print help");
+  flags.addVector("left", "Left hand inputs");
+  flags.addVector("right", "Right hand inputs");
+
+  auto positional = parseOpts(argc, argv, flags);
+
+  if (flags.have("h") || flags.have("help"))
+  {
+    std::cout << flags.usage();
+    return 0;
+  }
+
+  if (flags.have("left") != flags.have("right") || (flags.have("left") && positional.size() > 0) ||
+      (!flags.have("left") && positional.size() != 2))
+  {
+    std::cout << flags.usage();
+    return 1;
+  }
+
+  auto left_files =
+      flags.have("left") ? flags.vecVal("left") : std::vector<std::string>{positional[0]};
+  auto right_files =
+      flags.have("right") ? flags.vecVal("right") : std::vector<std::string>{positional[1]};
+  auto left = readMerged(left_files);
+  auto right = readMerged(right_files);
+
+  if (!left || !right)
+    return 1;
+
+  std::cout << "Left hand side:\n";
+  for (const auto & file : left_files)
+    std::cout << "    " << file << '\n';
+
+  std::cout << "\nRight hand side:\n";
+  for (const auto & file : right_files)
+    std::cout << "    " << file << '\n';
+
+  std::cout << '\n';
+
+  hit::GatherParamWalker::ParamMap left_params;
+  hit::GatherParamWalker::ParamMap right_params;
+
+  hit::GatherParamWalker left_walker(left_params);
+  hit::GatherParamWalker right_walker(right_params);
+
+  left->walk(&left_walker, hit::NodeType::Field);
+  right->walk(&right_walker, hit::NodeType::Field);
+
+  // verbose outputs
+  std::stringstream diff_val;
+  std::stringstream missing_left;
+  std::stringstream missing_right;
+  hit::Section missing_left_root("");
+  hit::Section missing_right_root("");
+
+  // params on left but not on right
+  for (const auto & lparam : left_params)
+  {
+    auto it = right_params.find(lparam.first);
+    if (it == right_params.end())
+    {
+      missing_right << lparam.first << " (" << lparam.second->filename() << ':'
+                    << lparam.second->line() << ") is missing on the right.\n";
+      missing_right_root.addChild(lparam.second->clone(/*absolute_path = */ true));
+    }
+    else if (lparam.second->strVal() != it->second->strVal())
+      diff_val << "    " << lparam.first << " (" << lparam.second->filename() << ':'
+               << lparam.second->line() << ") has value\n      '" << lparam.second->strVal()
+               << "' on the left, and value\n      '" << it->second->strVal()
+               << "' on the right.\n";
+  }
+
+  // params on right but not on left
+  for (const auto & rparam : right_params)
+    if (left_params.count(rparam.first) == 0)
+    {
+      missing_left << rparam.first << " (" << rparam.second->filename() << ':'
+                   << rparam.second->line() << ") is missing on the left.\n";
+      missing_left_root.addChild(rparam.second->clone(/*absolute_path = */ true));
+    }
+
+  // output verbose report
+  if (missing_left.str().size())
+  {
+    std::cout << "Parameters missing on the left:\n";
+    // std::cout << missing_left.str() << '\n';
+    hit::explode(&missing_left_root);
+    std::cout << missing_left_root.render(4) << "\n\n";
+  }
+  if (missing_right.str().size())
+  {
+    std::cout << "Parameters missing on the right:\n";
+    // std::cout << missing_right.str() << '\n';
+    hit::explode(&missing_right_root);
+    std::cout << missing_right_root.render(4) << "\n\n";
+  }
+
+  if (diff_val.str().size())
+    std::cout << "Parameters with differing values:\n\n" << diff_val.str() << "\n\n";
+
+  return (missing_left.str().size() + missing_right.str().size() + diff_val.str().size() > 0) ? 1
+                                                                                              : 0;
 }
 
 int
