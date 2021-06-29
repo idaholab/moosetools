@@ -33,7 +33,6 @@ class TestTestHarness(unittest.TestCase):
     def testDefault(self):
         th = moosetest.base.TestHarness()
         self.assertEqual(th.getParam('timeout'), 300)
-        self.assertIsNone(th._TestHarness__fuzzer)
 
     def testCreateCommandLineParser(self):
         parser = moosetest.base.TestHarness.createCommandLineParser(moosetest.base.TestHarness.validParams())
@@ -59,11 +58,6 @@ class TestTestHarness(unittest.TestCase):
             rcode = th.run()
 
         self.assertEqual(rcode, 0)
-
-    def test_fuzzer(self):
-        th = NewTestHarness()
-        rcode = th.run()
-
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)

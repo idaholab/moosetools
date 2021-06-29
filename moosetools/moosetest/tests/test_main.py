@@ -175,7 +175,6 @@ class TestMain(unittest.TestCase):
     def testDefault(self, mock_cli_args):
 
         args = argparse.Namespace(config=os.path.join(os.path.dirname(__file__), 'demo', '.moosetest'),
-                                  fuzzer=None,
                                   timeout=None,
                                   n_threads=None,
                                   max_failures=None,

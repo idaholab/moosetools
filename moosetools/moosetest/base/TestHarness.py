@@ -82,46 +82,7 @@ class TestHarness(core.MooseObject):
         p = params.parameter('spec_file_names')
         parser.add_argument('--spec-file-names', type=str, nargs='+', default=p.default, help=p.doc)
 
-        # Options for running a demo with the fuzzer
-        subparsers = parser.add_subparsers(dest='fuzzer')
-        fuzzer = subparsers.add_parser("fuzzer", formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                       description="Run a demonstration with random tests using the `moosetest.fuzzer` tool.")
-        signature = inspect.signature(moosetest.fuzzer)
-        actions = dict()
-        for key, value in signature.parameters.items():
-            vsize = len(value.default) if hasattr(value.default, '__len__') else 1
-            vtype = type(value.default) if vsize == 1 else type(value.default[0])
-            meta = ('MIN', 'MAX') if vsize == 2 else 'PROB'
-            actions[key] = fuzzer.add_argument(f'--{key}', dest=f'fuzzer_{key}', metavar=meta, nargs=vsize, type=vtype, default=value.default)
-
-        actions['timeout'].help = "Set the range of the possible timeout in seconds."
-        actions['max_fails'].help = "Set the range of the possible number of a maximum number of failures."
-        actions['progress_interval'].help = "Set the range of the possible progress update interval."
-        actions['group_num'].help = "Set the range of the possible number of test groups."
-        actions['group_name_len'].help = "Set the range of the possible group name length."
-        actions['controller_num'].help = "Set the range of the possible number of Controller objects."
-        actions['controller_skip'].help = "Set the probability (0 to 1) of a Controller object causing a skip."
-        actions['controller_raise'].help = "Set the probability (0 to 1) of a Controller object causing an exception."
-        actions['controller_error'].help = "Set the probability (0 to 1) of a Controller object causing an error."
-        actions['differ_num'].help = "Set the range of the possible number of Differ objects."
-        actions['differ_raise'].help = "Set the probability (0 to 1) of a Differ object causing an exception."
-        actions['differ_error'].help = "Set the probability (0 to 1) of a Differ object causing an error."
-        actions['differ_fatal'].help = "Set the probability (0 to 1) of a Differ object causing an fatal error."
-        actions['differ_platform'].help = "Set the probability (0 to 1) of a Differ object being limited to a random OS platform."
-        actions['differ_name_len'].help = "Set the range of the possible Differ object name length."
-        actions['runner_num'].help = "Set the range of the possible number of Runner objects."
-        actions['runner_raise'].help = "Set the probability (0 to 1) of a Runner object causing an exception."
-        actions['runner_error'].help = "Set the probability (0 to 1) of a Runner object causing an error."
-        actions['runner_fatal'].help = "Set the probability (0 to 1) of a Runner object causing an fatal error."
-        actions['runner_platform'].help = "Set the probability (0 to 1) of a Runner object being limited to a random OS platform."
-        actions['runner_name_len'].help = "Set the range of the possible Runner object name length."
-        actions['requires_error'].help = "Set the probability (0 to 1) that a Runner object includes an invalid 'requires' name."
-        actions['requires_use'].help = "Set the probability (0 to 1) that a Runner will include a 'requires' list."
         return parser
-
-    def __init__(self, *args, **kwargs):
-        core.MooseObject.__init__(self, *args, **kwargs)
-        self.__fuzzer = None
 
     def parse(self):
         """
@@ -151,23 +112,10 @@ class TestHarness(core.MooseObject):
         if args.spec_file_names:
             self.parameters().setValue('spec_file_names', tuple(args.spec_file_names))
 
-        if args.fuzzer is not None:
-            self.__fuzzer = dict()
-            for key, value in vars(args).items():
-                if key.startswith('fuzzer_'):
-                    self.__fuzzer[key[7:]] = value
-
     def run(self):
         """
         Locate and execute the tests.
-
-        If the 'fuzzer' arguments are populated then a demonstration using the `moosetest.fuzzer`
-        is executed without locating and executing any tests.
         """
-
-        # Run a demo, if the 'fuzzer' sub-command is supplied
-        if self.__fuzzer is not None:
-            return moosetest.fuzzer(**self.__fuzzer)
 
         # Locate the tests to execute
         groups = moosetest.discover(os.getcwd(),
