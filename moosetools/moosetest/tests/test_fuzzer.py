@@ -15,14 +15,19 @@ from moosetools import moosetest
 
 class TestFuzzer(unittest.TestCase):
     @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
-    def testFuzzer0(self):
+    def testFuzzer(self):
         rcode = moosetest.fuzzer()
         self.assertIn(rcode, (0, 1))
 
     @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
-    def testFuzzer(self):
+    def testFuzzerAgain(self):
         rcode = moosetest.fuzzer()
-        self.assertIn(rcode, (0, 1))
+        self.assertIn(rcode, (0, 1), group_num=(1, 8))
+
+    @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
+    def testFuzzerYetAgain(self):
+        rcode = moosetest.fuzzer()
+        self.assertIn(rcode, (0, 1), group_num=(2, 6))
 
 
 if __name__ == '__main__':

@@ -16,11 +16,10 @@ from moosetools import pyhit
 from moosetools import factory
 from moosetools import core
 from moosetools import mooseutils
-#from moosetools.moosetest import discover, run, fuzzer
+
 # These imports are needed so the various Factory objects register the locally available objects
 from moosetools.moosetest import base
-#from moosetools.moosetest.base import TestHarness
-from moosetools.moosetest import formatters, controllers
+from moosetools.moosetest import formatters, controllers, filters
 
 
 def cli_args():
@@ -56,13 +55,14 @@ def main():
     # Create the Controller, Formatter, and TestHarness objects
     controllers = _make_controllers(filename, root)
     formatter = _make_formatter(filename, root)
-    harness = _make_harness(filename, root, controllers, formatter)
+    filters = _make_filters(filename, root)
+    harness = _make_harness(filename, root, controllers, formatter, filters)
 
     harness.parse()
     return harness.run()
 
 
-def _make_harness(filename, root, controllers, formatter):
+def _make_harness(filename, root, controllers, formatter, filters):
     """
     Create the `TestHarness` object from the [TestHarness] block of the `pyhit.Node` of *root*.
 
@@ -70,8 +70,8 @@ def _make_harness(filename, root, controllers, formatter):
     creating object defined in the configuration file. It should be the file used for generating
     the tree structure in *root*.
 
-    The *controllers* and *formatter* are applied to the created `TestHarness` object via the
-    parameters by the same name.
+    The *controllers*, *formatter*, *filters* are applied to the created `TestHarness` object via
+    the parameters by the same name.
     """
     # Top-level parameters are used to build the TestHarness object. Creating custom `TestHarness`
     # objects is not-supported, so don't allow "type" to be set.
@@ -100,10 +100,11 @@ def _make_harness(filename, root, controllers, formatter):
     harness = w[0]
     harness.parameters().setValue('controllers', controllers)
     harness.parameters().setValue('formatter', formatter)
+    harness.parameters().setValue('filters', filters)
     return harness
 
 
-def _make_controllers(filename, root, *kwargs):
+def _make_controllers(filename, root):
     """
     Create the `Controller` object from the [Controllers] block of the `pyhit.Node` of *root*.
 
@@ -178,6 +179,52 @@ def _make_formatter(filename, root):
         raise RuntimeError(msg)
 
     return formatters[0]
+
+
+def _make_filters(filename, root):
+    """
+    Create the `Filter` object from the [Filters] block of the `pyhit.Node` of *root*.
+
+    The *filename* is provided for error reporting and setting the current working directory for
+    creating object defined in the configuration file. It should be the file used for generating
+    the tree structure in *root*.
+
+    TODO: The _make_controllers function is nearly identical to this function, thus they can
+          likely call a common helper function.
+    """
+
+    # Locate/create the [Filters] node
+    c_node = moosetree.find(root, func=lambda n: n.fullpath == '/Filters')
+    if c_node is None:
+        c_node = root.append('Filters')
+
+    # Factory for building Filter objects
+    plugin_dirs = os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()
+    c_factory = factory.Factory(plugin_dirs=tuple(plugin_dirs), plugin_types=(base.Filter, ))
+    c_factory.load()
+    if c_factory.status() > 0:
+        msg = "An error occurred registering the Filter type, see console message(s) for details."
+        raise RuntimeError(msg)
+
+    # All Filter object type found by the Factory are automatically included with the default
+    # configuration, if the static AUTO_BUILD member variable is True. This adds these objects to the
+    # configuration tree so they will be built by the factory
+    c_types = set(child['type'] for child in c_node)
+    for name in [key for key, value in c_factory._registered_types.items() if value.AUTO_BUILD]:
+        if name not in c_types:
+            c_node.append(f"_moosetools_{name}", type=name)
+
+    # Use the Parser to create the Filter objects
+    filters = list()
+    c_parser = factory.Parser(c_factory, filters)
+    working_dir = os.path.dirname(filename) if filename is not None else os.getcwd()
+    with mooseutils.CurrentWorkingDirectory(working_dir):
+        c_parser.parse(filename, c_node)
+    if c_parser.status() > 0:
+        msg = "An error occurred during parsing of the Filter block, see console message(s) for details."
+        raise RuntimeError(msg)
+
+    return tuple(filters)
 
 
 def _setup_environment(filename, root):
