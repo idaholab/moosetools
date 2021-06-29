@@ -14,13 +14,16 @@ import unittest
 import subprocess
 from moosetools import mooseutils
 
+
 class TestMooseTestExe(unittest.TestCase):
     def test(self):
-        working_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'moosetools', 'moosetest', 'tests', 'demo')
+        working_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'moosetools', 'moosetest',
+                                   'tests', 'demo')
         exe = os.path.relpath('../moosetest', working_dir)
         with mooseutils.CurrentWorkingDirectory(working_dir):
             out = subprocess.run([exe], check=True, text=True, capture_output=True)
         self.assertEqual(0, out.returncode)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)

@@ -14,6 +14,7 @@ import unittest
 import subprocess
 from moosetools import mooseutils
 
+
 class TestMooseTestFuzzerExe(unittest.TestCase):
     def test(self):
         working_dir = os.path.join(os.path.dirname(__file__))
@@ -23,6 +24,7 @@ class TestMooseTestFuzzerExe(unittest.TestCase):
             out = subprocess.run(cmd, check=False, text=True, capture_output=True)
 
         self.assertEqual(out.returncode, 1)
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)

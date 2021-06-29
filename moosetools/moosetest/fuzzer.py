@@ -35,8 +35,7 @@ def _gen_platform(ctrls, prob, kwargs):
     """
     if _gen_bool_with_odds(prob):
         prefix = "{}_platform".format(random.choice(ctrls).getParam('prefix'))
-        value = tuple(
-            set(random.choices(['Darwin', 'Linux', 'Windows'], k=random.randint(1, 3))))
+        value = tuple(set(random.choices(['Darwin', 'Linux', 'Windows'], k=random.randint(1, 3))))
         kwargs[prefix] = value
 
 

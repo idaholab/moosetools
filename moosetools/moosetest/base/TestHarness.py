@@ -1,3 +1,12 @@
+#* This file is part of MOOSETOOLS repository
+#* https://www.github.com/idaholab/moosetools
+#*
+#* All rights reserved, see COPYRIGHT for full restrictions
+#* https://github.com/idaholab/moosetools/blob/main/COPYRIGHT
+#*
+#* Licensed under LGPL 2.1, please see LICENSE for details
+#* https://www.gnu.org/licenses/lgpl-2.1.html
+
 import os
 import logging
 import argparse
@@ -35,21 +44,23 @@ class TestHarness(core.MooseObject):
                    array=True,
                    default=('Tests', ),
                    doc="List of top-level test specifications (e.g., `[Tests]`) HIT blocks to run.")
-        params.add('timeout',
-                   default=300.,
-                   vtype=float,
-                   doc="The maximum number of seconds allowed for the execution of a test (default: 300).")
+        params.add(
+            'timeout',
+            default=300.,
+            vtype=float,
+            doc="The maximum number of seconds allowed for the execution of a test (default: 300).")
         params.add('max_failures',
                    default=50,
                    vtype=int,
                    doc="The maximum number of failures allowed before terminating all test cases.")
 
         # These are not intended to be set by the HIT configuration file
-        params.add('controllers',
-                   private=True,
-                   vtype=Controller,
-                   array=True,
-                   doc="The `Controller` object to utilize when creating `Runner` and `Differ` objects.")
+        params.add(
+            'controllers',
+            private=True,
+            vtype=Controller,
+            array=True,
+            doc="The `Controller` object to utilize when creating `Runner` and `Differ` objects.")
         params.add('formatter',
                    default=moosetest.formatters.BasicFormatter(),
                    private=True,
@@ -77,7 +88,11 @@ class TestHarness(core.MooseObject):
         parser.add_argument('--max-failures', type=int, default=p.default, help=p.doc)
 
         p = params.parameter('spec_file_blocks')
-        parser.add_argument('--spec-file-blocks', type=str, nargs='+', default=p.default, help=p.doc)
+        parser.add_argument('--spec-file-blocks',
+                            type=str,
+                            nargs='+',
+                            default=p.default,
+                            help=p.doc)
 
         p = params.parameter('spec_file_names')
         parser.add_argument('--spec-file-names', type=str, nargs='+', default=p.default, help=p.doc)
@@ -118,19 +133,16 @@ class TestHarness(core.MooseObject):
         """
 
         # Locate the tests to execute
-        groups = moosetest.discover(os.getcwd(),
-                                     self.getParam('spec_file_names'),
-                                     self.getParam('spec_file_blocks'),
-                                     os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split(),
-                                     self.getParam('controllers') or tuple(),
-                                     self.getParam('n_threads'))
+        groups = moosetest.discover(os.getcwd(), self.getParam('spec_file_names'),
+                                    self.getParam('spec_file_blocks'),
+                                    os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split(),
+                                    self.getParam('controllers') or tuple(),
+                                    self.getParam('n_threads'))
 
         # Execute the tests
         rcode = moosetest.run(groups,
-                              self.getParam('controllers') or tuple(),
-                              self.getParam('formatter'),
-                              self.getParam('n_threads'),
-                              self.getParam('timeout'),
+                              self.getParam('controllers') or tuple(), self.getParam('formatter'),
+                              self.getParam('n_threads'), self.getParam('timeout'),
                               self.getParam('max_failures'))
 
         return rcode

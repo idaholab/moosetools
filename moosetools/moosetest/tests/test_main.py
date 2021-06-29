@@ -47,7 +47,7 @@ class TestMakeHarness(unittest.TestCase):
         with mock.patch('moosetools.factory.Factory.status', return_value=1):
             with self.assertRaises(RuntimeError) as ex, mock.patch(
                     'os.path.isdir', return_value=True), mock.patch('os.chdir'):
-                th = _make_harness('.moosetest', pyhit.Node(None),tuple(),  None)
+                th = _make_harness('.moosetest', pyhit.Node(None), tuple(), None)
             self.assertIn("An error occurred during registration of the TestHarness",
                           str(ex.exception))
 
@@ -161,7 +161,7 @@ class TestLoadConfig(unittest.TestCase):
         root = _load_config(None)
         self.assertEqual(len(root), 1)
         self.assertEqual(root.children[0].fullpath, '/TestHarness')
-        self.assertEqual(dict(root.children[0].params()), {'type':'TestHarness'})
+        self.assertEqual(dict(root.children[0].params()), {'type': 'TestHarness'})
 
     def testExceptions(self):
         with self.assertRaises(RuntimeError) as ex:
@@ -174,12 +174,13 @@ class TestMain(unittest.TestCase):
     @mock.patch('argparse.ArgumentParser.parse_known_args')
     def testDefault(self, mock_cli_args):
 
-        args = argparse.Namespace(config=os.path.join(os.path.dirname(__file__), 'demo', '.moosetest'),
+        args = argparse.Namespace(config=os.path.join(os.path.dirname(__file__), 'demo',
+                                                      '.moosetest'),
                                   timeout=None,
                                   n_threads=None,
                                   max_failures=None,
                                   spec_file_blocks=None,
-                                  spec_file_names = None)
+                                  spec_file_names=None)
         mock_cli_args.return_value = (args, None)
 
         rcode = main()

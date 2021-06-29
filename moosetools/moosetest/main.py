@@ -22,6 +22,7 @@ from moosetools.moosetest import base
 #from moosetools.moosetest.base import TestHarness
 from moosetools.moosetest import formatters, controllers
 
+
 def cli_args():
     """
     Create the ArgumentParser object from the `TestHarness` base object.
@@ -31,8 +32,8 @@ def cli_args():
     object which can have additional command line arguments if it has been customized.
     """
     parser = base.TestHarness.createCommandLineParser(base.TestHarness.validParams())
-    parser.add_help = False # The -h to actually used is in the `TestHarness.parse` method
-    known, _ = parser.parse_known_args() # Don't want errors on custom options
+    parser.add_help = False  # The -h to actually used is in the `TestHarness.parse` method
+    known, _ = parser.parse_known_args()  # Don't want errors on custom options
     return known
 
 
@@ -80,7 +81,7 @@ def _make_harness(filename, root, controllers, formatter):
 
     # Build a factory capable of creating the TestHarness object
     plugin_dirs = os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()
-    h_factory = factory.Factory(plugin_dirs=tuple(plugin_dirs), plugin_types=(base.TestHarness,))
+    h_factory = factory.Factory(plugin_dirs=tuple(plugin_dirs), plugin_types=(base.TestHarness, ))
     h_factory.load()
     if h_factory.status() > 0:
         msg = "An error occurred during registration of the TestHarness type, see console message(s) for details."

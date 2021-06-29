@@ -125,7 +125,9 @@ class Factory(core.MooseObject):
 
         # Load Classes that exist within the available modules
         def predicate(otype):
-            return inspect.isclass(otype) and (otype.__name__ not in self._registered_types) and any(p in inspect.getmro(otype) for p in plugin_types)
+            return inspect.isclass(otype) and (otype.__name__
+                                               not in self._registered_types) and any(
+                                                   p in inspect.getmro(otype) for p in plugin_types)
 
         for module in list(sys.modules.values()):
             try:
