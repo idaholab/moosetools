@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+import os
+import sys
+import inspect
+import argparse
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from moosetools import moosetest
+
+
+def cli_args():
+    """
+    Return command line arguments for the `moosetest.fuzzer` utility.
+    """
+    parser = argparse.ArgumentParser(description="Fuzzing tool for `moosetools.moosetest` package.",
+                                     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    signature = inspect.signature(moosetest.fuzzer)
+    actions = dict()
+    for key, value in signature.parameters.items():
+        vsize = len(value.default) if hasattr(value.default, '__len__') else 1
+        vtype = type(value.default) if vsize == 1 else type(value.default[0])
+        meta = ('MIN', 'MAX') if vsize == 2 else 'PROB'
+        actions[key] = parser.add_argument(f'--{key}',
+                                           metavar=meta,
+                                           nargs=vsize,
+                                           type=vtype,
+                                           default=value.default)
+
+    actions['timeout'].help = "Set the range of the possible timeout in seconds."
+    actions[
+        'max_fails'].help = "Set the range of the possible number of a maximum number of failures."
+    actions['progress_interval'].help = "Set the range of the possible progress update interval."
+    actions['group_num'].help = "Set the range of the possible number of test groups."
+    actions['group_name_len'].help = "Set the range of the possible group name length."
+    actions['controller_num'].help = "Set the range of the possible number of Controller objects."
+    actions[
+        'controller_skip'].help = "Set the probability (0 to 1) of a Controller object causing a skip."
+    actions[
+        'controller_raise'].help = "Set the probability (0 to 1) of a Controller object causing an exception."
+    actions[
+        'controller_error'].help = "Set the probability (0 to 1) of a Controller object causing an error."
+    actions['differ_num'].help = "Set the range of the possible number of Differ objects."
+    actions[
+        'differ_raise'].help = "Set the probability (0 to 1) of a Differ object causing an exception."
+    actions[
+        'differ_error'].help = "Set the probability (0 to 1) of a Differ object causing an error."
+    actions[
+        'differ_fatal'].help = "Set the probability (0 to 1) of a Differ object causing an fatal error."
+    actions[
+        'differ_platform'].help = "Set the probability (0 to 1) of a Differ object being limited to a random OS platform."
+    actions['differ_name_len'].help = "Set the range of the possible Differ object name length."
+    actions['runner_num'].help = "Set the range of the possible number of Runner objects."
+    actions[
+        'runner_raise'].help = "Set the probability (0 to 1) of a Runner object causing an exception."
+    actions[
+        'runner_error'].help = "Set the probability (0 to 1) of a Runner object causing an error."
+    actions[
+        'runner_fatal'].help = "Set the probability (0 to 1) of a Runner object causing an fatal error."
+    actions[
+        'runner_platform'].help = "Set the probability (0 to 1) of a Runner object being limited to a random OS platform."
+    actions['runner_name_len'].help = "Set the range of the possible Runner object name length."
+    actions[
+        'requires_error'].help = "Set the probability (0 to 1) that a Runner object includes an invalid 'requires' name."
+    actions[
+        'requires_use'].help = "Set the probability (0 to 1) that a Runner will include a 'requires' list."
+
+    return parser.parse_args()
+
+
+if __name__ == '__main__':
+    kwargs = vars(cli_args())
+    sys.exit(moosetest.fuzzer(**kwargs))
