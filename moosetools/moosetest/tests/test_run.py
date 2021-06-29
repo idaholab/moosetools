@@ -1140,11 +1140,5 @@ class TestRun(unittest.TestCase):
             IN("For the test 'Best Andrew', the required test(s) 'Other Andrew' have not executed and passed."
                ))
 
-    @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
-    def testFuzzer(self):
-        rcode = fuzzer()
-        self.assertIn(rcode, (0, 1))
-
-
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)

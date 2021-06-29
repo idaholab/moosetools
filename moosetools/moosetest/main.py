@@ -24,12 +24,15 @@ from moosetools.moosetest import formatters, controllers
 
 def cli_args():
     """
-    Create the ArgumentParser object from the `TestHarness` base object. The only argument used
-    within the `main` function is the --config option. All objects are created
+    Create the ArgumentParser object from the `TestHarness` base object.
+
+    The only argument used within the `main` function is the --config option. This is done to get
+    the config file, from which the various objects are created. This includes the `TestHarness`
+    object which can have additional command line arguments if it has been customized.
     """
     parser = base.TestHarness.createCommandLineParser(base.TestHarness.validParams())
-    parser.add_help = False
-    known, _ = parser.parse_known_args()
+    parser.add_help = False # The -h to actually used is in the `TestHarness.parse` method
+    known, _ = parser.parse_known_args() # Don't want errors on custom options
     return known
 
 
@@ -46,20 +49,21 @@ def main():
     filename = _locate_config(args.config)
     root = _load_config(filename)
 
-    # Setup the environment variables from [Environment] block
+    # Setup the environment variables from top-level parameters of HIT configuration file file
     _setup_environment(filename, root)
 
     # Create the Controller, Formatter, and TestHarness objects
-    controllers =_make_controllers(filename, root)
+    controllers = _make_controllers(filename, root)
     formatter = _make_formatter(filename, root)
     harness = _make_harness(filename, root, controllers, formatter)
 
+    harness.parse()
     return harness.run()
 
 
 def _make_harness(filename, root, controllers, formatter):
     """
-    Create the `Controller` object from the [TestHarness] block of the `pyhit.Node` of *root*.
+    Create the `TestHarness` object from the [TestHarness] block of the `pyhit.Node` of *root*.
 
     The *filename* is provided for error reporting and setting the current working directory for
     creating object defined in the configuration file. It should be the file used for generating
@@ -85,15 +89,16 @@ def _make_harness(filename, root, controllers, formatter):
     # Use the Parser is used to correctly convert HIT to InputParameters
     w = list()
     p = factory.Parser(h_factory, w)
-    with mooseutils.CurrentWorkingDirectory(os.path.dirname(filename)):
+    working_dir = os.path.dirname(filename) if filename is not None else os.getcwd()
+    with mooseutils.CurrentWorkingDirectory(working_dir):
         p._parseNode(filename, h_node)
     if p.status() > 0:
         msg = "An error occurred during parsing of the root level parameters for creation of the TestHarness object, see console message(s) for details."
         raise RuntimeError(msg)
 
     harness = w[0]
-    harness.parameters().setValue('_controllers', controllers)
-    harness.parameters().setValue('_formatter', formatter)
+    harness.parameters().setValue('controllers', controllers)
+    harness.parameters().setValue('formatter', formatter)
     return harness
 
 
@@ -130,7 +135,8 @@ def _make_controllers(filename, root, *kwargs):
     # Use the Parser to create the Controller objects
     controllers = list()
     c_parser = factory.Parser(c_factory, controllers)
-    with mooseutils.CurrentWorkingDirectory(os.path.dirname(filename)):
+    working_dir = os.path.dirname(filename) if filename is not None else os.getcwd()
+    with mooseutils.CurrentWorkingDirectory(working_dir):
         c_parser.parse(filename, c_node)
     if c_parser.status() > 0:
         msg = "An error occurred during parsing of the Controller block, see console message(s) for details."
@@ -163,7 +169,8 @@ def _make_formatter(filename, root):
     # Create the Formatter object by parsing the input file
     formatters = list()
     f_parser = factory.Parser(f_factory, formatters)
-    with mooseutils.CurrentWorkingDirectory(os.path.dirname(filename)):
+    working_dir = os.path.dirname(filename) if (filename is not None) else os.getcwd()
+    with mooseutils.CurrentWorkingDirectory(working_dir):
         f_parser._parseNode(filename, f_node)
     if f_parser.status() > 0:
         msg = "An error occurred during parsing of the root level parameters for creation of the Formatter object, see console message(s) for details."
@@ -175,25 +182,11 @@ def _make_formatter(filename, root):
 def _setup_environment(filename, root):
     """
     Set environment variables from the top-level parameters
-
     """
-    for name, value in root.params():
-        os.environ[name] = value
-
-
-    """
-    Update environment from the [Environment] block.
-
-    e_node = moosetree.find(root, func=lambda n: n.fullpath == '/Environment')
-    if e_node is not None:
-        for name, value in e_node.params():
-            if name not in os.environ:
-                with mooseutils.CurrentWorkingDirectory(os.path.dirname(filename)):
-                    path = mooseutils.eval_path(value)
-                    if os.path.exists(path):
-                        value = os.path.abspath(path)
-                    os.environ[name] = value
-    """
+    working_dir = os.path.dirname(filename) if filename is not None else os.getcwd()
+    with mooseutils.CurrentWorkingDirectory(working_dir):
+        for name, value in root.params():
+            os.environ[name] = os.path.abspath(value) if os.path.isdir(value) else value
 
 
 def _locate_config(start):
@@ -217,15 +210,24 @@ def _locate_config(start):
         if os.path.isfile(fname):
             return fname
 
-    msg = f"Unable to locate a configuration in the location '{start}'."
-    raise RuntimeError(msg)
+    return None
 
 
 def _load_config(filename):
     """
     Load the supplied HIT *filename* using the `pyhit.load` function and return the root node.
+
+    If the supplied *filename* is `None`, then a default configuration is returned.
     """
-    if not os.path.isfile(filename):
+    if filename is None:
+        root = pyhit.Node(None)
+        root.append('TestHarness', type='TestHarness')
+
+    elif not os.path.isfile(filename):
         msg = "The configuration file, '{}', does not exist."
         raise RuntimeError(msg.format(filename))
-    return pyhit.load(filename)
+
+    else:
+        root = pyhit.load(filename)
+
+    return root
