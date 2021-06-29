@@ -411,6 +411,7 @@ diff(int argc, char ** argv)
   flags.add("v", "verbose diff");
   flags.add("C", "output color");
   flags.add("color", "output color");
+  flags.add("common", "show common parts on bothe sides");
   flags.add("h", "print help");
   flags.add("help", "print help");
   flags.addVector("left", "Left hand inputs");
@@ -475,6 +476,7 @@ diff(int argc, char ** argv)
   std::stringstream missing_right;
   hit::Section missing_left_root("");
   hit::Section missing_right_root("");
+  hit::Section common_root("");
 
   // params on left but not on right
   for (const auto & lparam : left_params)
@@ -487,13 +489,18 @@ diff(int argc, char ** argv)
                     << " is missing on the right.\n";
       missing_right_root.addChild(lparam.second->clone(/*absolute_path = */ true));
     }
-    else if (lparam.second->strVal() != it->second->strVal())
-      diff_val << "    " << color_yellow << lparam.first << color_blue << " ("
-               << lparam.second->filename() << ':' << lparam.second->line() << ")" << color_default
-               << " has differing values\n      '" << color_red << lparam.second->strVal()
-               << color_default << "' ->"
-               << (lparam.second->strVal().size() > 40 ? "\n    '" : " '") << color_green
-               << it->second->strVal() << color_default << "'\n";
+    else
+    {
+      if (lparam.second->strVal() != it->second->strVal())
+        diff_val << "    " << color_yellow << lparam.first << color_blue << " ("
+                 << lparam.second->filename() << ':' << lparam.second->line() << ")"
+                 << color_default << " has differing values\n      '" << color_red
+                 << lparam.second->strVal() << color_default << "' ->"
+                 << (lparam.second->strVal().size() > 40 ? "\n      '" : " '") << color_green
+                 << it->second->strVal() << color_default << "'\n";
+      else
+        common_root.addChild(lparam.second->clone(/*absolute_path = */ true));
+    }
   }
 
   // params on right but not on left
@@ -508,38 +515,49 @@ diff(int argc, char ** argv)
 
   // output report
   bool verbose = flags.have("v");
+  bool common = flags.have("common");
 
-  if (missing_right.str().size())
+  if (common)
   {
-    std::cout << "Parameters removed left -> right:\n" << color_red;
-    if (verbose)
-      std::cout << missing_right.str() << '\n';
-    else
-    {
-      hit::explode(&missing_right_root);
-      std::cout << missing_right_root.render(4) << "\n\n";
-    }
-    std::cout << color_default;
+    std::cout << "Common parameters:\n";
+    hit::explode(&common_root);
+    std::cout << common_root.render(4) << "\n\n";
+    return 0;
   }
-
-  if (missing_left.str().size())
+  else
   {
-    std::cout << "Parameters added left -> right:\n" << color_green;
-    if (verbose)
-      std::cout << missing_left.str() << '\n';
-    else
+    if (missing_right.str().size())
     {
-      hit::explode(&missing_left_root);
-      std::cout << missing_left_root.render(4) << "\n\n";
+      std::cout << "Parameters removed left -> right:\n" << color_red;
+      if (verbose)
+        std::cout << missing_right.str() << '\n';
+      else
+      {
+        hit::explode(&missing_right_root);
+        std::cout << missing_right_root.render(4) << "\n\n";
+      }
+      std::cout << color_default;
     }
-    std::cout << color_default;
+
+    if (missing_left.str().size())
+    {
+      std::cout << "Parameters added left -> right:\n" << color_green;
+      if (verbose)
+        std::cout << missing_left.str() << '\n';
+      else
+      {
+        hit::explode(&missing_left_root);
+        std::cout << missing_left_root.render(4) << "\n\n";
+      }
+      std::cout << color_default;
+    }
+
+    if (diff_val.str().size())
+      std::cout << "Parameters with differing values:\n\n" << diff_val.str() << "\n\n";
+
+    return (missing_left.str().size() + missing_right.str().size() + diff_val.str().size() > 0) ? 1
+                                                                                                : 0;
   }
-
-  if (diff_val.str().size())
-    std::cout << "Parameters with differing values:\n\n" << diff_val.str() << "\n\n";
-
-  return (missing_left.str().size() + missing_right.str().size() + diff_val.str().size() > 0) ? 1
-                                                                                              : 0;
 }
 
 int
