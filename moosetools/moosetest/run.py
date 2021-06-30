@@ -32,6 +32,8 @@ MULTIPROCESSING_CONTEXT = 'fork'
 def run(groups,
         controllers,
         formatter,
+        filters,
+        *,
         n_threads=os.cpu_count(),
         timeout=None,
         max_fails=sys.maxsize,
@@ -81,7 +83,10 @@ def run(groups,
     for runners in groups:
         result_send = manager.Queue()
         readers.append(result_send)
-        local = [TestCase(runner=runner, **tc_kwargs) for runner in runners]
+        local = [
+            TestCase(runner=runner, **tc_kwargs) for runner in runners
+            if _apply_filters(filters, runner)
+        ]
         futures.append(executor.submit(_execute_testcases, local, result_send, timeout))
         testcases.update({tc.unique_id: tc for tc in local})
 
@@ -138,6 +143,17 @@ def run(groups,
     print(formatter.reportComplete(testcases.values(), start_time))
     failed = sum(tc.state.level >= min_fail_state.level for tc in testcases.values())
     return 1 if failed > 0 else 0
+
+
+def _apply_filters(filters, runner):
+    """
+    Return False if any of supplied `base.Filter` object(s) in *filters* apply to the *runner*.
+
+
+    If *filters* is `None` then True is also returned.
+    """
+    remove = any(f.apply(runner) for f in filters) if (filters is not None) else False
+    return not remove
 
 
 def _execute_testcase(tc, conn):

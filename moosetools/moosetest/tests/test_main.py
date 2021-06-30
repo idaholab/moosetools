@@ -17,8 +17,8 @@ from unittest import mock
 
 from moosetools import pyhit
 from moosetools.moosetest import main
-from moosetools.moosetest.base import Controller, TestCase, RedirectOutput, TestHarness
-from moosetools.moosetest.main import _make_harness, _make_controllers, _make_formatter, _setup_environment, _locate_config, _load_config
+from moosetools.moosetest.base import Controller, TestCase, RedirectOutput, TestHarness, Filter
+from moosetools.moosetest.main import _make_harness, _make_controllers, _make_formatter, _make_filters, _setup_environment, _locate_config, _load_config
 from moosetools.moosetest.formatters import BasicFormatter
 
 
@@ -27,7 +27,7 @@ class TestMakeHarness(unittest.TestCase):
         root = pyhit.Node(None)
 
         with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir') as mock_chdir:
-            th = _make_harness('.moosetest', root, tuple(), None)
+            th = _make_harness('.moosetest', root, tuple(), None, tuple())
         self.assertEqual(mock_chdir.call_count, 2)
         mock_chdir.assert_called_with(os.getcwd())
         self.assertIsInstance(th, TestHarness)
@@ -37,7 +37,7 @@ class TestMakeHarness(unittest.TestCase):
         root = pyhit.Node(None)
         root.append('TestHarness', type='TestHarness', n_threads=1)
         with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir') as mock_chdir:
-            th = _make_harness('.moosetest', root, tuple(), None)
+            th = _make_harness('.moosetest', root, tuple(), None, tuple())
         self.assertEqual(mock_chdir.call_count, 2)
         mock_chdir.assert_called_with(os.getcwd())
         self.assertIsInstance(th, TestHarness)
@@ -47,14 +47,14 @@ class TestMakeHarness(unittest.TestCase):
         with mock.patch('moosetools.factory.Factory.status', return_value=1):
             with self.assertRaises(RuntimeError) as ex, mock.patch(
                     'os.path.isdir', return_value=True), mock.patch('os.chdir'):
-                th = _make_harness('.moosetest', pyhit.Node(None), tuple(), None)
+                th = _make_harness('.moosetest', pyhit.Node(None), tuple(), None, tuple())
             self.assertIn("An error occurred during registration of the TestHarness",
                           str(ex.exception))
 
         with mock.patch('moosetools.factory.Parser.status', return_value=1):
             with self.assertRaises(RuntimeError) as ex, mock.patch(
                     'os.path.isdir', return_value=True), mock.patch('os.chdir'):
-                th = _make_harness('.moosetest', pyhit.Node(None), tuple(), None)
+                th = _make_harness('.moosetest', pyhit.Node(None), tuple(), None, tuple())
             self.assertIn("An error occurred during parsing of the", str(ex.exception))
 
 
@@ -62,7 +62,7 @@ class TestMakeControllers(unittest.TestCase):
     def testDefault(self):
         root = pyhit.Node(None)
         with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir') as mock_chdir:
-            controllers = _make_controllers('.moosetest', root, tuple())
+            controllers = _make_controllers('.moosetest', root)
         self.assertEqual(mock_chdir.call_count, 2)
         mock_chdir.assert_called_with(os.getcwd())
         for c in controllers:
@@ -75,7 +75,7 @@ class TestMakeControllers(unittest.TestCase):
         c.append('env', type='EnvironmentController', prefix='environment')
 
         with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir'):
-            controllers = _make_controllers('.moosetest', root, tuple())
+            controllers = _make_controllers('.moosetest', root)
         for c in controllers:
             self.assertIsInstance(c, Controller)
         self.assertEqual(list(controllers)[0].getParam('prefix'), 'environment')
@@ -84,13 +84,13 @@ class TestMakeControllers(unittest.TestCase):
         with mock.patch('moosetools.factory.Factory.status', return_value=1):
             with self.assertRaises(RuntimeError) as ex, mock.patch(
                     'os.path.isdir', return_value=True), mock.patch('os.chdir'):
-                _make_controllers('.moosetest', pyhit.Node(None), tuple())
+                _make_controllers('.moosetest', pyhit.Node(None))
             self.assertIn("An error occurred registering the Controller type", str(ex.exception))
 
         with mock.patch('moosetools.factory.Parser.status', return_value=1):
             with self.assertRaises(RuntimeError) as ex, mock.patch(
                     'os.path.isdir', return_value=True), mock.patch('os.chdir'):
-                _make_controllers('.moosetest', pyhit.Node(None), tuple())
+                _make_controllers('.moosetest', pyhit.Node(None))
             self.assertIn("An error occurred during parsing of the Controller block",
                           str(ex.exception))
 
@@ -127,6 +127,40 @@ class TestMakeFormatter(unittest.TestCase):
             self.assertIn(
                 "An error occurred during parsing of the root level parameters for creation of the Formatter object",
                 str(ex.exception))
+
+
+class TestMakeFilters(unittest.TestCase):
+    def testDefault(self):
+        root = pyhit.Node(None)
+        with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir') as mock_chdir:
+            filters = _make_filters('.moosetest', root)
+        self.assertEqual(mock_chdir.call_count, 2)
+        mock_chdir.assert_called_with(os.getcwd())
+        for c in filters:
+            self.assertIsInstance(c, Filter)
+
+    def testOverride(self):
+        root = pyhit.Node(None)
+        c = root.append('Filters')
+        c.append('env', type='NameFilter')
+
+        with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir'):
+            filters = _make_filters('.moosetest', root)
+        for c in filters:
+            self.assertIsInstance(c, Filter)
+
+    def testExceptions(self):
+        with mock.patch('moosetools.factory.Factory.status', return_value=1):
+            with self.assertRaises(RuntimeError) as ex, mock.patch(
+                    'os.path.isdir', return_value=True), mock.patch('os.chdir'):
+                _make_filters('.moosetest', pyhit.Node(None))
+            self.assertIn("An error occurred registering the Filter type", str(ex.exception))
+
+        with mock.patch('moosetools.factory.Parser.status', return_value=1):
+            with self.assertRaises(RuntimeError) as ex, mock.patch(
+                    'os.path.isdir', return_value=True), mock.patch('os.chdir'):
+                _make_filters('.moosetest', pyhit.Node(None))
+            self.assertIn("An error occurred during parsing of the Filter block", str(ex.exception))
 
 
 class TestLocateConfig(unittest.TestCase):

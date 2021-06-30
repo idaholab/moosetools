@@ -13,5 +13,6 @@ from .Runner import Runner, make_runner
 from .Differ import Differ, make_differ
 from .FileDiffer import FileDiffer
 from .Formatter import Formatter
+from .Filter import Filter
 from .TestCase import TestCase, State, RedirectOutput
 from .TestHarness import TestHarness

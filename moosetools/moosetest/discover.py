@@ -116,12 +116,6 @@ def _create_runners(root_dir, filename, spec_file_blocks, obj_factory):
     The *root_dir* is the starting location provided to the `discover` function. Objects are
     only extracted from the HIT blocks in *spec_file_blocks*. The *obj_factory* is used to by the
     HIT parser to create the desired object type.
-
-    TODO: This should return a list of lists and allow for each `Runner` to optionally, have a
-          separate entry in the outer list. This will allow handling of intra-file dependencies
-          if needed or the ability to run without any dependencies. For example, the `Runner`
-          could have a `depends_on`, that defaults to the previously defined runner. Supply `None`
-          would put it in its own entry in the outer list.
     """
     root = pyhit.load(filename)
     wh = MooseTestWarehouse(root_dir=root_dir, specfile=filename)
@@ -135,10 +129,11 @@ def _create_runners(root_dir, filename, spec_file_blocks, obj_factory):
 
 
 def discover(start,
+             controllers,
              spec_file_names,
              spec_file_blocks,
+             *,
              plugin_dirs=None,
-             controllers=None,
              n_threads=None):
     """
     Return groups of `Runner` objects to execute by recursively searching from the *start* directory.

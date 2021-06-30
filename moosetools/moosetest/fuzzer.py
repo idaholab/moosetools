@@ -141,4 +141,4 @@ def fuzzer(timeout=(3, 10),
     kwargs['timeout'] = random.randint(*timeout)
     kwargs['max_fails'] = random.randint(*max_fails)
     kwargs['min_fail_state'] = random.choice([r for r in moosetest.base.TestCase.Result])
-    return moosetest.run(groups, controllers, formatter, **kwargs)
+    return moosetest.run(groups, controllers, formatter, tuple(), **kwargs)

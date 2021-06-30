@@ -55,8 +55,7 @@ class TestTestHarness(unittest.TestCase):
                                                     timeout=10.,
                                                     max_failures=42,
                                                     spec_file_blocks=['Assessments', 'Tests'],
-                                                    spec_file_names=['a', 'b'],
-                                                    fuzzer=None)
+                                                    spec_file_names=['a', 'b'])
 
         th = NewTestHarness()
         th.parse()
