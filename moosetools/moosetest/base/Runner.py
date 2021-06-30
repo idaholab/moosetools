@@ -75,6 +75,7 @@ class Runner(MooseTestObject):
     def validParams():
         params = MooseTestObject.validParams()
         params.setRequired('name', True)
+
         params.add('differs',
                    vtype=Differ,
                    array=True,

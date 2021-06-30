@@ -135,7 +135,7 @@ class TestDiscover(unittest.TestCase):
         start = os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo'))
         plugin_dirs = [os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo', 'plugins'))]
 
-        groups = discover(start, ['tests'], ['Tests'], plugin_dirs)
+        groups = discover(start, tuple(), ['tests'], ['Tests'], plugin_dirs=plugin_dirs)
         self.assertEqual(len(groups), 3)
         self.assertEqual(groups[0][0].name(), "tests/tests:Tests/runner0")
         self.assertEqual(groups[0][0].getParam('differs'), None)
@@ -150,7 +150,7 @@ class TestDiscover(unittest.TestCase):
         start = os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo'))
         plugin_dirs = [os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo', 'plugins'))]
         with self.assertRaises(RuntimeError) as ex:
-            discover(start, ['tests'], ['Tests'], plugin_dirs)
+            discover(start, tuple(), ['tests'], ['Tests'], plugin_dirs=plugin_dirs)
         self.assertIn('Errors occurred during parsing', str(ex.exception))
 
 

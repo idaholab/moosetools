@@ -16,6 +16,7 @@ from moosetools import moosetest
 
 from .Controller import Controller
 from .Formatter import Formatter
+from .Filter import Filter
 
 
 class TestHarness(core.MooseObject):
@@ -57,15 +58,18 @@ class TestHarness(core.MooseObject):
         # These are not intended to be set by the HIT configuration file
         params.add(
             'controllers',
-            private=True,
             vtype=Controller,
             array=True,
-            doc="The `Controller` object to utilize when creating `Runner` and `Differ` objects.")
+            doc="The `Controller` object(s) to utilize when creating `Runner` and `Differ` objects."
+        )
         params.add('formatter',
                    default=moosetest.formatters.BasicFormatter(),
-                   private=True,
                    vtype=Formatter,
                    doc="The `Formatter` object to utilize for outputting test information.")
+        params.add('filters',
+                   vtype=Filter,
+                   array=True,
+                   doc="The `Filter` object(s) to utilize when create `TestCase` objects.")
 
         return params
 
@@ -96,6 +100,9 @@ class TestHarness(core.MooseObject):
 
         p = params.parameter('spec_file_names')
         parser.add_argument('--spec-file-names', type=str, nargs='+', default=p.default, help=p.doc)
+
+        # WIP: Loop through controllers, formatter, and filters to add command-line arguments
+        #      call _setup on these objects as well. Use sub-parser for each type???
 
         return parser
 
@@ -133,16 +140,20 @@ class TestHarness(core.MooseObject):
         """
 
         # Locate the tests to execute
-        groups = moosetest.discover(os.getcwd(), self.getParam('spec_file_names'),
-                                    self.getParam('spec_file_blocks'),
-                                    os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split(),
+        groups = moosetest.discover(os.getcwd(),
                                     self.getParam('controllers') or tuple(),
-                                    self.getParam('n_threads'))
+                                    self.getParam('spec_file_names'),
+                                    self.getParam('spec_file_blocks'),
+                                    plugin_dirs=os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split(),
+                                    n_threads=self.getParam('n_threads'))
 
         # Execute the tests
         rcode = moosetest.run(groups,
-                              self.getParam('controllers') or tuple(), self.getParam('formatter'),
-                              self.getParam('n_threads'), self.getParam('timeout'),
-                              self.getParam('max_failures'))
+                              self.getParam('controllers') or tuple(),
+                              self.getParam('formatter'),
+                              self.getParam('filters'),
+                              n_threads=self.getParam('n_threads'),
+                              timeout=self.getParam('timeout'),
+                              max_fails=self.getParam('max_failures'))
 
         return rcode
