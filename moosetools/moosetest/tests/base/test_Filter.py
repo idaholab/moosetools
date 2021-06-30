@@ -66,6 +66,14 @@ class TestFilter(unittest.TestCase):
             f.apply(RunnerProxy(1))
         self.assertIn("An error occurred, on the runner", str(ex.exception))
 
+    def test_validCommandLineArguments(self):
+        params = moosetest.base.Filter.validCommandLineArguments(None, None)
+        self.assertIsNone(params)
+
+    def test_setup(self):
+        f = moosetest.base.Filter()
+        self.assertIsNone(f._setup(None))
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)

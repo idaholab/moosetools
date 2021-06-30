@@ -31,7 +31,7 @@ class TestController(unittest.TestCase):
             ctrl.execute(None, None)
         self.assertIn("The 'execute' method must be overridden.", str(ex.exception))
 
-    def testControllers(self):
+    def test_isRunnable(self):
         ctrl = moosetest.base.Controller(prefix="foo")
         self.assertTrue(ctrl.isRunnable())
         ctrl.skip("Don't do it!")
@@ -42,9 +42,17 @@ class TestController(unittest.TestCase):
         self.assertTrue(ctrl.isRunnable())
         self.assertNotIn("Don't do it!", ctrl.getReasons())
 
-    def testValidObjectParams(self):
+    def test_validObjectParams(self):
         params = moosetest.base.Controller.validObjectParams()
         self.assertIsInstance(params, parameters.InputParameters)
+
+    def test_validCommandLineArguments(self):
+        params = moosetest.base.Controller.validCommandLineArguments(None, None)
+        self.assertIsNone(params)
+
+    def test_setup(self):
+        f = moosetest.base.Controller(prefix='foo')
+        self.assertIsNone(f._setup(None))
 
 
 if __name__ == '__main__':

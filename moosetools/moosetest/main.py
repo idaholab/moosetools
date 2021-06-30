@@ -30,9 +30,13 @@ def cli_args():
     the config file, from which the various objects are created. This includes the `TestHarness`
     object which can have additional command line arguments if it has been customized.
     """
-    parser = base.TestHarness.createCommandLineParser(base.TestHarness.validParams())
-    parser.add_help = False  # The -h to actually used is in the `TestHarness.parse` method
-    known, _ = parser.parse_known_args()  # Don't want errors on custom options
+    parser = argparse.ArgumentParser(description="Testing system inspired by MOOSE", add_help=False)
+    parser.add_argument('--config', default=os.getcwd(), type=str,
+                        help="A configuration file or directory. If a directory is provided a " \
+                        "'.moosetest' file is searched up the directory tree beginning with " \
+                        "the current working directory.")
+    known, _ = parser.parse_known_args()  # don't error on custom options
+
     return known
 
 
@@ -58,6 +62,7 @@ def main():
     filters = _make_filters(filename, root)
     harness = _make_harness(filename, root, controllers, formatter, filters)
 
+    # TODO: Call parse, discover, run, with error checking in between
     harness.parse()
     return harness.run()
 

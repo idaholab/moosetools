@@ -33,11 +33,27 @@ class Formatter(MooseObject):
                    doc="Number of seconds in between progress updates for a test case.")
         return params
 
+    @staticmethod
+    def validCommandLineArguments(parser, params):
+        """
+        Add command-line arguments to the `argparse.ArgumentParser` in *parser*.
+
+        The *params* is the `parameters.InputParameter` object for an instance, see
+        `moosetest.base.TestHarness` for use.
+        """
+        pass
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('name', self.__class__.__name__)
         MooseObject.__init__(self, *args, **kwargs)
         self.__progress_time = dict()
         self.__progress_interval = self.getParam('progress_interval')
+
+    def _setup(self, args):
+        """
+        Function for applying the command line arguments in *args* to the object.
+        """
+        pass
 
     def formatRunnerState(self, **kwargs):
         raise NotImplementedError("The 'formatRunnerState' method must be overridden.")

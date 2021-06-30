@@ -9,6 +9,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import unittest
+import argparse
 from moosetools.moosetest.filters import NameFilter
 
 
@@ -27,11 +28,24 @@ class TestNameFilter(unittest.TestCase):
 
         self.assertFalse(f.apply(r))
 
-        f.parameters().setValue('in_name', 'the_')
+        f.parameters().setValue('text_in', 'the_')
         self.assertFalse(f.apply(r))
 
-        f.parameters().setValue('in_name', 'not_this')
+        f.parameters().setValue('text_in', 'not_this')
         self.assertTrue(f.apply(r))
+
+    def test_validCommandLineArguments(self):
+        parser = argparse.ArgumentParser()
+        f = NameFilter()
+        f.validCommandLineArguments(parser, f.parameters())
+        args = parser.parse_args(args=[])
+        self.assertIn('text_in', args)
+
+    def test_setup(self):
+        f = NameFilter()
+        args = argparse.Namespace(text_in='Andrew')
+        f._setup(args)
+        self.assertEqual(f.getParam('text_in'), 'Andrew')
 
 
 if __name__ == '__main__':

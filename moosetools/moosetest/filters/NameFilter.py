@@ -19,16 +19,27 @@ class NameFilter(Filter):
     @staticmethod
     def validParams():
         params = Filter.validParams()
-        params.add('in_name',
+        params.add('text_in',
                    vtype=str,
                    doc="Ensure the that supplied text is in the `Runner` name.")
         return params
+
+    @staticmethod
+    def validCommandLineArguments(parser, params):
+        params.toArgs(parser, 'text_in')
+
+    def _setup(self, args):
+        """
+        Apply command line arguments for this object.
+        """
+        Filter._setup(self, args)
+        self.parameters().fromArgs(args, 'text_in')
 
     def execute(self, runner):
         """
         Indicate that the *runner* object should be removed, if the name criteria are not satisfied.
         """
         name = runner.name()
-        in_name = self.getParam('in_name')
-        if (in_name is not None) and (in_name not in name):
+        text_in = self.getParam('text_in')
+        if (text_in is not None) and (text_in not in name):
             self.remove()

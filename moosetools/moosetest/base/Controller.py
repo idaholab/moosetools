@@ -49,10 +49,26 @@ class Controller(MooseTestObject):
         params = InputParameters()
         return params
 
+    @staticmethod
+    def validCommandLineArguments(parser, params):
+        """
+        Add command-line arguments to the `argparse.ArgumentParser` in *parser*.
+
+        The *params* is the `parameters.InputParameter` object for an instance, see
+        `moosetest.base.TestHarness` for use.
+        """
+        pass
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('name', self.__class__.__name__)
         MooseTestObject.__init__(self, *args, **kwargs)
         self.__runnable = True
+
+    def _setup(self, args):
+        """
+        Function for applying the command line arguments in *args* to the object.
+        """
+        pass
 
     def reset(self):
         """

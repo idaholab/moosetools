@@ -45,13 +45,12 @@ class TestHarness(core.MooseObject):
                    array=True,
                    default=('Tests', ),
                    doc="List of top-level test specifications (e.g., `[Tests]`) HIT blocks to run.")
-        params.add(
-            'timeout',
-            default=300.,
-            vtype=float,
-            doc="The maximum number of seconds allowed for the execution of a test (default: 300).")
+        params.add('timeout',
+                   default=300.,
+                   vtype=float,
+                   doc="The maximum number of seconds allowed for the execution of a test.")
         params.add('max_failures',
-                   default=50,
+                   default=300,
                    vtype=int,
                    doc="The maximum number of failures allowed before terminating all test cases.")
 
@@ -74,35 +73,25 @@ class TestHarness(core.MooseObject):
         return params
 
     @staticmethod
-    def createCommandLineParser(params):
-        parser = argparse.ArgumentParser(description="Testing system inspired by MOOSE",
-                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    def validCommandLineArguments(parser, params):
         parser.add_argument('--config', default=os.getcwd(), type=str,
                             help="A configuration file or directory. If a directory is provided a " \
                             "'.moosetest' file is searched up the directory tree beginning with " \
                             "the current working directory.")
 
-        p = params.parameter('n_threads')
-        parser.add_argument('--n-threads', type=int, default=p.default, help=p.doc)
+        params.toArgs(parser, 'n_threads', 'timeout', 'max_failures', 'spec_file_blocks',
+                      'spec_file_names')
 
-        p = params.parameter('timeout')
-        parser.add_argument('--timeout', type=float, default=p.default, help=p.doc)
+        # Add CLI arguments from other top-level objects
+        for obj in (params.getValue('controllers') or tuple()):
+            obj.validCommandLineArguments(parser, obj.parameters())
 
-        p = params.parameter('max_failures')
-        parser.add_argument('--max-failures', type=int, default=p.default, help=p.doc)
+        for obj in (params.getValue('filters') or tuple()):
+            obj.validCommandLineArguments(parser, obj.parameters())
 
-        p = params.parameter('spec_file_blocks')
-        parser.add_argument('--spec-file-blocks',
-                            type=str,
-                            nargs='+',
-                            default=p.default,
-                            help=p.doc)
-
-        p = params.parameter('spec_file_names')
-        parser.add_argument('--spec-file-names', type=str, nargs='+', default=p.default, help=p.doc)
-
-        # WIP: Loop through controllers, formatter, and filters to add command-line arguments
-        #      call _setup on these objects as well. Use sub-parser for each type???
+        obj = params.getValue('formatter')
+        if obj is not None:
+            obj.validCommandLineArguments(parser, obj.parameters())
 
         return parser
 
@@ -114,7 +103,9 @@ class TestHarness(core.MooseObject):
         automatically parse arguments, which might not be desired.
         """
         # Parse the command-line arguments and apply them to this object
-        parser = self.createCommandLineParser(self.parameters())
+        parser = argparse.ArgumentParser(description="Testing system inspired by MOOSE",
+                                         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+        self.validCommandLineArguments(parser, self.parameters())
         args = parser.parse_args()
         self._setup(args)
 
@@ -122,17 +113,19 @@ class TestHarness(core.MooseObject):
         """
         Apply options provided via the command line to the TestHarness object parameters.
         """
-        if args.timeout:
-            self.parameters().setValue('timeout', args.timeout)
+        self.parameters().fromArgs(args, 'n_threads', 'timeout', 'max_failures', 'spec_file_blocks',
+                                   'spec_file_names')
 
-        if args.max_failures:
-            self.parameters().setValue('max_failures', args.max_failures)
+        # Call setup function from other top-level objects
+        for obj in (self.getParam('controllers') or tuple()):
+            obj._setup(args)
 
-        if args.spec_file_blocks:
-            self.parameters().setValue('spec_file_blocks', tuple(args.spec_file_blocks))
+        for obj in (self.getParam('filters') or tuple()):
+            obj._setup(args)
 
-        if args.spec_file_names:
-            self.parameters().setValue('spec_file_names', tuple(args.spec_file_names))
+        obj = self.getParam('formatter')
+        if obj is not None:
+            obj._setup(args)
 
     def run(self):
         """

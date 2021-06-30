@@ -234,6 +234,14 @@ class TestFormatter(unittest.TestCase):
         fm.reportProgress(tc)
         pstate.assert_called()
 
+    def test_validCommandLineArguments(self):
+        params = moosetest.base.Filter.validCommandLineArguments(None, None)
+        self.assertIsNone(params)
+
+    def test_setup(self):
+        f = moosetest.base.Formatter()
+        self.assertIsNone(f._setup(None))
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2, buffer=True)
