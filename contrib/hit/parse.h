@@ -188,7 +188,7 @@ public:
   /// render builds an hit syntax/text that is equivalent to the hit tree starting at this
   /// node (and downward) - i.e. parsing this function's returned string would yield a node tree
   /// identical to this nodes tree downward.  indent is the indent level using indent_text as the
-  /// indent string (repeated once for each level).  maxlen is the maximum line lengch before
+  /// indent string (repeated once for each level).  maxlen is the maximum line length before
   /// breaking string values.
   virtual std::string
   render(int indent = 0, const std::string & indent_text = default_indent, int maxlen = 0);
@@ -197,7 +197,7 @@ public:
   /// doesn't visit any nodes that require traversing this node's parent) calling the passed
   /// walker's walk function for each node visited.  w->walk is not called for nodes that are not
   /// of type t although nodes not of type t are still traversed.
-  void walk(Walker * w, NodeType t = NodeType::Field);
+  void walk(Walker * w, NodeType t = NodeType::Field, bool children_first = false);
 
   /// find follows the tree along the given path starting at this node (downward not checking any
   /// nodes that require traversing this node's parent) and returns the first node it finds at the
@@ -569,6 +569,44 @@ public:
 
 private:
   ParamMap & _map;
+};
+
+class RemoveParamWalker : public Walker
+{
+public:
+  RemoveParamWalker(const GatherParamWalker::ParamMap & map) : _map(map) {}
+  void walk(const std::string & fullpath, const std::string & /*nodepath*/, hit::Node * n) override
+  {
+    auto children = n->children();
+    for (auto child : children)
+    {
+      auto it = _map.find(child->fullpath());
+      if (it != _map.end() && it->second->strVal() == child->strVal())
+        delete child;
+    }
+  }
+
+private:
+  const GatherParamWalker::ParamMap & _map;
+};
+
+class RemoveEmptySectionWalker : public Walker
+{
+public:
+  RemoveEmptySectionWalker() {}
+  void walk(const std::string & fullpath, const std::string & /*nodepath*/, hit::Node * n) override
+  {
+    auto children = n->children(NodeType::Section);
+    for (auto child : children)
+    {
+      std::size_t non_blank = 0;
+      for (auto gchild : child->children())
+        if (gchild->type() != NodeType::Blank && gchild->type() != NodeType::Comment)
+          non_blank++;
+      if (non_blank == 0)
+        delete child;
+    }
+  }
 };
 
 } // namespace hit

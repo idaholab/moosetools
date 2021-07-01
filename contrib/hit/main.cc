@@ -17,6 +17,8 @@ int validate(int argc, char ** argv);
 int format(int argc, char ** argv);
 int merge(int argc, char ** argv);
 int diff(int argc, char ** argv);
+int common(int argc, char ** argv);
+int subtract(int argc, char ** argv);
 
 int
 main(int argc, char ** argv)
@@ -39,6 +41,10 @@ main(int argc, char ** argv)
     return merge(argc - 2, argv + 2);
   else if (subcmd == "diff")
     return diff(argc - 2, argv + 2);
+  else if (subcmd == "common")
+    return common(argc - 2, argv + 2);
+  else if (subcmd == "subtract")
+    return subtract(argc - 2, argv + 2);
   else if (subcmd == "braceexpr")
   {
     std::stringstream ss;
@@ -558,6 +564,89 @@ diff(int argc, char ** argv)
     return (missing_left.str().size() + missing_right.str().size() + diff_val.str().size() > 0) ? 1
                                                                                                 : 0;
   }
+}
+
+int
+common(int argc, char ** argv)
+{
+  Flags flags("hit common <files>\n  Extract common parameters from all files.\n");
+  flags.add("h", "print help");
+  flags.add("help", "print help");
+  auto positional = parseOpts(argc, argv, flags);
+
+  if (flags.have("h") || flags.have("help") || positional.size() == 0)
+  {
+    std::cout << flags.usage();
+    return positional.size() == 0 ? 1 : 0;
+  }
+
+  std::vector<std::unique_ptr<hit::Node>> roots;
+  for (const auto & file : positional)
+    roots.emplace_back(readMerged({file}));
+
+  hit::GatherParamWalker::ParamMap common_params;
+  hit::GatherParamWalker common_walker(common_params);
+  roots[0]->walk(&common_walker, hit::NodeType::Field);
+  for (std::size_t i = 1; i < roots.size(); ++i)
+  {
+    hit::GatherParamWalker::ParamMap next_params;
+    hit::GatherParamWalker next_walker(next_params);
+    roots[i]->walk(&next_walker, hit::NodeType::Field);
+
+    for (auto it1 = common_params.begin(); it1 != common_params.end();)
+    {
+      auto it2 = next_params.find(it1->first);
+      if (it2 == next_params.end() || it2->second->strVal() != it1->second->strVal())
+        it1 = common_params.erase(it1);
+      else
+        ++it1;
+    }
+  }
+
+  hit::Section common_root("");
+  for (const auto & param : common_params)
+    common_root.addChild(param.second->clone(/*absolute_path = */ true));
+  hit::explode(&common_root);
+  std::cout << common_root.render() << '\n';
+
+  return 0;
+}
+
+int
+subtract(int argc, char ** argv)
+{
+  Flags flags("hit subtract left.i right.i\n  Subtract left.i from right.i by removing all "
+              "parameters listed in left.i from right.i.\n");
+  flags.add("h", "print help");
+  flags.add("help", "print help");
+  auto positional = parseOpts(argc, argv, flags);
+
+  if (flags.have("h") || flags.have("help") || positional.size() != 2)
+  {
+    std::cout << flags.usage();
+    return positional.size() != 2 ? 1 : 0;
+  }
+
+  auto left = readMerged({positional[0]});
+  auto right = readMerged({positional[1]});
+
+  if (!left || !right)
+    return 1;
+
+  std::cerr << "Subtracting:\n    " << positional[0] << "\nfrom:\n    " << positional[1] << '\n';
+
+  hit::GatherParamWalker::ParamMap left_params;
+  hit::GatherParamWalker left_walker(left_params);
+  hit::RemoveParamWalker right_walker(left_params);
+  hit::RemoveEmptySectionWalker right_section_walker;
+
+  left->walk(&left_walker, hit::NodeType::Field);
+  right->walk(&right_walker, hit::NodeType::Section);
+  right->walk(&right_section_walker, hit::NodeType::Section, /* children_first = */ true);
+
+  std::cout << right->render();
+
+  return 0;
 }
 
 int

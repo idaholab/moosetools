@@ -84,10 +84,10 @@ toBool(const std::string & val, bool * dst)
   return false;
 }
 
+// clang-format off
 std::string
 nodeTypeName(NodeType t)
 {
-// clang-format off
   #define nodecase(type) case NodeType::type: return #type;
   switch (t)
     {
@@ -98,8 +98,8 @@ nodeTypeName(NodeType t)
       default : return std::to_string((int)t);
     }
   #undef nodecase
-  // clang-format on
 }
+// clang-format on
 
 Error::Error(const std::string & msg) : msg(msg) {}
 
@@ -321,12 +321,18 @@ Node::fullpath()
 }
 
 void
-Node::walk(Walker * w, NodeType t)
+Node::walk(Walker * w, NodeType t, bool children_first)
 {
+  if (children_first)
+    for (auto child : _children)
+      child->walk(w, t, children_first);
+
   if (_type == t || t == NodeType::All)
     w->walk(fullpath(), pathNorm(path()), this);
-  for (auto child : _children)
-    child->walk(w, t);
+
+  if (!children_first)
+    for (auto child : _children)
+      child->walk(w, t, children_first);
 }
 
 Node *
