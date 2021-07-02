@@ -45,11 +45,12 @@ class MooseTestFactory(factory.Factory):
 
         # Add the Controller object parameters with the correct prefix from the Controller object
         for controller in self.getParam('controllers') or list():
-            params.add(
-                controller.getParam('prefix'),
-                default=controller.validObjectParams(),
-                doc="Parameters for determining execute state from the '{}' control object.".format(
-                    type(controller).__name__))
+            if controller.isParamValid('prefix'):
+                params.add(
+                    controller.getParam('prefix'),
+                    default=controller.validObjectParams(),
+                    doc="Parameters for determining execute state from the '{}' control object.".
+                    format(type(controller).__name__))
         return params
 
     def create(self, otype, params):

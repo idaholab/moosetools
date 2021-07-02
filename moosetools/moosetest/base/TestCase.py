@@ -186,13 +186,14 @@ class TestCase(MooseObject):
         The levels (second argument) are designed to be used to control what comprises a failure,
         see `moosetest.run` and `moosetest.formatter.BasicFormatter` for example use.
         """
-        PASS = (10, 0, 'OK', ('green_1', ))
-        SKIP = (11, 1, 'SKIP', ('grey_42', ))
-        TIMEOUT = (12, 2, 'TIMEOUT', ('salmon_1', ))
-        DIFF = (13, 3, 'DIFF', ('yellow_1', ))  # error on Differ
-        ERROR = (14, 4, 'ERROR', ('red_1', ))  # error on Runner
-        EXCEPTION = (15, 5, 'EXCEPTION', ('magenta_1', ))  # exception raised by Runner/Differ
-        FATAL = (16, 6, 'FATAL', ('white', 'red_1'))  # internal error (see, run.py)
+        REMOVE = (10, -2, 'REMOVE', ('grey_27', ))
+        SKIP = (11, -1, 'SKIP', ('grey_50', ))
+        PASS = (12, 0, 'OK', ('green_1', ))
+        TIMEOUT = (13, 1, 'TIMEOUT', ('salmon_1', ))
+        DIFF = (14, 2, 'DIFF', ('yellow_1', ))  # error on Differ
+        ERROR = (15, 3, 'ERROR', ('red_1', ))  # error on Runner
+        EXCEPTION = (16, 4, 'EXCEPTION', ('magenta_1', ))  # exception raised by Runner/Differ
+        FATAL = (17, 5, 'FATAL', ('white', 'red_1'))  # internal error (see, run.py)
 
     if platform.python_version() >= "3.7":
 
@@ -497,7 +498,7 @@ class TestCase(MooseObject):
         with mooseutils.CurrentWorkingDirectory(working_dir):
             r_data = self._executeObject(self._runner)
         results[self._runner.name()] = r_data
-        if r_data.state.level > 0:
+        if r_data.state.level != 0:
             return r_data.state, results
 
         # Execute the differs, when the runner returns a PASS state. All differs run, regardless of
@@ -565,7 +566,9 @@ class TestCase(MooseObject):
             with RedirectOutput() as out:
                 try:
                     controller.reset()  # clear log counts
-                    controller.execute(obj, obj.getParam(controller.getParam('prefix')))
+                    params = obj.getParam(controller.getParam('prefix')) if controller.isParamValid(
+                        'prefix') else None
+                    controller.execute(obj, params)
 
                     # Stop if an error is logged on the Controller object
                     if controller.status():
@@ -584,8 +587,9 @@ class TestCase(MooseObject):
                                              obj.getReasons())
 
                     # Skip it...maybe
-                    if not controller.isRunnable():
-                        return TestCase.Data(TestCase.Result.SKIP, None, out.stdout, out.stderr,
+                    c_state = controller.state()
+                    if c_state is not None:
+                        return TestCase.Data(c_state, None, out.stdout, out.stderr,
                                              controller.getReasons())
 
                 except Exception as ex:

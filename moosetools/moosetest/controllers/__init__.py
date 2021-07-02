@@ -9,3 +9,4 @@
 
 from .EnvironmentController import EnvironmentController
 from .AutotoolsConfigController import AutotoolsConfigController, AutotoolsConfigItem
+from .NameController import NameController

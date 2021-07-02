@@ -35,6 +35,8 @@ def cli_args():
     actions['group_name_len'].help = "Set the range of the possible group name length."
     actions['controller_num'].help = "Set the range of the possible number of Controller objects."
     actions[
+        'controller_remove'].help = "Set the probability (0 to 1) of a Controller object causing a remove."
+    actions[
         'controller_skip'].help = "Set the probability (0 to 1) of a Controller object causing a skip."
     actions[
         'controller_raise'].help = "Set the probability (0 to 1) of a Controller object causing an exception."

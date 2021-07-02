@@ -21,13 +21,13 @@ class TestFuzzer(unittest.TestCase):
 
     @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
     def testFuzzerAgain(self):
-        rcode = moosetest.fuzzer()
-        self.assertIn(rcode, (0, 1), group_num=(1, 8))
+        rcode = moosetest.fuzzer(group_num=(1, 8))
+        self.assertIn(rcode, (0, 1))
 
     @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
     def testFuzzerYetAgain(self):
-        rcode = moosetest.fuzzer()
-        self.assertIn(rcode, (0, 1), group_num=(2, 6))
+        rcode = moosetest.fuzzer(group_num=(2, 6))
+        self.assertIn(rcode, (0, 1))
 
 
 if __name__ == '__main__':

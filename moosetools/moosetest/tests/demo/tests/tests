@@ -18,6 +18,10 @@
       []
     []
   []
+  [remove]
+    type = RunCommand
+    command = 'sleep 1.5'
+  []
 []
 
 [Assessments]

@@ -9,6 +9,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 import os
 import unittest
+import enum
 from unittest import mock
 from moosetools import parameters
 from moosetools import pyhit
@@ -62,6 +63,15 @@ class TestParser(unittest.TestCase):
         self.assertConvertArray(str, 'a b c', ('a', 'b', 'c'))
         self.assertConvertArray(bool, '0 1 false true False True',
                                 (False, True, False, True, False, True))
+
+        class Name(enum.Enum):
+            ALLISON = 8
+            ISAAC = 10
+
+        self.assertConvert(Name, 'ALLISON', Name.ALLISON)
+        self.assertConvert(Name, 'ISAAC', Name.ISAAC)
+        value = factory.Parser._getValueFromStr((Name, ), 'ANDREW', False)  # handles wrong name
+        self.assertEqual(value, None)
 
     def testSimple(self):
         f = factory.Factory()
@@ -192,7 +202,7 @@ class TestParser(unittest.TestCase):
             self.assertEqual(p.status(), 1)
             self.assertEqual(len(log.output), 1)
             self.assertIn(
-                "Failed to convert 'None' to the correct type(s) of '(<class 'int'>,)' for 'par_int' parameter",
+                "Failed to convert 'abc' to the correct type(s) of '(<class 'int'>,)' for 'par_int' parameter",
                 log.output[0])
 
         # OBJECT FAILS __INIT__

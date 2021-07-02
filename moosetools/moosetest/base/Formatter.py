@@ -33,20 +33,36 @@ class Formatter(MooseObject):
                    doc="Number of seconds in between progress updates for a test case.")
         return params
 
+    @staticmethod
+    def validCommandLineArguments(parser, params):
+        """
+        Add command-line arguments to the `argparse.ArgumentParser` in *parser*.
+
+        The *params* is the `parameters.InputParameter` object for an instance, see
+        `moosetest.base.TestHarness` for use.
+        """
+        pass
+
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('name', self.__class__.__name__)
         MooseObject.__init__(self, *args, **kwargs)
         self.__progress_time = dict()
         self.__progress_interval = self.getParam('progress_interval')
 
-    def formatRunnerState(self, **kwargs):
-        raise NotImplementedError("The 'formatRunnerState' method must be overridden.")
+    def _setup(self, args):
+        """
+        Function for applying the command line arguments in *args* to the object.
+        """
+        pass
+
+    def formatRunnerProgress(self, **kwargs):
+        raise NotImplementedError("The 'formatRunnerProgress' method must be overridden.")
 
     def formatRunnerResult(self, **kwargs):
         raise NotImplementedError("The 'formatRunnerResult' method must be overridden.")
 
-    def formatDifferState(self, **kwargs):
-        raise NotImplementedError("The 'formatDifferState' method must be overridden.")
+    def formatDifferProgress(self, **kwargs):
+        raise NotImplementedError("The 'formatDifferProgress' method must be overridden.")
 
     def formatDifferResult(self, **kwargs):
         raise NotImplementedError("The 'formatDifferResult' method must be overridden.")
@@ -149,9 +165,9 @@ class Formatter(MooseObject):
         kwargs['percent'] = TestCase.__FINISHED__ / TestCase.__TOTAL__ * 100
 
         if obj is tc_obj.runner:
-            txt = self.formatRunnerState(**kwargs)
+            txt = self.formatRunnerProgress(**kwargs)
         else:
-            txt = self.formatDifferState(**kwargs)
+            txt = self.formatDifferProgress(**kwargs)
         if txt:
             print(txt)
 
