@@ -52,6 +52,7 @@ def fuzzer(timeout=(3, 10),
            group_num=(int(15), int(50)),
            group_name_len=(int(6), int(25)),
            controller_num=(int(1), int(6)),
+           controller_remove=0.05,
            controller_skip=0.05,
            controller_raise=0.05,
            controller_error=0.1,
@@ -69,7 +70,7 @@ def fuzzer(timeout=(3, 10),
            runner_platform=0.1,
            runner_name_len=(int(4), int(29)),
            requires_error=0.01,
-           requires_use=0.25):
+           requires_use=0.35):
     """
     A tool for calling `run` function with randomized test cases.
     """
@@ -82,6 +83,7 @@ def fuzzer(timeout=(3, 10),
         kwargs['stdout'] = True
         kwargs['stderr'] = True
         kwargs['prefix'] = "ctrl{:0.0f}".format(i)
+        kwargs['remove'] = _gen_bool_with_odds(controller_remove)
         kwargs['skip'] = _gen_bool_with_odds(controller_skip)
         kwargs['error'] = _gen_bool_with_odds(controller_error)
         kwargs['raise'] = _gen_bool_with_odds(controller_raise)

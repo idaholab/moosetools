@@ -18,6 +18,7 @@ class TestController(Controller):
     def validParams():
         params = Controller.validParams()
         params.setValue('prefix', 'ctrl')
+        params.add('remove', default=False)
         params.add('skip', default=False)
         params.add('stdout', default=False)
         params.add('stderr', default=False)
@@ -44,6 +45,8 @@ class TestController(Controller):
 
         obj_name = self.getParam('object_name')
         if (obj_name is None) or (obj.name().startswith(obj_name)):
+            if self.getParam('remove'):
+                self.skipremove("remove reason")
             if self.getParam('skip'):
                 self.skip("a reason")
             if self.getParam('stdout'):

@@ -331,9 +331,9 @@ class TestRun(unittest.TestCase):
             self.value = value
 
     def setUp(self):
-        r_state_mock = mock.patch('moosetools.moosetest.base.Formatter.formatRunnerState')
+        r_state_mock = mock.patch('moosetools.moosetest.base.Formatter.formatRunnerProgress')
         r_results_mock = mock.patch('moosetools.moosetest.base.Formatter.formatRunnerResult')
-        d_state_mock = mock.patch('moosetools.moosetest.base.Formatter.formatDifferState')
+        d_state_mock = mock.patch('moosetools.moosetest.base.Formatter.formatDifferProgress')
         d_results_mock = mock.patch('moosetools.moosetest.base.Formatter.formatDifferResult')
         complete_mock = mock.patch('moosetools.moosetest.base.Formatter.formatComplete')
 

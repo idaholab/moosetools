@@ -508,6 +508,8 @@ class TestTestCase(unittest.TestCase):
         # Skip, Controller with Runner
         ct.setValue('skip', True)
         s, r = tc.execute()
+        print(s)
+        print(r)
         self.assertEqual(s, TestCase.Result.SKIP)
         self.assertEqual(list(r.keys()), ['r'])
         self.assertEqual(r['r'].state, TestCase.Result.SKIP)

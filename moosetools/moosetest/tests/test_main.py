@@ -103,7 +103,7 @@ class TestMakeFormatter(unittest.TestCase):
         self.assertEqual(mock_chdir.call_count, 2)
         mock_chdir.assert_called_with(os.getcwd())
         self.assertIsInstance(formatter, BasicFormatter)
-        self.assertEqual(formatter.getParam('print_state'), TestCase.Result.DIFF)
+        self.assertEqual(formatter.getParam('min_print_result'), TestCase.Result.DIFF)
 
     def testOverride(self):
         root = pyhit.Node(None)

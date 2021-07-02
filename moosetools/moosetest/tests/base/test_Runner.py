@@ -43,6 +43,9 @@ class TestRunner(unittest.TestCase):
             def getParam(self, value):
                 return 'test'
 
+            def isParamValid(self, name):
+                return True
+
         runner = moosetest.base.make_runner(moosetest.base.Runner, (ProxyController(), ),
                                             name='name',
                                             test_platform='TempleOS')

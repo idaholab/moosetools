@@ -19,28 +19,28 @@ from moosetools import moosetest
 class TestController(unittest.TestCase):
     def testDefault(self):
 
-        with self.assertRaises(core.MooseException) as ex:
-            moosetest.base.Controller()
-        self.assertIn("The parameter 'prefix' is marked as required", str(ex.exception))
-
         ctrl = moosetest.base.Controller(prefix="foo")
         self.assertEqual(ctrl.name(), 'Controller')
-        self.assertTrue(ctrl.isRunnable())
+        self.assertIsNone(ctrl.state())
 
         with self.assertRaises(NotImplementedError) as ex:
             ctrl.execute(None, None)
         self.assertIn("The 'execute' method must be overridden.", str(ex.exception))
 
-    def test_isRunnable(self):
+    def test_state(self):
         ctrl = moosetest.base.Controller(prefix="foo")
-        self.assertTrue(ctrl.isRunnable())
+        self.assertIsNone(ctrl.state())
         ctrl.skip("Don't do it!")
-        self.assertFalse(ctrl.isRunnable())
+        self.assertEqual(ctrl.state(), moosetest.base.TestCase.Result.SKIP)
         self.assertIn("Don't do it!", ctrl.getReasons())
 
         ctrl.reset()
-        self.assertTrue(ctrl.isRunnable())
+        self.assertIsNone(ctrl.state())
         self.assertNotIn("Don't do it!", ctrl.getReasons())
+
+        ctrl.remove("Don't do it!")
+        self.assertEqual(ctrl.state(), moosetest.base.TestCase.Result.REMOVE)
+        self.assertIn("Don't do it!", ctrl.getReasons())
 
     def test_validObjectParams(self):
         params = moosetest.base.Controller.validObjectParams()

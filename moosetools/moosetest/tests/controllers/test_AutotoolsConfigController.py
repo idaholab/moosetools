@@ -12,7 +12,7 @@ import os
 import unittest
 from unittest import mock
 from moosetools.core import MooseObject
-from moosetools.moosetest.base import make_differ
+from moosetools.moosetest.base import make_differ, TestCase
 from moosetools.moosetest.controllers import AutotoolsConfigController, AutotoolsConfigItem
 
 
@@ -60,13 +60,13 @@ class Test(unittest.TestCase):
         obj = make_differ(TestDiffer, (ctrl, ))
 
         ctrl.execute(obj, obj.getParam('moose'))
-        self.assertTrue(ctrl.isRunnable())
+        self.assertEqual(ctrl.state(), None)
 
         obj.parameters().setValue('moose', 'ad_mode', 'NONSPARSE')
         ctrl.reset()
         with self.assertLogs(level='DEBUG') as log:
             ctrl.execute(obj, obj.getParam('moose'))
-        self.assertFalse(ctrl.isRunnable())
+        self.assertEqual(ctrl.state(), TestCase.Result.SKIP)
         self.assertEqual(len(log.output), 1)
         self.assertIn(
             "The application is configured with 'MOOSE_SPARSE_AD' equal to '1', which maps to a value of 'SPARSE'. However, the associated 'ad_mode' parameter for this test requires 'NONSPARSE'.",

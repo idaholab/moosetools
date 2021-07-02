@@ -225,7 +225,7 @@ def _execute_testcases(testcases, result_send, timeout):
             # Case when names do exist, but have not passed. See comment above for "not_in" variable.
             not_pass = [
                 name for name in requires
-                if any((k.endswith(name) and v.level > 0) for k, v in test_results.items())
+                if any((k.endswith(name) and v.level != 0) for k, v in test_results.items())
             ]
             if not_pass:
                 msg = "For the test '{}', the required test(s) '{}' have not executed and passed.".format(

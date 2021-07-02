@@ -10,6 +10,7 @@
 import io
 import platform
 import logging
+from moosetools import moosetest
 from moosetools.parameters import InputParameters
 from .MooseTestObject import MooseTestObject
 
@@ -35,7 +36,6 @@ class Controller(MooseTestObject):
         params = MooseTestObject.validParams()
         params.add('prefix',
                    vtype=str,
-                   required=True,
                    mutable=False,
                    doc="Set the sub-parameters prefix of the controller.")
         return params
@@ -62,7 +62,7 @@ class Controller(MooseTestObject):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault('name', self.__class__.__name__)
         MooseTestObject.__init__(self, *args, **kwargs)
-        self.__runnable = True
+        self.__state = None
 
     def _setup(self, args):
         """
@@ -74,17 +74,22 @@ class Controller(MooseTestObject):
         """
         Reset the "runnable" state, the skip reasons, and the log status.
         """
-        self.__runnable = True
+        self.__state = None
         MooseTestObject.reset(self)
 
-    def isRunnable(self):
+    def state(self):
         """
-        Return `True` if the `execute` method of the object provided to the `execute` method of this
-        class should be called.
+        Return the desired TestCase.Result state of the object.
+
+        Three values are possible to be returned:
+
+        - `None` indicates that the object should execute.
+        - `TestCase.Result.SKIP` indicates that the object should not execute and marked as skipped
+        - `TestCase.Result.REMOVE` indicates that the object should not execute and marked as removed
 
         See `moosetest.base.TestCase` for details of how this method is used.
         """
-        return self.__runnable
+        return self.__state
 
     def skip(self, msg, *args, **kwargs):
         """
@@ -100,7 +105,16 @@ class Controller(MooseTestObject):
         detailed messages be logged with the 'debug' method. For an example please refer to the
         `moosetest.controllers.EnvironmentController` for an example.
         """
-        self.__runnable = False
+        self.__state = moosetest.base.TestCase.Result.SKIP
+        self.reason(msg, *args, **kwargs)
+
+    def remove(self, msg, *args, **kwargs):
+        """
+        Indicate that the object passed to the `execute` method of this class should be removed.
+
+        See `skip` method for input details.
+        """
+        self.__state = moosetest.base.TestCase.Result.REMOVE
         self.reason(msg, *args, **kwargs)
 
     def execute(self, obj, params):

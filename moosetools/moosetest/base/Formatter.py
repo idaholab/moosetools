@@ -55,14 +55,14 @@ class Formatter(MooseObject):
         """
         pass
 
-    def formatRunnerState(self, **kwargs):
-        raise NotImplementedError("The 'formatRunnerState' method must be overridden.")
+    def formatRunnerProgress(self, **kwargs):
+        raise NotImplementedError("The 'formatRunnerProgress' method must be overridden.")
 
     def formatRunnerResult(self, **kwargs):
         raise NotImplementedError("The 'formatRunnerResult' method must be overridden.")
 
-    def formatDifferState(self, **kwargs):
-        raise NotImplementedError("The 'formatDifferState' method must be overridden.")
+    def formatDifferProgress(self, **kwargs):
+        raise NotImplementedError("The 'formatDifferProgress' method must be overridden.")
 
     def formatDifferResult(self, **kwargs):
         raise NotImplementedError("The 'formatDifferResult' method must be overridden.")
@@ -165,9 +165,9 @@ class Formatter(MooseObject):
         kwargs['percent'] = TestCase.__FINISHED__ / TestCase.__TOTAL__ * 100
 
         if obj is tc_obj.runner:
-            txt = self.formatRunnerState(**kwargs)
+            txt = self.formatRunnerProgress(**kwargs)
         else:
-            txt = self.formatDifferState(**kwargs)
+            txt = self.formatDifferProgress(**kwargs)
         if txt:
             print(txt)
 
