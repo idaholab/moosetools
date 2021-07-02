@@ -13,6 +13,8 @@ import sys
 import re
 import time
 import logging
+import enum
+import inspect
 from moosetools import core
 from moosetools import moosetree
 from moosetools import pyhit
@@ -176,7 +178,7 @@ class Parser(core.MooseObject):
                 new_value = Parser._getValueFromStr(vtype, str(value), param.array)
                 if new_value is None:
                     msg = "{}:{}\nFailed to convert '{}' to the correct type(s) of '{}' for '{}' parameter."
-                    self.error(msg, filename, node.line(key, -1), new_value, vtype, key)
+                    self.error(msg, filename, node.line(key, -1), value, vtype, key)
                 value = new_value
 
             if value is not None:
@@ -204,6 +206,13 @@ class Parser(core.MooseObject):
                     if val.lower() in ('0', '1', 'true', 'false'):
                         out = val.lower() in ('1', 'true')
                         break
+
+                elif enum.Enum in inspect.getmro(vtype):
+                    try:
+                        out = vtype[val]
+                        break
+                    except KeyError:
+                        pass
                 else:
                     try:
                         out = vtype(val)

@@ -33,7 +33,8 @@ class TestFormatter(unittest.TestCase):
         self.assertEqual(f.name(), 'Formatter')
 
         methods = [
-            'formatRunnerState', 'formatRunnerResult', 'formatDifferState', 'formatDifferResult'
+            'formatRunnerProgress', 'formatRunnerResult', 'formatDifferProgress',
+            'formatDifferResult'
         ]
         for method in methods:
             with self.assertRaises(NotImplementedError) as ex:
@@ -156,8 +157,8 @@ class TestFormatter(unittest.TestCase):
 
     @mock.patch("moosetools.moosetest.base.Formatter.formatDifferResult")
     @mock.patch("moosetools.moosetest.base.Formatter.formatRunnerResult")
-    @mock.patch("moosetools.moosetest.base.Formatter.formatDifferState")
-    @mock.patch("moosetools.moosetest.base.Formatter.formatRunnerState")
+    @mock.patch("moosetools.moosetest.base.Formatter.formatDifferProgress")
+    @mock.patch("moosetools.moosetest.base.Formatter.formatRunnerProgress")
     def testPrintState(self, r_state, d_state, r_result, d_result):
 
         # Runner
@@ -233,6 +234,14 @@ class TestFormatter(unittest.TestCase):
         time.sleep(1.1)
         fm.reportProgress(tc)
         pstate.assert_called()
+
+    def test_validCommandLineArguments(self):
+        params = moosetest.base.Formatter.validCommandLineArguments(None, None)
+        self.assertIsNone(params)
+
+    def test_setup(self):
+        f = moosetest.base.Formatter()
+        self.assertIsNone(f._setup(None))
 
 
 if __name__ == '__main__':

@@ -18,11 +18,11 @@ import platform
 import logging
 import concurrent.futures
 
-from moosetools.moosetest.base import make_runner, make_differ, TestCase, State, Formatter, Runner, Differ, Filter
+from moosetools.moosetest.base import make_runner, make_differ, TestCase, State, Formatter, Runner, Differ
 from moosetools.moosetest.runners import RunCommand
 from moosetools.moosetest import run, fuzzer
 from moosetools.moosetest.run import _execute_testcase, _execute_testcases
-from moosetools.moosetest.run import _report_progress_and_results, _apply_filters
+from moosetools.moosetest.run import _report_progress_and_results
 
 # I do not want the tests directory to be packages with __init__.py, so load from file
 sys.path.append(os.path.join(os.path.dirname(__file__)))
@@ -54,6 +54,7 @@ def make_testcase_map(*args):
 
 
 class TestRunExecuteHelpers(unittest.TestCase):
+    @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
     def test_execute_testcase(self):
         r = make_runner(RunCommand, name='test', command=('sleep', '0'))
         tc = TestCase(runner=r)
@@ -303,26 +304,6 @@ class TestReportHelper(unittest.TestCase):
 
 
 @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
-class TestApplyFilters(unittest.TestCase):
-    def test(self):
-        class TestFilter(Filter):
-            def __init__(self, remove=False):
-                Filter.__init__(self)
-                self.__call_remove = remove
-
-            def execute(self, runner):
-                if self.__call_remove:
-                    self.remove()
-
-        runner = make_runner(RunCommand, name='test0', command=('echo', ))
-        self.assertFalse(_apply_filters([TestFilter(True), TestFilter(False)], runner))
-        self.assertFalse(_apply_filters([TestFilter(True), TestFilter(True)], runner))
-        self.assertFalse(_apply_filters([TestFilter(False), TestFilter(True)], runner))
-        self.assertTrue(_apply_filters([TestFilter(False), TestFilter(False)], runner))
-        self.assertTrue(_apply_filters(None, runner))
-
-
-@unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
 class TestRun(unittest.TestCase):
     ANY = 42
 
@@ -331,9 +312,9 @@ class TestRun(unittest.TestCase):
             self.value = value
 
     def setUp(self):
-        r_state_mock = mock.patch('moosetools.moosetest.base.Formatter.formatRunnerState')
+        r_state_mock = mock.patch('moosetools.moosetest.base.Formatter.formatRunnerProgress')
         r_results_mock = mock.patch('moosetools.moosetest.base.Formatter.formatRunnerResult')
-        d_state_mock = mock.patch('moosetools.moosetest.base.Formatter.formatDifferState')
+        d_state_mock = mock.patch('moosetools.moosetest.base.Formatter.formatDifferProgress')
         d_results_mock = mock.patch('moosetools.moosetest.base.Formatter.formatDifferResult')
         complete_mock = mock.patch('moosetools.moosetest.base.Formatter.formatComplete')
 
@@ -385,7 +366,7 @@ class TestRun(unittest.TestCase):
 
         with mock.patch('concurrent.futures.Future.exception', return_value=Exception('future exception')), \
         self.assertRaises(Exception) as cm:
-            rcode = run([[r]], tuple(), fm, tuple())
+            rcode = run([[r]], tuple(), fm)
         self.assertIn('future exception', str(cm.exception))
 
     def testRunnerOnly(self):
@@ -393,7 +374,7 @@ class TestRun(unittest.TestCase):
         fm = Formatter()
 
         # PASS
-        rcode = run([[r]], tuple(), fm, tuple())
+        rcode = run([[r]], tuple(), fm)
         self.assertEqual(rcode, 0)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -421,7 +402,7 @@ class TestRun(unittest.TestCase):
         r.setValue('error', True)
         r.setValue('stderr', False)
         r.setValue('stdout', False)
-        rcode = run([[r]], tuple(), fm, tuple())
+        rcode = run([[r]], tuple(), fm)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -448,7 +429,7 @@ class TestRun(unittest.TestCase):
         self.resetMockObjects()
         r.setValue('error', False)
         r.setValue('raise', True)
-        rcode = run([[r]], tuple(), fm, tuple())
+        rcode = run([[r]], tuple(), fm)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -475,7 +456,7 @@ class TestRun(unittest.TestCase):
         self.resetMockObjects()
         r.setValue('raise', False)
         r.setValue('sleep', 1)
-        rcode = run([[r]], tuple(), fm, tuple(), timeout=0.5)
+        rcode = run([[r]], tuple(), fm, timeout=0.5)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -504,7 +485,7 @@ class TestRun(unittest.TestCase):
         fm = Formatter()
 
         # PASS
-        rcode = run([[r]], (c, ), fm, tuple())
+        rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 0)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -531,7 +512,7 @@ class TestRun(unittest.TestCase):
         c.setValue('error', True)
         c.setValue('stderr', False)
         c.setValue('stdout', False)
-        rcode = run([[r]], (c, ), fm, tuple())
+        rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -558,7 +539,7 @@ class TestRun(unittest.TestCase):
         self.resetMockObjects()
         c.setValue('error', False)
         with mock.patch('moosetools.moosetest.base.Runner.status', return_value=1):
-            rcode = run([[r]], (c, ), fm, tuple())
+            rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -585,7 +566,7 @@ class TestRun(unittest.TestCase):
         self.resetMockObjects()
         c.setValue('error', False)
         c.setValue('raise', True)
-        rcode = run([[r]], (c, ), fm, tuple())
+        rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -612,7 +593,7 @@ class TestRun(unittest.TestCase):
         self.resetMockObjects()
         c.setValue('raise', False)
         c.setValue('sleep', 1)
-        rcode = run([[r]], (c, ), fm, tuple(), timeout=0.5)
+        rcode = run([[r]], (c, ), fm, timeout=0.5)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -639,7 +620,7 @@ class TestRun(unittest.TestCase):
         self.resetMockObjects()
         c.setValue('skip', True)
         c.setValue('sleep', 0)
-        rcode = run([[r]], (c, ), fm, tuple())
+        rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 0)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -669,7 +650,7 @@ class TestRun(unittest.TestCase):
         fm = Formatter()
 
         # PASS
-        rcode = run([[r]], tuple(), fm, tuple())
+        rcode = run([[r]], tuple(), fm)
         self.assertEqual(rcode, 0)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -726,7 +707,7 @@ class TestRun(unittest.TestCase):
         d0.setValue('stderr', False)
         d1.setValue('stdout', False)
         d0.setValue('error', True)
-        rcode = run([[r]], tuple(), fm, tuple())
+        rcode = run([[r]], tuple(), fm)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -782,7 +763,7 @@ class TestRun(unittest.TestCase):
         self.resetMockObjects()
         d0.setValue('error', False)
         d1.setValue('raise', True)
-        rcode = run([[r]], tuple(), fm, tuple())
+        rcode = run([[r]], tuple(), fm)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -838,7 +819,7 @@ class TestRun(unittest.TestCase):
         self.resetMockObjects()
         d1.setValue('sleep', 1)
         d1.setValue('raise', False)
-        rcode = run([[r]], tuple(), fm, tuple(), timeout=0.5)
+        rcode = run([[r]], tuple(), fm, timeout=0.5)
         self.assertEqual(rcode, 1)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -869,7 +850,7 @@ class TestRun(unittest.TestCase):
 
         # SKIP, RUNNER
         c.setValue('skip', True)
-        rcode = run([[r]], (c, ), fm, tuple())
+        rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 0)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -895,7 +876,7 @@ class TestRun(unittest.TestCase):
         # SKIP, DIFFER
         self.resetMockObjects()
         c.setValue('object_name', d0.name())
-        rcode = run([[r]], (c, ), fm, tuple())
+        rcode = run([[r]], (c, ), fm)
         self.assertEqual(rcode, 0)
         self._r_state.assert_called_once()
         self._r_results.assert_called_once()
@@ -958,7 +939,7 @@ class TestRun(unittest.TestCase):
         # is created. Thus, even if max fail is hit the worker should finish, thus nothing reported
         # as max failed. At one point both the max fail and dependency message were being dumped
         # with this test, but it should only be the dependency.
-        rcode = run([[r0, r1, r2]], tuple(), fm, tuple(), max_fails=1)
+        rcode = run([[r0, r1, r2]], tuple(), fm, max_fails=1)
         self.assertEqual(rcode, 1)
         self.assertEqual(self._r_state.call_count, 3)
         self.assertEqual(self._r_results.call_count, 3)
@@ -1027,7 +1008,7 @@ class TestRun(unittest.TestCase):
         groups[0][0].setValue('sleep', 0)
 
         self.resetMockObjects()
-        rcode = run(groups, tuple(), fm, tuple(), n_threads=1, max_fails=1)
+        rcode = run(groups, tuple(), fm, n_threads=1, max_fails=1)
 
         self.assertEqual(rcode, 1)
         self.assertEqual(self._r_state.call_count, 5)
@@ -1072,7 +1053,7 @@ class TestRun(unittest.TestCase):
         r = make_runner(TestRunner, (c, ), name='Andrew')
         fm = Formatter()
 
-        rcode = run([[r]], (c, ), fm, tuple(), min_fail_state=TestCase.Result.SKIP)
+        rcode = run([[r]], (c, ), fm, min_fail_state=TestCase.Result.SKIP)
         self.assertEqual(rcode, 1)  # this is what is being tested
         self.assertEqual(self._r_state.call_count, 1)
         self.assertEqual(self._r_results.call_count, 1)
@@ -1101,7 +1082,7 @@ class TestRun(unittest.TestCase):
         r2 = make_runner(TestRunner, name='Best Andrew', requires=('Other Andrew', ))
         fm = Formatter()
 
-        rcode = run([[r0, r1, r2]], tuple(), fm, tuple())
+        rcode = run([[r0, r1, r2]], tuple(), fm)
         self.assertEqual(rcode, 1)
         self.assertEqual(self._r_state.call_count, 3)
         self.assertEqual(self._r_results.call_count, 3)

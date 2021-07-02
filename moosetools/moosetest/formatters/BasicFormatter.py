@@ -80,10 +80,14 @@ class BasicFormatter(Formatter):
         params.add('width', vtype=int,
                    doc="The width of the state output (the results output is not altered), if not " \
                        "provided terminal width is inferred, if possible, otherwise a default width of 80 is utilized.")
-        params.add('print_state',
+        params.add('min_print_result',
                    vtype=TestCase.Result,
                    default=TestCase.Result.DIFF,
-                   doc="The minimum state of results to display.")
+                   doc="The minimum TestCase.Result state necessary to show results.")
+        params.add('min_print_progress',
+                   vtype=TestCase.Result,
+                   default=TestCase.Result.SKIP,
+                   doc="The minimum TestCase.Result state necessary to show progress.")
         params.add('differ_indent',
                    default=' ' * 4,
                    vtype=str,
@@ -138,20 +142,20 @@ class BasicFormatter(Formatter):
         """
         return shorten_line(content, max_length, **kwargs)
 
-    def formatRunnerState(self, **kwargs):
+    def formatRunnerProgress(self, **kwargs):
         """
         Return the progress line from a `Runner` object. (override)
         """
-        return self._formatState(**kwargs)
+        return self._formatProgress(**kwargs)
 
-    def formatDifferState(self, **kwargs):
+    def formatDifferProgress(self, **kwargs):
         """
         Return the progress line from a `Differ` object. (override)
         """
         kwargs.pop('percent')
         kwargs.pop('duration')
         kwargs['indent'] = self.getParam('differ_indent')
-        return self._formatState(**kwargs)
+        return self._formatProgress(**kwargs)
 
     def formatRunnerResult(self, **kwargs):
         """
@@ -201,10 +205,14 @@ class BasicFormatter(Formatter):
 
         return '\n'.join(out)
 
-    def _formatState(self, **kwargs):
+    def _formatProgress(self, **kwargs):
         """
         Helper method for printing the progress line.
         """
+        state = kwargs.get('state')
+        min_progress = self.getParam('min_print_progress')
+        if state.level < min_progress.level:
+            return None
 
         # Build suffix string that contains percent/duration information
         percent = kwargs.get('percent', None)
@@ -217,7 +225,6 @@ class BasicFormatter(Formatter):
 
         # Build the main status line
         indent = kwargs.get('indent', '')
-        state = kwargs.get('state')
         status = f"{state.text:<{self._max_state_width}}"
         width_avail = self.width() - sum(len(x) for x in [indent, status]) - self._extra_width
         name = self.shortenLine(kwargs.get('name'), math.floor(0.66 * width_avail))
@@ -239,25 +246,27 @@ class BasicFormatter(Formatter):
         """
         Helper method for printing the results.
         """
-        indent = kwargs.get('indent', '')
         state = kwargs.get('state')
+        min_state = self.getParam('min_print_result')
+        if state.level < min_state.level:
+            return None
+
+        indent = kwargs.get('indent', '')
         name = kwargs.get('name')
-        max_state = self.getParam('print_state')
-        if state.level >= max_state.level:
-            stdout = kwargs.get('stdout')
-            if stdout is not None:
-                prefix = indent + state.format(name) + ' '
-                stdout = textwrap.indent(self.shortenLines(kwargs.get('stdout')), prefix,
-                                         lambda *args: True)
-            else:
-                stdout = ''
+        stdout = kwargs.get('stdout')
+        if stdout is not None:
+            prefix = indent + state.format(name) + ' '
+            stdout = textwrap.indent(self.shortenLines(kwargs.get('stdout')), prefix,
+                                     lambda *args: True)
+        else:
+            stdout = ''
 
-            stderr = kwargs.get('stderr')
-            if stderr is not None:
-                prefix = indent + state.format(name) + ' '
-                stderr = textwrap.indent(self.shortenLines(kwargs.get('stderr')), prefix,
-                                         lambda *args: True)
-            else:
-                stderr = ''
+        stderr = kwargs.get('stderr')
+        if stderr is not None:
+            prefix = indent + state.format(name) + ' '
+            stderr = textwrap.indent(self.shortenLines(kwargs.get('stderr')), prefix,
+                                     lambda *args: True)
+        else:
+            stderr = ''
 
-            return (stdout + stderr).strip('\n')
+        return (stdout + stderr).strip('\n')

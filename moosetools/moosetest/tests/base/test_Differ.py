@@ -41,6 +41,9 @@ class TestDiffer(unittest.TestCase):
             def getParam(self, value):
                 return 'test'
 
+            def isParamValid(self, name):
+                return True
+
         diff = moosetest.base.make_differ(moosetest.base.Differ, [
             ProxyController(),
         ],

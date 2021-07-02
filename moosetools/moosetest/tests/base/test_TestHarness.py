@@ -19,47 +19,35 @@ from moosetools import mooseutils
 from moosetools import moosetest
 
 
-class NewTestHarness(moosetest.base.TestHarness):
-    @staticmethod
-    def validParams():
-        params = moosetest.base.TestHarness.validParams()
-        params.add('number', default=1949)
-        return params
-
-    @staticmethod
-    def createCommandLineParser(params):
-        parser = moosetest.base.TestHarness.createCommandLineParser(
-            moosetest.base.TestHarness.validParams())
-        parser.add_argument('--number')
-        return parser
-
-    def _setup(self, args):
-        moosetest.base.TestHarness._setup(self, args)
-        self.parameters().setValue('number', int(args.number))
-
-
 class TestTestHarness(unittest.TestCase):
     def testDefault(self):
         th = moosetest.base.TestHarness()
         self.assertEqual(th.getParam('timeout'), 300)
 
-    def testCreateCommandLineParser(self):
-        parser = moosetest.base.TestHarness.createCommandLineParser(
-            moosetest.base.TestHarness.validParams())
-        self.assertIsInstance(parser, argparse.ArgumentParser)
+    def test_validCommandLineArguments(self):
+        parser = argparse.ArgumentParser()
+        moosetest.base.TestHarness.validCommandLineArguments(
+            parser, moosetest.base.TestHarness.validParams())
+
+        args = parser.parse_args(args=[])
+        self.assertIn('n_threads', args)
+
+    def test_setup(self):
+        th = moosetest.base.TestHarness()
+        args = argparse.Namespace(n_threads=None, timeout=1980., max_failures=None)
+        th._setup(args)
+        self.assertEqual(th.getParam('timeout'), 1980.)
 
     @mock.patch('argparse.ArgumentParser.parse_args')
     def test_parse(self, mock_args):
 
-        mock_args.return_value = argparse.Namespace(number=1980,
-                                                    timeout=10.,
+        mock_args.return_value = argparse.Namespace(timeout=10.,
                                                     max_failures=42,
                                                     spec_file_blocks=['Assessments', 'Tests'],
                                                     spec_file_names=['a', 'b'])
 
-        th = NewTestHarness()
+        th = moosetest.base.TestHarness()
         th.parse()
-        self.assertEqual(th.getParam('number'), 1980)
         self.assertEqual(th.getParam('timeout'), 10)
         self.assertEqual(th.getParam('max_failures'), 42)
         self.assertEqual(th.getParam('spec_file_blocks'), ('Assessments', 'Tests'))
@@ -68,7 +56,7 @@ class TestTestHarness(unittest.TestCase):
     def test_run(self):
         path = os.path.join(os.path.dirname(__file__), '..', 'demo')
         with mooseutils.CurrentWorkingDirectory(path):
-            th = NewTestHarness()
+            th = moosetest.base.TestHarness()
             rcode = th.run()
 
         self.assertEqual(rcode, 0)

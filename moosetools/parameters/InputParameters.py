@@ -12,6 +12,7 @@ import re
 import enum
 import logging
 import copy
+import argparse
 
 from moosetools import core
 from .Parameter import Parameter
@@ -338,6 +339,44 @@ class InputParameters(object):
             if key in keys:
                 out.append(param.toString(prefix=prefix, level=level))
         return '\n\n'.join(out)
+
+    def toArgs(self, parser, *args):
+        """
+        Add the supplied parameter names in *\*args* as arguments to the *parser*.
+
+        The *parser is expected to be an `argparse.ArgumentParser` object and the given parameters
+        are added with the `add_argument` method of this object.
+        """
+        if not isinstance(parser, argparse.ArgumentParser):
+            msg = "The supplied parser input is not an `argparse.ArgumentParser object."
+            self.__errorHelper(msg)
+            return
+
+        for name in args:
+            param = self._getParameter(name)
+            action = parser.add_argument(f"--{name}")
+            if param.vtype is not None:
+                action.type = param.vtype[0]
+            if param.array:
+                action.nargs = param.size if (param.size is not None) else '+'
+            if param.default is not None:
+                action.default = param.default
+            action.help = param.doc
+
+    def fromArgs(self, namespace, *args):
+        """
+        Update the values of the supplied parameter names in *\*args* with content of *namespace*.
+
+        The *namespace* is expected to be an `argparse.Namespase` object.
+        """
+        if not isinstance(namespace, argparse.Namespace):
+            msg = "The supplied namespace input is not an `argparse.Namespace object."
+            self.__errorHelper(msg)
+            return
+
+        for name, value in vars(namespace).items():
+            if (name in args) and (value is not None):
+                self.setValue(name, tuple(value) if isinstance(value, list) else value)
 
     def _getParameter(self, *args, suppress_error=False):
         """

@@ -4,3 +4,15 @@ MOOSETOOLS_PLUGIN_DIRS = ./plugins/moosetest
   type = TestHarness
   timeout = 10
 []
+
+[Controllers]
+  [name]
+    type = NameController
+    remove_if_text_in_name = remove
+  []
+[]
+
+[Formatter]
+  type = BasicFormatter
+  min_print_progress = REMOVE
+[]

@@ -90,7 +90,7 @@ class TestBasicFormatter(unittest.TestCase):
         obj = BasicFormatter()
         self.assertEqual(obj.shortenLine("andrew", 2), "a...w")
 
-    def test_formatState(self):
+    def test_formatProgress(self):
         obj = BasicFormatter(width=60)
 
         kwargs = dict()
@@ -101,33 +101,39 @@ class TestBasicFormatter(unittest.TestCase):
         kwargs['reasons'] = None
 
         with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
-            text = obj._formatState(**kwargs)
+            text = obj._formatProgress(**kwargs)
         self.assertEqual(text, "The:name/of/test...................RUNNING    42% [123.4s]  ")
 
         kwargs['reasons'] = ['reason']
         with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
-            text = obj._formatState(**kwargs)
+            text = obj._formatProgress(**kwargs)
         self.assertEqual(text, "The:name/of/test..........[reason] RUNNING    42% [123.4s]  ")
 
         # Long reasons
         kwargs['reasons'] = ['the', 'reasons', 'are', 'many']
         with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
-            text = obj._formatState(**kwargs)
+            text = obj._formatProgress(**kwargs)
         self.assertEqual(text, "The:name/of/test..[...; are; many] RUNNING    42% [123.4s]  ")
 
         # Long name
         kwargs['name'] = "This/is/a/long/name/that/will/get/shortened/in/the/middle"
         kwargs['reasons'] = None
         with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
-            text = obj._formatState(**kwargs)
+            text = obj._formatProgress(**kwargs)
         self.assertEqual(text, "This/is/a/l.../the/middle..........RUNNING    42% [123.4s]  ")
 
         # Long name and long reasons
         kwargs['name'] = "This/is/a/long/name/that/will/get/shortened/in/the/middle"
         kwargs['reasons'] = ['the', 'reasons', 'are', 'many']
         with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
-            text = obj._formatState(**kwargs)
+            text = obj._formatProgress(**kwargs)
         self.assertEqual(text, "This/is/a/l.../the/middle..[...ny] RUNNING    42% [123.4s]  ")
+
+        # Max
+        obj.parameters().setValue('min_print_progress', TestCase.Result.ERROR)
+        with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
+            text = obj._formatProgress(**kwargs)
+        self.assertIsNone(text)
 
     def test_formatResult(self):
         obj = BasicFormatter(width=60)
@@ -145,7 +151,7 @@ class TestBasicFormatter(unittest.TestCase):
             text = obj._formatResult(**kwargs)
         self.assertEqual(text, None)
 
-        obj = BasicFormatter(width=60, print_state=TestCase.Result.PASS)
+        obj = BasicFormatter(width=60, min_print_result=TestCase.Result.PASS)
         with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
             text = obj._formatResult(**kwargs)
         self.assertIn('regular output', text)
@@ -157,16 +163,23 @@ class TestBasicFormatter(unittest.TestCase):
             text = obj._formatResult(**kwargs)
         self.assertIn('', text)
 
-    def test_formatRunnerState(self):
+        # Max
+        kwargs['stdout'] = 'regular output\n'
+        obj.parameters().setValue('min_print_result', TestCase.Result.ERROR)
+        with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
+            text = obj._formatResult(**kwargs)
+        self.assertIsNone(text)
+
+    def test_formatRunnerProgress(self):
         obj = BasicFormatter()
-        with mock.patch('moosetools.moosetest.formatters.BasicFormatter._formatState') as fm:
-            obj.formatRunnerState(name='Andrew')
+        with mock.patch('moosetools.moosetest.formatters.BasicFormatter._formatProgress') as fm:
+            obj.formatRunnerProgress(name='Andrew')
         fm.assert_called_once_with(name='Andrew')
 
-    def test_formatDifferState(self):
+    def test_formatDifferProgress(self):
         obj = BasicFormatter()
-        with mock.patch('moosetools.moosetest.formatters.BasicFormatter._formatState') as fm:
-            obj.formatDifferState(name='Andrew', percent=42, duration=42)
+        with mock.patch('moosetools.moosetest.formatters.BasicFormatter._formatProgress') as fm:
+            obj.formatDifferProgress(name='Andrew', percent=42, duration=42)
         fm.assert_called_once_with(indent=' ' * 4, name='Andrew')
 
     def test_formatRunnerResult(self):
@@ -175,7 +188,7 @@ class TestBasicFormatter(unittest.TestCase):
             obj.formatRunnerResult(name='Andrew')
         fm.assert_called_once_with(name='Andrew')
 
-    def test_formatDifferState(self):
+    def test_formatDifferProgress(self):
         obj = BasicFormatter()
         with mock.patch('moosetools.moosetest.formatters.BasicFormatter._formatResult') as fm:
             obj.formatDifferResult(name='Andrew')
@@ -201,14 +214,14 @@ class TestBasicFormatter(unittest.TestCase):
             text = obj.formatComplete(complete)
         self.assertIn("Executed 2 tests", text)
         self.assertNotIn("in 40.0 seconds", text)
-        self.assertIn("OK:1 SKIP:0 TIMEOUT:0 DIFF:0 ERROR:0 EXCEPTION:0 FATAL:1", text)
+        self.assertIn("REMOVE:0 SKIP:0 OK:1 TIMEOUT:0 DIFF:0 ERROR:0 EXCEPTION:0 FATAL:1", text)
 
         kwargs = {'duration': 40}
         with mock.patch('moosetools.mooseutils.color_text', side_effect=lambda *args: args[0]):
             text = obj.formatComplete(complete, **kwargs)
 
         self.assertIn("Executed 2 tests in 40.0 seconds", text)
-        self.assertIn("OK:1 SKIP:0 TIMEOUT:0 DIFF:0 ERROR:0 EXCEPTION:0 FATAL:1", text)
+        self.assertIn("REMOVE:0 SKIP:0 OK:1 TIMEOUT:0 DIFF:0 ERROR:0 EXCEPTION:0 FATAL:1", text)
 
         self.assertIn('Longest running test(s)', text)
         self.assertIn('\n  20.00s B\n  10.00s A', text)
