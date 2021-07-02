@@ -586,12 +586,12 @@ common(int argc, char ** argv)
 
   hit::GatherParamWalker::ParamMap common_params;
   hit::GatherParamWalker common_walker(common_params);
-  roots[0]->walk(&common_walker, hit::NodeType::Field);
+  roots[0]->walk(&common_walker);
   for (std::size_t i = 1; i < roots.size(); ++i)
   {
     hit::GatherParamWalker::ParamMap next_params;
     hit::GatherParamWalker next_walker(next_params);
-    roots[i]->walk(&next_walker, hit::NodeType::Field);
+    roots[i]->walk(&next_walker);
 
     for (auto it1 = common_params.begin(); it1 != common_params.end();)
     {
@@ -640,9 +640,9 @@ subtract(int argc, char ** argv)
   hit::RemoveParamWalker right_walker(left_params);
   hit::RemoveEmptySectionWalker right_section_walker;
 
-  left->walk(&left_walker, hit::NodeType::Field);
-  right->walk(&right_walker, hit::NodeType::Section);
-  right->walk(&right_section_walker, hit::NodeType::Section, /* children_first = */ true);
+  left->walk(&left_walker);
+  right->walk(&right_walker);
+  right->walk(&right_section_walker);
 
   std::cout << right->render();
 

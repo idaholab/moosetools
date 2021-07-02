@@ -561,7 +561,7 @@ TEST(HitTests, GatherParamWalker)
     auto root = hit::parse("TESTCASE", test.first);
     hit::GatherParamWalker::ParamMap params;
     hit::GatherParamWalker walker(params);
-    root->walk(&walker, hit::NodeType::Field);
+    root->walk(&walker);
 
     if (test.second.size() != params.size())
       FAIL() << "case " << test.first << " failed.";
@@ -591,8 +591,8 @@ TEST(HitTests, RemoveParamWalker)
     hit::GatherParamWalker gather_walker(params);
     hit::RemoveParamWalker remove_walker(params);
 
-    root2->walk(&gather_walker, hit::NodeType::Field);
-    root1->walk(&remove_walker, hit::NodeType::Section);
+    root2->walk(&gather_walker);
+    root1->walk(&remove_walker);
 
     EXPECT_EQ(root1->render(), test[2]);
   }
@@ -611,7 +611,7 @@ TEST(HitTests, RemoveEmptySectionWalker)
     auto root = hit::parse("TESTCASE", test[0]);
 
     hit::RemoveEmptySectionWalker walker;
-    root->walk(&walker, hit::NodeType::Section, true);
+    root->walk(&walker);
 
     EXPECT_EQ(root->render(), test[1]);
   }

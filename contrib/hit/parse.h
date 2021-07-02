@@ -75,6 +75,14 @@ enum class NodeType
   Blank,   /// Represents a blank line
 };
 
+/// Traversal order for walkers. Determines if the walker on a node is executed before or
+/// after the child nodes were traversed.
+enum class TraversalOrder
+{
+  BeforeChildren,
+  AfterChildren
+};
+
 /// nodeTypeName returns a human-readable string representing a name for the give node type.
 std::string nodeTypeName(NodeType t);
 
@@ -97,7 +105,7 @@ public:
   ParseError(const std::string & msg);
 };
 
-/// Walker is an abstract interface that can be implemented to perform operations that traverse ag
+/// Walker is an interface that can be implemented to perform operations that traverse ag
 /// parsed hit node tree.  Implementing classes are passed to the Node::walk function.
 class Walker
 {
@@ -108,6 +116,12 @@ public:
   /// section name for Section nodes and field/parameter name for Field nodes.  n is the actual
   /// node.
   virtual void walk(const std::string & fullpath, const std::string & nodepath, Node * n) = 0;
+
+  /// return the default node type this walker should be applied to
+  virtual NodeType nodeType() { return NodeType::Field; }
+
+  /// return the default traversal order
+  virtual TraversalOrder traversalOrder() { return TraversalOrder::BeforeChildren; }
 };
 
 /// strRepeat returns a string of s repeated n times.
@@ -197,7 +211,9 @@ public:
   /// doesn't visit any nodes that require traversing this node's parent) calling the passed
   /// walker's walk function for each node visited.  w->walk is not called for nodes that are not
   /// of type t although nodes not of type t are still traversed.
-  void walk(Walker * w, NodeType t = NodeType::Field, bool children_first = false);
+  void walk(Walker * w) { walk(w, w->nodeType(), w->traversalOrder()); }
+  void walk(Walker * w, NodeType t) { walk(w, t, w->traversalOrder()); }
+  void walk(Walker * w, NodeType t, TraversalOrder o);
 
   /// find follows the tree along the given path starting at this node (downward not checking any
   /// nodes that require traversing this node's parent) and returns the first node it finds at the
@@ -586,6 +602,8 @@ public:
     }
   }
 
+  NodeType nodeType() override { return NodeType::Section; }
+
 private:
   const GatherParamWalker::ParamMap & _map;
 };
@@ -607,6 +625,9 @@ public:
         delete child;
     }
   }
+
+  NodeType nodeType() override { return NodeType::Section; }
+  TraversalOrder traversalOrder() override { return TraversalOrder::AfterChildren; }
 };
 
 } // namespace hit
