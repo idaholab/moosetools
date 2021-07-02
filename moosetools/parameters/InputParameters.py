@@ -378,7 +378,6 @@ class InputParameters(object):
             if (name in args) and (value is not None):
                 self.setValue(name, tuple(value) if isinstance(value, list) else value)
 
-
     def _getParameter(self, *args, suppress_error=False):
         """
         A helper for returning the a Parameter object that handles nested InputParameters.

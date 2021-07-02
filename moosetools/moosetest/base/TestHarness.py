@@ -16,7 +16,6 @@ from moosetools import moosetest
 
 from .Controller import Controller
 from .Formatter import Formatter
-from .Filter import Filter
 
 
 class TestHarness(core.MooseObject):
@@ -65,10 +64,6 @@ class TestHarness(core.MooseObject):
                    default=moosetest.formatters.BasicFormatter(),
                    vtype=Formatter,
                    doc="The `Formatter` object to utilize for outputting test information.")
-        params.add('filters',
-                   vtype=Filter,
-                   array=True,
-                   doc="The `Filter` object(s) to utilize when create `TestCase` objects.")
 
         return params
 
@@ -84,9 +79,6 @@ class TestHarness(core.MooseObject):
 
         # Add CLI arguments from other top-level objects
         for obj in (params.getValue('controllers') or tuple()):
-            obj.validCommandLineArguments(parser, obj.parameters())
-
-        for obj in (params.getValue('filters') or tuple()):
             obj.validCommandLineArguments(parser, obj.parameters())
 
         obj = params.getValue('formatter')
@@ -120,9 +112,6 @@ class TestHarness(core.MooseObject):
         for obj in (self.getParam('controllers') or tuple()):
             obj._setup(args)
 
-        for obj in (self.getParam('filters') or tuple()):
-            obj._setup(args)
-
         obj = self.getParam('formatter')
         if obj is not None:
             obj._setup(args)
@@ -144,7 +133,6 @@ class TestHarness(core.MooseObject):
         rcode = moosetest.run(groups,
                               self.getParam('controllers') or tuple(),
                               self.getParam('formatter'),
-                              self.getParam('filters'),
                               n_threads=self.getParam('n_threads'),
                               timeout=self.getParam('timeout'),
                               max_fails=self.getParam('max_failures'))

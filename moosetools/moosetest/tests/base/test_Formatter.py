@@ -236,7 +236,7 @@ class TestFormatter(unittest.TestCase):
         pstate.assert_called()
 
     def test_validCommandLineArguments(self):
-        params = moosetest.base.Filter.validCommandLineArguments(None, None)
+        params = moosetest.base.Formatter.validCommandLineArguments(None, None)
         self.assertIsNone(params)
 
     def test_setup(self):

@@ -69,7 +69,7 @@ def fuzzer(timeout=(3, 10),
            runner_sleep=(0.5, 10),
            runner_platform=0.1,
            runner_name_len=(int(4), int(29)),
-           requires_error=0.01,
+           requires_error=0.1,
            requires_use=0.35):
     """
     A tool for calling `run` function with randomized test cases.
@@ -143,4 +143,4 @@ def fuzzer(timeout=(3, 10),
     kwargs['timeout'] = random.randint(*timeout)
     kwargs['max_fails'] = random.randint(*max_fails)
     kwargs['min_fail_state'] = random.choice([r for r in moosetest.base.TestCase.Result])
-    return moosetest.run(groups, controllers, formatter, tuple(), **kwargs)
+    return moosetest.run(groups, controllers, formatter, **kwargs)
