@@ -16,3 +16,9 @@ MOOSETOOLS_PLUGIN_DIRS = ./plugins/moosetest
   type = BasicFormatter
   min_print_progress = REMOVE
 []
+
+[Defaults]
+  [RunCommand]
+    allow_exception = True
+  []
+[]

@@ -36,12 +36,11 @@ class MooseTestFactory(factory.Factory):
             vtype=Controller,
             array=True,
             doc="Controller objects for injecting into validParams of Runner/Differ objects.")
-        params.add(
-            'defaults',
-            vtype=dict,
-            doc=("Default object settings, where the key is the registered object name (e.g., "
-                 "`EnvironmentController`) and the value is a "
-                 "`dict` of parameter names and values."))
+        params.add('object_defaults',
+                   vtype=dict,
+                   doc=("Default object settings for `Runner` and `Differ` objects, where the key "
+                        "is the registered object name (e.g., `RunCommand`) and the value is a "
+                        "`dict` of parameter names and values."))
         return params
 
     def params(self, name):
@@ -51,15 +50,13 @@ class MooseTestFactory(factory.Factory):
         params = factory.Factory.params(self, name)
 
         # Add defaults, if any
-        default_params = self.getParam('defaults')
-        if (default_params is not None) and (name in default_params):
-            for key, value in default_params[name].items():
+        object_defaults = self.getParam('object_defaults')
+        if (object_defaults is not None) and (name in object_defaults):
+            for key, value in object_defaults[name].items():
                 param = params.parameter(key)
                 if param.vtype and isinstance(value, str):
-                    the_value = factory.Parser._getValueFromStr(param.vtype, value, param.array)
-                    param.setValue(the_value)
-                else:
-                    param.setValue(value)
+                    value = factory.Parser._getValueFromStr(param.vtype, value, param.array)
+                params.setValue(key, value)
 
         # Add the controllers, this allows Runner objects to pragmatically add a Differ object
         params.add('_controllers', default=self.getParam('controllers'), private=True)
@@ -155,7 +152,7 @@ def discover(start,
              spec_file_names,
              spec_file_blocks,
              *,
-             objec_defaults=None,
+             object_defaults=None,
              plugin_dirs=None,
              n_threads=None):
     """
@@ -180,7 +177,7 @@ def discover(start,
     obj_factory = MooseTestFactory(plugin_dirs=tuple(plugin_dirs),
                                    plugin_types=(Runner, Differ),
                                    controllers=tuple(controllers or []),
-                                   object_defaults=objec_defaults or dict())
+                                   object_defaults=object_defaults or dict())
     obj_factory.load()
 
     # Build the objects for each file

@@ -64,7 +64,11 @@ class TestHarness(core.MooseObject):
                    default=moosetest.formatters.BasicFormatter(),
                    vtype=Formatter,
                    doc="The `Formatter` object to utilize for outputting test information.")
-
+        params.add('object_defaults',
+                   vtype=dict,
+                   doc=("Default object settings for `Runner` and `Differ` objects, where the key "
+                        "is the registered object name (e.g., `RunCommand`) and the value is a "
+                        "`dict` of parameter names and values."))
         return params
 
     @staticmethod
@@ -127,7 +131,8 @@ class TestHarness(core.MooseObject):
                                     self.getParam('spec_file_names'),
                                     self.getParam('spec_file_blocks'),
                                     plugin_dirs=os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split(),
-                                    n_threads=self.getParam('n_threads'))
+                                    n_threads=self.getParam('n_threads'),
+                                    object_defaults=self.getParam('object_defaults'))
 
         # Execute the tests
         rcode = moosetest.run(groups,

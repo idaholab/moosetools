@@ -18,16 +18,16 @@ from unittest import mock
 from moosetools import pyhit
 from moosetools.moosetest import main
 from moosetools.moosetest.base import Controller, TestCase, RedirectOutput, TestHarness
-from moosetools.moosetest.main import _make_harness, _make_controllers, _make_formatter, _setup_environment, _locate_config, _load_config
+from moosetools.moosetest.main import _make_harness, _make_controllers, _make_formatter, _setup_environment, _locate_config, _load_config, _get_object_defaults
 from moosetools.moosetest.formatters import BasicFormatter
 
 
-class TestMakeHarness(unittest.TestCase):
+class Test_make_harness(unittest.TestCase):
     def testDefault(self):
         root = pyhit.Node(None)
 
         with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir') as mock_chdir:
-            th = _make_harness('.moosetest', root, tuple(), None)
+            th = _make_harness('.moosetest', root, tuple(), None, None)
         self.assertEqual(mock_chdir.call_count, 2)
         mock_chdir.assert_called_with(os.getcwd())
         self.assertIsInstance(th, TestHarness)
@@ -37,7 +37,7 @@ class TestMakeHarness(unittest.TestCase):
         root = pyhit.Node(None)
         root.append('TestHarness', type='TestHarness', n_threads=1)
         with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir') as mock_chdir:
-            th = _make_harness('.moosetest', root, tuple(), None)
+            th = _make_harness('.moosetest', root, tuple(), None, None)
         self.assertEqual(mock_chdir.call_count, 2)
         mock_chdir.assert_called_with(os.getcwd())
         self.assertIsInstance(th, TestHarness)
@@ -47,18 +47,18 @@ class TestMakeHarness(unittest.TestCase):
         with mock.patch('moosetools.factory.Factory.status', return_value=1):
             with self.assertRaises(RuntimeError) as ex, mock.patch(
                     'os.path.isdir', return_value=True), mock.patch('os.chdir'):
-                th = _make_harness('.moosetest', pyhit.Node(None), tuple(), None)
+                th = _make_harness('.moosetest', pyhit.Node(None), tuple(), None, None)
             self.assertIn("An error occurred during registration of the TestHarness",
                           str(ex.exception))
 
         with mock.patch('moosetools.factory.Parser.status', return_value=1):
             with self.assertRaises(RuntimeError) as ex, mock.patch(
                     'os.path.isdir', return_value=True), mock.patch('os.chdir'):
-                th = _make_harness('.moosetest', pyhit.Node(None), tuple(), None)
+                th = _make_harness('.moosetest', pyhit.Node(None), tuple(), None, None)
             self.assertIn("An error occurred during parsing of the", str(ex.exception))
 
 
-class TestMakeControllers(unittest.TestCase):
+class Test_make_controllers(unittest.TestCase):
     def testDefault(self):
         root = pyhit.Node(None)
         with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir') as mock_chdir:
@@ -95,7 +95,7 @@ class TestMakeControllers(unittest.TestCase):
                           str(ex.exception))
 
 
-class TestMakeFormatter(unittest.TestCase):
+class Test_make_formatter(unittest.TestCase):
     def testDefault(self):
         root = pyhit.Node(None)
         with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir') as mock_chdir:
@@ -129,7 +129,7 @@ class TestMakeFormatter(unittest.TestCase):
                 str(ex.exception))
 
 
-class TestLocateConfig(unittest.TestCase):
+class Test_locate_config(unittest.TestCase):
     def testDefault(self):
         demo = os.path.join(os.path.dirname(__file__), 'demo', 'tests', 'folder0')
         name = _locate_config(demo)
@@ -150,7 +150,7 @@ class TestLocateConfig(unittest.TestCase):
         self.assertIn("The supplied configuration location, 'wrong'", str(ex.exception))
 
 
-class TestLoadConfig(unittest.TestCase):
+class Test_load_config(unittest.TestCase):
     def testDefault(self):
         demo = os.path.join(os.path.dirname(__file__), 'demo', '.moosetest')
         root = _load_config(demo)
@@ -170,7 +170,7 @@ class TestLoadConfig(unittest.TestCase):
 
 
 @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
-class TestMain(unittest.TestCase):
+class Test_main(unittest.TestCase):
     @mock.patch('argparse.ArgumentParser.parse_known_args')
     def testDefault(self, mock_cli_args):
 
@@ -187,7 +187,7 @@ class TestMain(unittest.TestCase):
         self.assertEqual(rcode, 0)
 
 
-class TestSetupEnvironment(unittest.TestCase):
+class Test_setup_enviroment(unittest.TestCase):
     @mock.patch('moosetools.moosetree.find')
     def test(self, mock_find):
         root = pyhit.Node()
@@ -196,6 +196,21 @@ class TestSetupEnvironment(unittest.TestCase):
         _setup_environment(None, root)
         self.assertIn('SOME_DIR', os.environ)
         self.assertEqual(os.environ['SOME_DIR'], os.getcwd())
+
+
+class Test_get_object_defaults(unittest.TestCase):
+    def test(self):
+        root = pyhit.Node()
+        obj_defaults = root.append('Defaults')
+        obj_defaults.append('RunCommand', timeout='0.1')
+
+        out = _get_object_defaults(None, root)
+        self.assertEqual(out, {'RunCommand': {'timeout': '0.1'}})
+
+    def testNone(self):
+        root = pyhit.Node()
+        out = _get_object_defaults(None, root)
+        self.assertEqual(out, dict())
 
 
 if __name__ == '__main__':
