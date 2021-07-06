@@ -21,8 +21,12 @@ from moosetools.moosetest.base import Runner, Differ
 
 class MooseTestFactory(factory.Factory):
     """
-    Custom `Factory` object that injects the `Controller` parameters as a sub-parameter within
-    the objects (`Runner` or `Differ`) being created.
+    Custom `Factory` object to handle specifics of parameters for `moosetest`.
+
+    1. injects the `Controller` parameters as a sub-parameter within the objects (`Runner`
+       or `Differ`) being created.
+    2. apply "default" parameters for objects (e.g., parameters set in the [Defaults] block of the
+       main configuration file, see `moosetest.main`).
     """
     @staticmethod
     def validParams():
@@ -32,13 +36,30 @@ class MooseTestFactory(factory.Factory):
             vtype=Controller,
             array=True,
             doc="Controller objects for injecting into validParams of Runner/Differ objects.")
+        params.add(
+            'defaults',
+            vtype=dict,
+            doc=("Default object settings, where the key is the registered object name (e.g., "
+                 "`EnvironmentController`) and the value is a "
+                 "`dict` of parameter names and values."))
         return params
 
-    def params(self, *args, **kwargs):
+    def params(self, name):
         """
         Creates the parameters with sub-parameters for each `Controller` object.
         """
-        params = factory.Factory.params(self, *args, **kwargs)
+        params = factory.Factory.params(self, name)
+
+        # Add defaults, if any
+        default_params = self.getParam('defaults')
+        if (default_params is not None) and (name in default_params):
+            for key, value in default_params[name].items():
+                param = params.parameter(key)
+                if param.vtype and isinstance(value, str):
+                    the_value = factory.Parser._getValueFromStr(param.vtype, value, param.array)
+                    param.setValue(the_value)
+                else:
+                    param.setValue(value)
 
         # Add the controllers, this allows Runner objects to pragmatically add a Differ object
         params.add('_controllers', default=self.getParam('controllers'), private=True)
@@ -134,6 +155,7 @@ def discover(start,
              spec_file_names,
              spec_file_blocks,
              *,
+             objec_defaults=None,
              plugin_dirs=None,
              n_threads=None):
     """
@@ -157,7 +179,8 @@ def discover(start,
     # Factory for creating the test objects
     obj_factory = MooseTestFactory(plugin_dirs=tuple(plugin_dirs),
                                    plugin_types=(Runner, Differ),
-                                   controllers=tuple(controllers or []))
+                                   controllers=tuple(controllers or []),
+                                   object_defaults=objec_defaults or dict())
     obj_factory.load()
 
     # Build the objects for each file
