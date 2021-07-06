@@ -15,7 +15,7 @@ import argparse
 import unittest
 from unittest import mock
 
-from moosetools import pyhit
+from moosetools import pyhit, mooseutils
 from moosetools.moosetest import main
 from moosetools.moosetest.base import Controller, TestCase, RedirectOutput, TestHarness
 from moosetools.moosetest.main import _make_harness, _make_controllers, _make_formatter, _setup_environment, _locate_config, _load_config, _get_object_defaults
@@ -171,20 +171,42 @@ class Test_load_config(unittest.TestCase):
 
 @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
 class Test_main(unittest.TestCase):
+    def setUp(self):
+        self._args = argparse.Namespace(config=os.path.join(os.path.dirname(__file__), 'demo',
+                                                            '.moosetest'),
+                                        timeout=None,
+                                        n_threads=None,
+                                        max_failures=None,
+                                        spec_file_blocks=None,
+                                        spec_file_names=None)
+
     @mock.patch('argparse.ArgumentParser.parse_known_args')
     def testDefault(self, mock_cli_args):
 
-        args = argparse.Namespace(config=os.path.join(os.path.dirname(__file__), 'demo',
-                                                      '.moosetest'),
-                                  timeout=None,
-                                  n_threads=None,
-                                  max_failures=None,
-                                  spec_file_blocks=None,
-                                  spec_file_names=None)
-        mock_cli_args.return_value = (args, None)
-
+        mock_cli_args.return_value = (self._args, None)
         rcode = main()
         self.assertEqual(rcode, 0)
+
+    @mock.patch('moosetools.moosetest.base.TestHarness.status')
+    @mock.patch('argparse.ArgumentParser.parse_known_args')
+    def test_exceptions(self, mock_cli_args, mock_status):
+        mock_cli_args.return_value = (self._args, None)
+
+        path = os.path.join(os.path.dirname(__file__), 'demo')
+        with mooseutils.CurrentWorkingDirectory(path), self.assertRaises(RuntimeError) as cm:
+            mock_status.side_effect = [1, 0, 0]
+            rcode = main()
+        self.assertIn("`TestHarness.parse` method", str(cm.exception))
+
+        with mooseutils.CurrentWorkingDirectory(path), self.assertRaises(RuntimeError) as cm:
+            mock_status.side_effect = [0, 1, 0]
+            rcode = main()
+        self.assertIn("`TestHarness.discover` method", str(cm.exception))
+
+        with mooseutils.CurrentWorkingDirectory(path), self.assertRaises(RuntimeError) as cm:
+            mock_status.side_effect = [0, 0, 1]
+            rcode = main()
+        self.assertIn("`TestHarness.run` method", str(cm.exception))
 
 
 class Test_setup_enviroment(unittest.TestCase):

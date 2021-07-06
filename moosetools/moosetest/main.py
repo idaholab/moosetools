@@ -62,9 +62,23 @@ def main():
     object_defaults = _get_object_defaults(filename, root)
     harness = _make_harness(filename, root, controllers, formatter, object_defaults)
 
-    # TODO: Call parse, discover, run, with error checking in between
+    # Execute the tests
     harness.parse()
-    return harness.run()
+    if harness.status():
+        msg = "An unexpected error occurred when calling the `TestHarness.parse` method."
+        raise RuntimeError(msg)
+
+    groups = harness.discover()
+    if harness.status():
+        msg = "An unexpected error occurred when calling the `TestHarness.discover` method."
+        raise RuntimeError(msg)
+
+    rcode = harness.run(groups)
+    if harness.status():
+        msg = "An unexpected error occurred when calling the `TestHarness.run` method."
+        raise RuntimeError(msg)
+
+    return rcode
 
 
 def _make_harness(filename, root, controllers, formatter, object_defaults):
