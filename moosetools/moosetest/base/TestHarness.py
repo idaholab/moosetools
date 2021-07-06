@@ -39,11 +39,6 @@ class TestHarness(core.MooseObject):
             array=True,
             default=('tests', ),
             doc="List of file names (e.g., 'tests') that contain test specifications to run.")
-        params.add('spec_file_blocks',
-                   vtype=str,
-                   array=True,
-                   default=('Tests', ),
-                   doc="List of top-level test specifications (e.g., `[Tests]`) HIT blocks to run.")
         params.add('timeout',
                    default=300.,
                    vtype=float,
@@ -78,8 +73,7 @@ class TestHarness(core.MooseObject):
                             "'.moosetest' file is searched up the directory tree beginning with " \
                             "the current working directory.")
 
-        params.toArgs(parser, 'n_threads', 'timeout', 'max_failures', 'spec_file_blocks',
-                      'spec_file_names')
+        params.toArgs(parser, 'n_threads', 'timeout', 'max_failures', 'spec_file_names')
 
         # Add CLI arguments from other top-level objects
         for obj in (params.getValue('controllers') or tuple()):
@@ -114,7 +108,6 @@ class TestHarness(core.MooseObject):
         groups = moosetest.discover(os.getcwd(),
                                     self.getParam('controllers') or tuple(),
                                     self.getParam('spec_file_names'),
-                                    self.getParam('spec_file_blocks'),
                                     plugin_dirs=os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split(),
                                     n_threads=self.getParam('n_threads'),
                                     object_defaults=self.getParam('object_defaults'))
@@ -139,8 +132,7 @@ class TestHarness(core.MooseObject):
         """
         Apply options provided via the command line to the TestHarness object parameters.
         """
-        self.parameters().fromArgs(args, 'n_threads', 'timeout', 'max_failures', 'spec_file_blocks',
-                                   'spec_file_names')
+        self.parameters().fromArgs(args, 'n_threads', 'timeout', 'max_failures', 'spec_file_names')
 
         # Call setup function from other top-level objects
         for obj in (self.getParam('controllers') or tuple()):

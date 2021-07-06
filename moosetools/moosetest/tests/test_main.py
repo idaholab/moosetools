@@ -177,7 +177,6 @@ class Test_main(unittest.TestCase):
                                         timeout=None,
                                         n_threads=None,
                                         max_failures=None,
-                                        spec_file_blocks=None,
                                         spec_file_names=None)
 
     @mock.patch('argparse.ArgumentParser.parse_known_args')

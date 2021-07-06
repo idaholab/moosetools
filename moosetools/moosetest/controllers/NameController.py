@@ -8,7 +8,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import re
-from moosetools.moosetest.base import Controller
+from moosetools.moosetest.base import Controller, Runner
 
 
 class NameController(Controller):
@@ -16,6 +16,7 @@ class NameController(Controller):
     A controller to dictate if an object should run based on the name.
     """
     AUTO_BUILD = True
+    BLOCK_RE = re.compile(r"(?P<prefix>.*?):(?P<block>.*?)/(?P<name>.*?)")
 
     @staticmethod
     def validParams():
@@ -40,6 +41,20 @@ class NameController(Controller):
                    allow=('MULTILINE', 'DOTALL', 'UNICODE', 'IGNORECASE', 'VERBOSE', 'LOCALE',
                           'DEBUG', 'ASCII'),
                    doc="The names of the flags to pass to regular expression `match` function.")
+        params.add('blocks',
+                   vtype=str,
+                   array=True,
+                   doc=("The block names to allow when the test name is formatted as in the "
+                        "'block_re' parameter."))
+        params.add(
+            'block_re',
+            vtype=str,
+            default="(?P<prefix>.*?):(?P<block>.*?)/(?P<name>.*?)",
+            doc=("The regular expression used for determine the 'block name', the expression "
+                 "must contain a 'block' group. By default the form <prefix>:<block>/<name>. "
+                 "When test names are populated by `moosetest.discover` via HIT files the "
+                 "block name is the top-level block (e.g., [Tests]) of the file. The "
+                 "parameter is only applied to `Runner` object."))
         return params
 
     @staticmethod
@@ -90,3 +105,19 @@ class NameController(Controller):
                     "The regular expression of 'remove_if_re_not_match_name', '{}', does not match the object name '{}'",
                     text_in, obj.name())
                 self.remove('remove_if_re_not_match_name')
+
+        # BLOCKS
+        blocks = self.getParam('blocks')
+        if isinstance(obj, Runner) and (blocks is not None):
+            match = re.search(self.getParam('block_re'), obj.name())
+            if not match:
+                msg = "A block name was not located in the test with name '{}', the test name must be in <prefix>:<block>/<name> format."
+                self.error(msg, obj.name())
+            elif 'block' not in match.groupdict():
+                self.error(
+                    "The 'block_re' must be a regular expression that includes a group with name 'block'."
+                )
+            elif match.group('block') not in blocks:
+                msg = "The block name for the test '{}' is '{}', which is not in the allowable block names '{}'."
+                self.debug(msg, obj.name(), match.group('block'), blocks)
+                self.remove("'{}' not in {}", match.group('block'), blocks)

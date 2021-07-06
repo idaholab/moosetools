@@ -127,30 +127,25 @@ class MooseTestWarehouse(factory.Warehouse):
             self.critical(msg, obj.name())
 
 
-def _create_runners(root_dir, filename, spec_file_blocks, obj_factory):
+def _create_runners(root_dir, filename, obj_factory):
     """
     Return the `Runner` objects, with attached `Differ` objects, as defined in HIT file given in
     *filename*.
 
-    The *root_dir* is the starting location provided to the `discover` function. Objects are
-    only extracted from the HIT blocks in *spec_file_blocks*. The *obj_factory* is used to by the
-    HIT parser to create the desired object type.
+    The *root_dir* is the starting location provided to the `discover` function. The *obj_factory* is
+    used to by the HIT parser to create the desired object type.
     """
     root = pyhit.load(filename)
     wh = MooseTestWarehouse(root_dir=root_dir, specfile=filename)
     parser = factory.Parser(obj_factory, wh)
-    for node in moosetree.findall(root, func=lambda n: n.name in spec_file_blocks):
-        parser.parse(
-            filename,
-            node,
-        )
+    for node in root:
+        parser.parse(filename, node)
     return wh.objects, max(parser.status(), wh.status())
 
 
 def discover(start,
              controllers,
              spec_file_names,
-             spec_file_blocks,
              *,
              object_defaults=None,
              plugin_dirs=None,
@@ -183,8 +178,7 @@ def discover(start,
     # Build the objects for each file
     with concurrent.futures.ThreadPoolExecutor(n_threads) as pool:
         futures = [
-            pool.submit(_create_runners, start, filename, spec_file_blocks, obj_factory)
-            for filename in spec_files
+            pool.submit(_create_runners, start, filename, obj_factory) for filename in spec_files
         ]
 
     # Raise an exception if an error occurred during parsing

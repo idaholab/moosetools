@@ -9,6 +9,7 @@ MOOSETOOLS_PLUGIN_DIRS = ./plugins/moosetest
   [name]
     type = NameController
     remove_if_text_in_name = remove
+    blocks = 'Tests'
   []
 []
 

@@ -105,7 +105,7 @@ class TestCreateRunners(unittest.TestCase):
         with self.assertLogs(level='CRITICAL') as log, \
         mock.patch('os.path.isdir', return_value=True), \
         mock.patch('os.path.isabs', return_value=True):
-            objs, status = _create_runners('foo/bar', 'foo/bar/testing/tests', ['Tests'], f)
+            objs, status = _create_runners('foo/bar', 'foo/bar/testing/tests', f)
         self.assertEqual(status, 1)
         self.assertEqual(len(log.output), 1)
         self.assertIn("The `Differ` object 'differ' is being added without", log.output[0])
@@ -128,7 +128,7 @@ class TestCreateRunners(unittest.TestCase):
         with mock.patch('os.path.isfile', return_value=True), \
         mock.patch('os.path.isdir', return_value=True), \
         mock.patch('os.path.isabs', return_value=True):
-            objs, status = _create_runners('foo/bar', 'foo/bar/testing/tests', ['Tests'], f)
+            objs, status = _create_runners('foo/bar', 'foo/bar/testing/tests', f)
 
         self.assertEqual(status, 0)
         self.assertIsInstance(objs[0], TestRunner)
@@ -156,7 +156,7 @@ class TestDiscover(unittest.TestCase):
         start = os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo'))
         plugin_dirs = [os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo', 'plugins'))]
 
-        groups = discover(start, tuple(), ['tests'], ['Tests'], plugin_dirs=plugin_dirs)
+        groups = discover(start, tuple(), ['tests'], plugin_dirs=plugin_dirs)
         self.assertEqual(len(groups), 3)
         self.assertEqual(groups[0][0].name(), "tests/tests:Tests/runner0")
         self.assertEqual(groups[0][0].getParam('differs'), None)
@@ -171,7 +171,7 @@ class TestDiscover(unittest.TestCase):
         start = os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo'))
         plugin_dirs = [os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo', 'plugins'))]
         with self.assertRaises(RuntimeError) as ex:
-            discover(start, tuple(), ['tests'], ['Tests'], plugin_dirs=plugin_dirs)
+            discover(start, tuple(), ['tests'], plugin_dirs=plugin_dirs)
         self.assertIn('Errors occurred during parsing', str(ex.exception))
 
 

@@ -43,14 +43,12 @@ class TestTestHarness(unittest.TestCase):
 
         mock_args.return_value = argparse.Namespace(timeout=10.,
                                                     max_failures=42,
-                                                    spec_file_blocks=['Assessments', 'Tests'],
                                                     spec_file_names=['a', 'b'])
 
         th = moosetest.base.TestHarness()
         th.parse()
         self.assertEqual(th.getParam('timeout'), 10)
         self.assertEqual(th.getParam('max_failures'), 42)
-        self.assertEqual(th.getParam('spec_file_blocks'), ('Assessments', 'Tests'))
         self.assertEqual(th.getParam('spec_file_names'), ('a', 'b'))
 
     def test_run(self):
