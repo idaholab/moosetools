@@ -22,7 +22,7 @@ class RunCommand(Runner):
         params.add('command', vtype=str, array=True, required=True, doc="Command to execute.")
         params.add(
             'timeout',
-            vtype=int,
+            vtype=(int, float),
             doc=
             "Limit the execution to the specified time; implemented via 'timeout' flag in `subprocess.run` command."
         )

@@ -59,14 +59,29 @@ def main():
     # Create the Controller, Formatter, and TestHarness objects
     controllers = _make_controllers(filename, root)
     formatter = _make_formatter(filename, root)
-    harness = _make_harness(filename, root, controllers, formatter)
+    object_defaults = _get_object_defaults(filename, root)
+    harness = _make_harness(filename, root, controllers, formatter, object_defaults)
 
-    # TODO: Call parse, discover, run, with error checking in between
+    # Execute the tests
     harness.parse()
-    return harness.run()
+    if harness.status():
+        msg = "An unexpected error occurred when calling the `TestHarness.parse` method."
+        raise RuntimeError(msg)
+
+    groups = harness.discover()
+    if harness.status():
+        msg = "An unexpected error occurred when calling the `TestHarness.discover` method."
+        raise RuntimeError(msg)
+
+    rcode = harness.run(groups)
+    if harness.status():
+        msg = "An unexpected error occurred when calling the `TestHarness.run` method."
+        raise RuntimeError(msg)
+
+    return rcode
 
 
-def _make_harness(filename, root, controllers, formatter):
+def _make_harness(filename, root, controllers, formatter, object_defaults):
     """
     Create the `TestHarness` object from the [TestHarness] block of the `pyhit.Node` of *root*.
 
@@ -74,8 +89,8 @@ def _make_harness(filename, root, controllers, formatter):
     creating object defined in the configuration file. It should be the file used for generating
     the tree structure in *root*.
 
-    The *controllers* and *formatter* are applied to the created `TestHarness` object via
-    the parameters by the same name.
+    The *controllers*, *formatter*, and *object_defaults* are applied to the created `TestHarness`
+    object via the parameters by the same name.
     """
     # Top-level parameters are used to build the TestHarness object. Creating custom `TestHarness`
     # objects is not-supported, so don't allow "type" to be set.
@@ -104,6 +119,7 @@ def _make_harness(filename, root, controllers, formatter):
     harness = w[0]
     harness.parameters().setValue('controllers', controllers)
     harness.parameters().setValue('formatter', formatter)
+    harness.parameters().setValue('object_defaults', object_defaults)
     return harness
 
 
@@ -192,6 +208,21 @@ def _setup_environment(filename, root):
     with mooseutils.CurrentWorkingDirectory(working_dir):
         for name, value in root.params():
             os.environ[name] = os.path.abspath(value) if os.path.isdir(value) else value
+
+
+def _get_object_defaults(filenname, root):
+    """
+    Return a dict of dict containing object defaults to pass to discover function.
+    """
+    d_node = moosetree.find(root, func=lambda n: n.fullpath == '/Defaults')
+    if d_node is None:
+        return dict()
+
+    out = dict()
+    for child in d_node:
+        out[child.name] = dict(child.params())
+
+    return out
 
 
 def _locate_config(start):

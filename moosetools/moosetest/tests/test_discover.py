@@ -21,6 +21,7 @@ import concurrent.futures
 from moosetools import pyhit
 from moosetools.parameters import InputParameters
 from moosetools.moosetest import discover
+from moosetools.moosetest.controllers import TagController
 from moosetools.moosetest.discover import MooseTestFactory, MooseTestWarehouse, _create_runners
 
 # I do not want the tests directory to be packages with __init__.py, so load from file
@@ -41,6 +42,27 @@ class TestMooseTestFactory(unittest.TestCase):
         params = f.params('TestDiffer')
         self.assertIn('ctrl', params)
         self.assertIsInstance(params.getValue('ctrl'), InputParameters)
+
+    def testWithDefaults(self):
+        f = MooseTestFactory(object_defaults={'TestController': {'remove': 'true'}})
+        f.load()
+        params = f.params('TestController')
+        self.assertEqual(params['remove'], 'true')
+
+        f = MooseTestFactory(object_defaults={'TestController': {'remove': True}})
+        f.load()
+        params = f.params('TestController')
+        self.assertEqual(params['remove'], True)
+
+        f = MooseTestFactory(object_defaults={'TestController': {'sleep': '1'}})
+        f.load()
+        params = f.params('TestController')
+        self.assertEqual(params['sleep'], 1)
+
+        f = MooseTestFactory(object_defaults={'TestController': {'sleep': 1}})
+        f.load()
+        params = f.params('TestController')
+        self.assertEqual(params['sleep'], 1)
 
 
 class TestMooseTesWarehouse(unittest.TestCase):
@@ -84,7 +106,7 @@ class TestCreateRunners(unittest.TestCase):
         with self.assertLogs(level='CRITICAL') as log, \
         mock.patch('os.path.isdir', return_value=True), \
         mock.patch('os.path.isabs', return_value=True):
-            objs, status = _create_runners('foo/bar', 'foo/bar/testing/tests', ['Tests'], f)
+            objs, status = _create_runners('foo/bar', 'foo/bar/testing/tests', f)
         self.assertEqual(status, 1)
         self.assertEqual(len(log.output), 1)
         self.assertIn("The `Differ` object 'differ' is being added without", log.output[0])
@@ -107,7 +129,7 @@ class TestCreateRunners(unittest.TestCase):
         with mock.patch('os.path.isfile', return_value=True), \
         mock.patch('os.path.isdir', return_value=True), \
         mock.patch('os.path.isabs', return_value=True):
-            objs, status = _create_runners('foo/bar', 'foo/bar/testing/tests', ['Tests'], f)
+            objs, status = _create_runners('foo/bar', 'foo/bar/testing/tests', f)
 
         self.assertEqual(status, 0)
         self.assertIsInstance(objs[0], TestRunner)
@@ -135,7 +157,7 @@ class TestDiscover(unittest.TestCase):
         start = os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo'))
         plugin_dirs = [os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo', 'plugins'))]
 
-        groups = discover(start, tuple(), ['tests'], ['Tests'], plugin_dirs=plugin_dirs)
+        groups = discover(start, (TagController(), ), ['tests'], plugin_dirs=plugin_dirs)
         self.assertEqual(len(groups), 3)
         self.assertEqual(groups[0][0].name(), "tests/tests:Tests/runner0")
         self.assertEqual(groups[0][0].getParam('differs'), None)
@@ -150,7 +172,7 @@ class TestDiscover(unittest.TestCase):
         start = os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo'))
         plugin_dirs = [os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo', 'plugins'))]
         with self.assertRaises(RuntimeError) as ex:
-            discover(start, tuple(), ['tests'], ['Tests'], plugin_dirs=plugin_dirs)
+            discover(start, tuple(), ['tests'], plugin_dirs=plugin_dirs)
         self.assertIn('Errors occurred during parsing', str(ex.exception))
 
 
