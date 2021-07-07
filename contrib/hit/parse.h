@@ -381,7 +381,7 @@ public:
   {
     return "\n";
   }
-  virtual Node * clone(bool absolute_path = false) override { return new Blank(); };
+  virtual Node * clone(bool /*absolute_path = false*/) override { return new Blank(); };
 };
 
 /// Section represents a hit section including the section header path and all entries inside
@@ -591,7 +591,8 @@ class RemoveParamWalker : public Walker
 {
 public:
   RemoveParamWalker(const GatherParamWalker::ParamMap & map) : _map(map) {}
-  void walk(const std::string & fullpath, const std::string & /*nodepath*/, hit::Node * n) override
+  void
+  walk(const std::string & /*fullpath*/, const std::string & /*nodepath*/, hit::Node * n) override
   {
     auto children = n->children();
     for (auto child : children)
@@ -612,7 +613,8 @@ class RemoveEmptySectionWalker : public Walker
 {
 public:
   RemoveEmptySectionWalker() {}
-  void walk(const std::string & fullpath, const std::string & /*nodepath*/, hit::Node * n) override
+  void
+  walk(const std::string & /*fullpath*/, const std::string & /*nodepath*/, hit::Node * n) override
   {
     auto children = n->children(NodeType::Section);
     for (auto child : children)
