@@ -21,6 +21,7 @@ import concurrent.futures
 from moosetools import pyhit
 from moosetools.parameters import InputParameters
 from moosetools.moosetest import discover
+from moosetools.moosetest.controllers import TagController
 from moosetools.moosetest.discover import MooseTestFactory, MooseTestWarehouse, _create_runners
 
 # I do not want the tests directory to be packages with __init__.py, so load from file
@@ -156,7 +157,7 @@ class TestDiscover(unittest.TestCase):
         start = os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo'))
         plugin_dirs = [os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo', 'plugins'))]
 
-        groups = discover(start, tuple(), ['tests'], plugin_dirs=plugin_dirs)
+        groups = discover(start, (TagController(), ), ['tests'], plugin_dirs=plugin_dirs)
         self.assertEqual(len(groups), 3)
         self.assertEqual(groups[0][0].name(), "tests/tests:Tests/runner0")
         self.assertEqual(groups[0][0].getParam('differs'), None)

@@ -54,7 +54,7 @@ class TestTestHarness(unittest.TestCase):
     def test_run(self):
         path = os.path.join(os.path.dirname(__file__), '..', 'demo')
         with mooseutils.CurrentWorkingDirectory(path):
-            th = moosetest.base.TestHarness()
+            th = moosetest.base.TestHarness(controllers=(moosetest.controllers.TagController(), ))
             rcode = th.run(th.discover())
 
         self.assertEqual(rcode, 0)

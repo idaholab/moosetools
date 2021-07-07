@@ -11,11 +11,16 @@ MOOSETOOLS_PLUGIN_DIRS = ./plugins/moosetest
     remove_if_text_in_name = remove
     blocks = 'Tests'
   []
+  [tags]
+    type = TagController
+    allowable_names = 'normal'
+  []
 []
 
 [Formatter]
   type = BasicFormatter
   min_print_progress = REMOVE
+  #min_print_result = REMOVE
 []
 
 [Defaults]

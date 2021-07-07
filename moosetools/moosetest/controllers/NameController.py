@@ -16,7 +16,6 @@ class NameController(Controller):
     A controller to dictate if an object should run based on the name.
     """
     AUTO_BUILD = True
-    BLOCK_RE = re.compile(r"(?P<prefix>.*?):(?P<block>.*?)/(?P<name>.*?)")
 
     @staticmethod
     def validParams():
