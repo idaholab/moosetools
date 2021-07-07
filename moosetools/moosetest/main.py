@@ -99,7 +99,9 @@ def _make_harness(filename, root, controllers, formatter, object_defaults):
         h_node = root.append('TestHarness', type='TestHarness')
 
     # Build a factory capable of creating the TestHarness object
-    plugin_dirs = os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()
+    working_dir = os.path.dirname(filename) if filename is not None else os.getcwd()
+    with mooseutils.CurrentWorkingDirectory(working_dir):
+        plugin_dirs = [os.path.abspath(mooseutils.eval_path(path)) for path in os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()]
     h_factory = factory.Factory(plugin_dirs=tuple(plugin_dirs), plugin_types=(base.TestHarness, ))
     h_factory.load()
     if h_factory.status() > 0:
@@ -109,7 +111,6 @@ def _make_harness(filename, root, controllers, formatter, object_defaults):
     # Use the Parser is used to correctly convert HIT to InputParameters
     w = list()
     p = factory.Parser(h_factory, w)
-    working_dir = os.path.dirname(filename) if filename is not None else os.getcwd()
     with mooseutils.CurrentWorkingDirectory(working_dir):
         p._parseNode(filename, h_node)
     if p.status() > 0:
@@ -138,7 +139,9 @@ def _make_controllers(filename, root):
         c_node = root.append('Controllers')
 
     # Factory for building Controller objects
-    plugin_dirs = os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()
+    working_dir = os.path.dirname(filename) if filename is not None else os.getcwd()
+    with mooseutils.CurrentWorkingDirectory(working_dir):
+        plugin_dirs = [os.path.abspath(mooseutils.eval_path(path)) for path in os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()]
     c_factory = factory.Factory(plugin_dirs=tuple(plugin_dirs), plugin_types=(base.Controller, ))
     c_factory.load()
     if c_factory.status() > 0:
@@ -156,7 +159,6 @@ def _make_controllers(filename, root):
     # Use the Parser to create the Controller objects
     controllers = list()
     c_parser = factory.Parser(c_factory, controllers)
-    working_dir = os.path.dirname(filename) if filename is not None else os.getcwd()
     with mooseutils.CurrentWorkingDirectory(working_dir):
         c_parser.parse(filename, c_node)
     if c_parser.status() > 0:
@@ -180,7 +182,9 @@ def _make_formatter(filename, root):
         f_node = root.append('Formatter', type='BasicFormatter')
 
     # Factory for building Formatter objects
-    plugin_dirs = os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()
+    working_dir = os.path.dirname(filename) if (filename is not None) else os.getcwd()
+    with mooseutils.CurrentWorkingDirectory(working_dir):
+        plugin_dirs = [os.path.abspath(mooseutils.eval_path(path)) for path in os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()]
     f_factory = factory.Factory(plugin_dirs=tuple(plugin_dirs), plugin_types=(base.Formatter, ))
     f_factory.load()
     if f_factory.status() > 0:
@@ -190,7 +194,6 @@ def _make_formatter(filename, root):
     # Create the Formatter object by parsing the input file
     formatters = list()
     f_parser = factory.Parser(f_factory, formatters)
-    working_dir = os.path.dirname(filename) if (filename is not None) else os.getcwd()
     with mooseutils.CurrentWorkingDirectory(working_dir):
         f_parser._parseNode(filename, f_node)
     if f_parser.status() > 0:
@@ -207,7 +210,9 @@ def _setup_environment(filename, root):
     working_dir = os.path.dirname(filename) if filename is not None else os.getcwd()
     with mooseutils.CurrentWorkingDirectory(working_dir):
         for name, value in root.params():
-            os.environ[name] = os.path.abspath(value) if os.path.isdir(value) else value
+            if name not in os.environ:
+                value = mooseutils.eval_path(value)
+                os.environ[name] = os.path.abspath(value) if os.path.isdir(value) else value
 
 
 def _get_object_defaults(filenname, root):
