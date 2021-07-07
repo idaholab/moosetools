@@ -39,11 +39,6 @@ class TestHarness(core.MooseObject):
             array=True,
             default=('tests', ),
             doc="List of file names (e.g., 'tests') that contain test specifications to run.")
-        params.add('spec_file_blocks',
-                   vtype=str,
-                   array=True,
-                   default=('Tests', ),
-                   doc="List of top-level test specifications (e.g., `[Tests]`) HIT blocks to run.")
         params.add('timeout',
                    default=300.,
                    vtype=float,
@@ -64,7 +59,11 @@ class TestHarness(core.MooseObject):
                    default=moosetest.formatters.BasicFormatter(),
                    vtype=Formatter,
                    doc="The `Formatter` object to utilize for outputting test information.")
-
+        params.add('object_defaults',
+                   vtype=dict,
+                   doc=("Default object settings for `Runner` and `Differ` objects, where the key "
+                        "is the registered object name (e.g., `RunCommand`) and the value is a "
+                        "`dict` of parameter names and values."))
         return params
 
     @staticmethod
@@ -74,8 +73,7 @@ class TestHarness(core.MooseObject):
                             "'.moosetest' file is searched up the directory tree beginning with " \
                             "the current working directory.")
 
-        params.toArgs(parser, 'n_threads', 'timeout', 'max_failures', 'spec_file_blocks',
-                      'spec_file_names')
+        params.toArgs(parser, 'n_threads', 'timeout', 'max_failures', 'spec_file_names')
 
         # Add CLI arguments from other top-level objects
         for obj in (params.getValue('controllers') or tuple()):
@@ -101,33 +99,24 @@ class TestHarness(core.MooseObject):
         args = parser.parse_args()
         self._setup(args)
 
-    def _setup(self, args):
+    def discover(self):
         """
-        Apply options provided via the command line to the TestHarness object parameters.
-        """
-        self.parameters().fromArgs(args, 'n_threads', 'timeout', 'max_failures', 'spec_file_blocks',
-                                   'spec_file_names')
-
-        # Call setup function from other top-level objects
-        for obj in (self.getParam('controllers') or tuple()):
-            obj._setup(args)
-
-        obj = self.getParam('formatter')
-        if obj is not None:
-            obj._setup(args)
-
-    def run(self):
-        """
-        Locate and execute the tests.
+        Locate and test groups to execute.
         """
 
         # Locate the tests to execute
         groups = moosetest.discover(os.getcwd(),
                                     self.getParam('controllers') or tuple(),
                                     self.getParam('spec_file_names'),
-                                    self.getParam('spec_file_blocks'),
                                     plugin_dirs=os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split(),
-                                    n_threads=self.getParam('n_threads'))
+                                    n_threads=self.getParam('n_threads'),
+                                    object_defaults=self.getParam('object_defaults'))
+        return groups
+
+    def run(self, groups):
+        """
+        Execute the tests in *groups*, where *groups* is the output from the `discover` method.
+        """
 
         # Execute the tests
         rcode = moosetest.run(groups,
@@ -138,3 +127,17 @@ class TestHarness(core.MooseObject):
                               max_fails=self.getParam('max_failures'))
 
         return rcode
+
+    def _setup(self, args):
+        """
+        Apply options provided via the command line to the TestHarness object parameters.
+        """
+        self.parameters().fromArgs(args, 'n_threads', 'timeout', 'max_failures', 'spec_file_names')
+
+        # Call setup function from other top-level objects
+        for obj in (self.getParam('controllers') or tuple()):
+            obj._setup(args)
+
+        obj = self.getParam('formatter')
+        if obj is not None:
+            obj._setup(args)

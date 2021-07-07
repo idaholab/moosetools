@@ -22,6 +22,16 @@
     type = RunCommand
     command = 'sleep 1.5'
   []
+  [tag_skip]
+    type = RunCommand
+    command = 'sleep 0.5'
+    tag_names = 'not_normal'
+  []
+  [tag_run]
+    type = RunCommand
+    command = 'sleep 0.5'
+    tag_names = 'normal'
+  []
 []
 
 [Assessments]

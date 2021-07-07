@@ -21,8 +21,12 @@ from moosetools.moosetest.base import Runner, Differ
 
 class MooseTestFactory(factory.Factory):
     """
-    Custom `Factory` object that injects the `Controller` parameters as a sub-parameter within
-    the objects (`Runner` or `Differ`) being created.
+    Custom `Factory` object to handle specifics of parameters for `moosetest`.
+
+    1. injects the `Controller` parameters as a sub-parameter within the objects (`Runner`
+       or `Differ`) being created.
+    2. apply "default" parameters for objects (e.g., parameters set in the [Defaults] block of the
+       main configuration file, see `moosetest.main`).
     """
     @staticmethod
     def validParams():
@@ -32,13 +36,27 @@ class MooseTestFactory(factory.Factory):
             vtype=Controller,
             array=True,
             doc="Controller objects for injecting into validParams of Runner/Differ objects.")
+        params.add('object_defaults',
+                   vtype=dict,
+                   doc=("Default object settings for `Runner` and `Differ` objects, where the key "
+                        "is the registered object name (e.g., `RunCommand`) and the value is a "
+                        "`dict` of parameter names and values."))
         return params
 
-    def params(self, *args, **kwargs):
+    def params(self, name):
         """
         Creates the parameters with sub-parameters for each `Controller` object.
         """
-        params = factory.Factory.params(self, *args, **kwargs)
+        params = factory.Factory.params(self, name)
+
+        # Add defaults, if any
+        object_defaults = self.getParam('object_defaults')
+        if (object_defaults is not None) and (name in object_defaults):
+            for key, value in object_defaults[name].items():
+                param = params.parameter(key)
+                if param.vtype and isinstance(value, str):
+                    value = factory.Parser._getValueFromStr(param.vtype, value, param.array)
+                params.setValue(key, value)
 
         # Add the controllers, this allows Runner objects to pragmatically add a Differ object
         params.add('_controllers', default=self.getParam('controllers'), private=True)
@@ -109,31 +127,27 @@ class MooseTestWarehouse(factory.Warehouse):
             self.critical(msg, obj.name())
 
 
-def _create_runners(root_dir, filename, spec_file_blocks, obj_factory):
+def _create_runners(root_dir, filename, obj_factory):
     """
     Return the `Runner` objects, with attached `Differ` objects, as defined in HIT file given in
     *filename*.
 
-    The *root_dir* is the starting location provided to the `discover` function. Objects are
-    only extracted from the HIT blocks in *spec_file_blocks*. The *obj_factory* is used to by the
-    HIT parser to create the desired object type.
+    The *root_dir* is the starting location provided to the `discover` function. The *obj_factory* is
+    used to by the HIT parser to create the desired object type.
     """
     root = pyhit.load(filename)
     wh = MooseTestWarehouse(root_dir=root_dir, specfile=filename)
     parser = factory.Parser(obj_factory, wh)
-    for node in moosetree.findall(root, func=lambda n: n.name in spec_file_blocks):
-        parser.parse(
-            filename,
-            node,
-        )
+    for node in root:
+        parser.parse(filename, node)
     return wh.objects, max(parser.status(), wh.status())
 
 
 def discover(start,
              controllers,
              spec_file_names,
-             spec_file_blocks,
              *,
+             object_defaults=None,
              plugin_dirs=None,
              n_threads=None):
     """
@@ -157,14 +171,14 @@ def discover(start,
     # Factory for creating the test objects
     obj_factory = MooseTestFactory(plugin_dirs=tuple(plugin_dirs),
                                    plugin_types=(Runner, Differ),
-                                   controllers=tuple(controllers or []))
+                                   controllers=tuple(controllers or []),
+                                   object_defaults=object_defaults or dict())
     obj_factory.load()
 
     # Build the objects for each file
     with concurrent.futures.ThreadPoolExecutor(n_threads) as pool:
         futures = [
-            pool.submit(_create_runners, start, filename, spec_file_blocks, obj_factory)
-            for filename in spec_files
+            pool.submit(_create_runners, start, filename, obj_factory) for filename in spec_files
         ]
 
     # Raise an exception if an error occurred during parsing
