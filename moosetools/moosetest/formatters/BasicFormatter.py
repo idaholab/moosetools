@@ -102,12 +102,34 @@ class BasicFormatter(Formatter):
                    doc="Print the given number of the longest running test cases.")
         return params
 
+    @staticmethod
+    def validCommandLineArguments(parser, params):
+        parser.add_argument('--verbose', action='store_true', help="Enable complete output.")
+        parser.add_argument('--min_print_result', choices=[e.name for e in TestCase.Result], default='DIFF',
+                            help="The minimum status to show when reporting test results.")
+        parser.add_argument('--min_print_progress', choices=[e.name for e in TestCase.Result], default='SKIP',
+                            help="The minimum status to show when reporting test progress.")
+
     def __init__(self, *args, **kwargs):
         Formatter.__init__(self, *args, **kwargs)
         max_state = max([len(e.text) for e in list(TestCase.Progress)])
         max_result = max([len(e.text) for e in list(TestCase.Result)])
         self._max_state_width = max(max_state, max_result)
         self._extra_width = 16  # extract width for percent complete and duration
+
+    def _setup(self, args):
+        """
+        Apply command line arguments.
+        """
+        Formatter._setup(self, args)
+        if args.verbose:
+            self.parameters().setValue('min_print_progress', TestCase.Result.REMOVE)
+            self.parameters().setValue('min_print_result', TestCase.Result.REMOVE)
+
+        if args.min_print_result:
+            self.parameters().setValue('min_print_result', TestCase.Result[args.min_print_result])
+        if args.min_print_progress:
+            self.parameters().setValue('min_print_progress', TestCase.Result[args.min_print_progress])
 
     def width(self):
         """

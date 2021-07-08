@@ -13,6 +13,8 @@ import logging
 from moosetools import moosetest
 from moosetools.parameters import InputParameters
 from .MooseTestObject import MooseTestObject
+from .Runner import Runner
+from .Differ import Differ
 
 
 class Controller(MooseTestObject):
@@ -30,6 +32,7 @@ class Controller(MooseTestObject):
     added by the [Controllers] block with the '.moosetools' configure file.
     """
     AUTO_BUILD = False
+    OBJECT_TYPES = (Runner, Differ)
 
     @staticmethod
     def validParams():

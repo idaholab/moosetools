@@ -138,7 +138,7 @@ class AutotoolsConfigController(Controller):
             if AutotoolsConfigController._notEqual(param_value, mapped_value):
                 msg = "The application is configured with '{}' equal to '{}', which maps to a value of '{}'. However, the associated '{}' parameter for this test requires '{}'."
                 self.debug(msg, raw_name, raw_value, mapped_value, param_name, param_value)
-                self.skip('{} != {}', mapped_value, param_value)
+                self.skip('{}: {} != {}', raw_name, mapped_value, param_value)
 
     def execute(self, obj, params):
         """

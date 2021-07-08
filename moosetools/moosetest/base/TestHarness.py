@@ -83,8 +83,6 @@ class TestHarness(core.MooseObject):
         if obj is not None:
             obj.validCommandLineArguments(parser, obj.parameters())
 
-        return parser
-
     def parse(self):
         """
         Initialize the object by processing and applying the command line arguments.

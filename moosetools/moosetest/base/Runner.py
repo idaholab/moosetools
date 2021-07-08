@@ -211,7 +211,7 @@ class Runner(MooseTestObject):
 
         # Store directory content
         if self.getParam('file', 'check_created'):
-            self.__pre_execute_files = set(os.listdir())
+            self.__pre_execute_files = {name:os.path.getmtime(name) for name in os.listdir()}
 
     def _postExecuteExpectedFiles(self):
         """
@@ -227,16 +227,21 @@ class Runner(MooseTestObject):
         # check for other files
         if self.__pre_execute_files is not None:
             post_execute_files = set(os.listdir())
+            post_execute_files -= self.__expected_files
 
             # remove ignored pattern(s)
             ignore_patterns = self.getParam('file', 'ignore_patterns') or tuple()
             for pattern in ignore_patterns:
                 post_execute_files -= set(fnmatch.filter(post_execute_files, pattern))
 
-            diff = post_execute_files.difference(self.__pre_execute_files)
-            if diff and set(self.__expected_files) != diff:
-                msg = "The following file(s) were created but not expected:\n  {}"
-                self.error(msg, '\n  '.join(diff.difference(set(self.__expected_files))))
+            diff = set()
+            for name in post_execute_files:
+                if (name not in self.__pre_execute_files) or (os.path.getmtime(name) != self.__pre_execute_files[name]):
+                    diff.add(name)
+
+            if diff:
+                msg = "The following file(s) were not expected to be created or modified:\n  {}"
+                self.error(msg, '\n  '.join(diff))
 
     def _getExpectedFiles(self):
         """

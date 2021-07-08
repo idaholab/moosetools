@@ -11,6 +11,9 @@ import re
 from moosetools.moosetest.base import Controller, Runner
 
 
+# TODO: Change to SearchController and add "search" sub-argument to command line:
+#       moosetest search --re foo --text bar
+
 class NameController(Controller):
     """
     A controller to dictate if an object should run based on the name.
