@@ -101,7 +101,10 @@ def _make_harness(filename, root, controllers, formatter, object_defaults):
     # Build a factory capable of creating the TestHarness object
     working_dir = os.path.dirname(filename) if filename is not None else os.getcwd()
     with mooseutils.CurrentWorkingDirectory(working_dir):
-        plugin_dirs = [os.path.abspath(mooseutils.eval_path(path)) for path in os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()]
+        plugin_dirs = [
+            os.path.abspath(mooseutils.eval_path(path))
+            for path in os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()
+        ]
     h_factory = factory.Factory(plugin_dirs=tuple(plugin_dirs), plugin_types=(base.TestHarness, ))
     h_factory.load()
     if h_factory.status() > 0:
@@ -139,9 +142,12 @@ def _make_controllers(filename, root):
         c_node = root.append('Controllers')
 
     # Factory for building Controller objects
-    working_dir = os.path.dirname(filename) if filename is not None else os.getcwd()
+    working_dir = os.path.dirname(filename) if (filename is not None) else os.getcwd()
     with mooseutils.CurrentWorkingDirectory(working_dir):
-        plugin_dirs = [os.path.abspath(mooseutils.eval_path(path)) for path in os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()]
+        plugin_dirs = [
+            os.path.abspath(mooseutils.eval_path(path))
+            for path in os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()
+        ]
     c_factory = factory.Factory(plugin_dirs=tuple(plugin_dirs), plugin_types=(base.Controller, ))
     c_factory.load()
     if c_factory.status() > 0:
@@ -184,7 +190,10 @@ def _make_formatter(filename, root):
     # Factory for building Formatter objects
     working_dir = os.path.dirname(filename) if (filename is not None) else os.getcwd()
     with mooseutils.CurrentWorkingDirectory(working_dir):
-        plugin_dirs = [os.path.abspath(mooseutils.eval_path(path)) for path in os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()]
+        plugin_dirs = [
+            os.path.abspath(mooseutils.eval_path(path))
+            for path in os.getenv('MOOSETOOLS_PLUGIN_DIRS', '').split()
+        ]
     f_factory = factory.Factory(plugin_dirs=tuple(plugin_dirs), plugin_types=(base.Formatter, ))
     f_factory.load()
     if f_factory.status() > 0:

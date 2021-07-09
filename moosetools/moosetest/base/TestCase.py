@@ -564,7 +564,9 @@ class TestCase(MooseObject):
 
             # Skip of controller not associated with current type
             if not isinstance(obj, controller.OBJECT_TYPES):
-                self.debug("Controller object of type '{}' is not setup to execute with an object of type '{}'.", type(controller), type(obj))
+                self.debug(
+                    "Controller object of type '{}' is not setup to execute with an object of type '{}'.",
+                    type(controller), type(obj))
                 continue
 
             # Execute the `Controller`

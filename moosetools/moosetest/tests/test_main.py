@@ -28,7 +28,7 @@ class Test_make_harness(unittest.TestCase):
 
         with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir') as mock_chdir:
             th = _make_harness('.moosetest', root, tuple(), None, None)
-        self.assertEqual(mock_chdir.call_count, 2)
+        self.assertEqual(mock_chdir.call_count, 4)
         mock_chdir.assert_called_with(os.getcwd())
         self.assertIsInstance(th, TestHarness)
         self.assertEqual(th.getParam('n_threads'), os.cpu_count())
@@ -38,7 +38,7 @@ class Test_make_harness(unittest.TestCase):
         root.append('TestHarness', type='TestHarness', n_threads=1)
         with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir') as mock_chdir:
             th = _make_harness('.moosetest', root, tuple(), None, None)
-        self.assertEqual(mock_chdir.call_count, 2)
+        self.assertEqual(mock_chdir.call_count, 4)
         mock_chdir.assert_called_with(os.getcwd())
         self.assertIsInstance(th, TestHarness)
         self.assertEqual(th.getParam('n_threads'), 1)
@@ -63,11 +63,13 @@ class Test_make_controllers(unittest.TestCase):
         root = pyhit.Node(None)
         with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir') as mock_chdir:
             controllers = _make_controllers('.moosetest', root)
-        self.assertEqual(mock_chdir.call_count, 2)
+        self.assertEqual(mock_chdir.call_count, 4)
         mock_chdir.assert_called_with(os.getcwd())
         for c in controllers:
             self.assertIsInstance(c, Controller)
         self.assertEqual(list(controllers)[0].getParam('prefix'), 'env')
+        self.assertEqual(list(controllers)[1].getParam('prefix'), None)
+        self.assertEqual(list(controllers)[2].getParam('prefix'), 'tag')
 
     def testOverride(self):
         root = pyhit.Node(None)
@@ -100,7 +102,7 @@ class Test_make_formatter(unittest.TestCase):
         root = pyhit.Node(None)
         with mock.patch('os.path.isdir', return_value=True), mock.patch('os.chdir') as mock_chdir:
             formatter = _make_formatter('.moosetest', pyhit.Node(None))
-        self.assertEqual(mock_chdir.call_count, 2)
+        self.assertEqual(mock_chdir.call_count, 4)
         mock_chdir.assert_called_with(os.getcwd())
         self.assertIsInstance(formatter, BasicFormatter)
         self.assertEqual(formatter.getParam('min_print_result'), TestCase.Result.DIFF)
@@ -177,7 +179,10 @@ class Test_main(unittest.TestCase):
                                         timeout=None,
                                         n_threads=None,
                                         max_failures=None,
-                                        spec_file_names=None)
+                                        spec_file_names=None,
+                                        verbose=False,
+                                        min_print_progress=None,
+                                        min_print_result=None)
 
     @mock.patch('argparse.ArgumentParser.parse_known_args')
     def testDefault(self, mock_cli_args):

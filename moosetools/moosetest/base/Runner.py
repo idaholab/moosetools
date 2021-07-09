@@ -62,6 +62,13 @@ class Runner(MooseTestObject):
     A `Runner` object is expected to be executed from within a `TestCase` object. In particular, when
     executed the working directory is set to "working_dir" parameter. As such, the use of
     `os.getcwd()` is expected to be correct within this object.
+
+    This object also includes file creation/modification checking, for files within the current
+    working directory. The purpose of this is to ensure that all file related manipulations are
+    known and accounted by the `Runner`. This capability exists for historical reasons, failures of
+    tests were often related to file race conditions. Hence, a means to completely and explicitly
+    track files is included. All parameters associated with these checks are within the "file"
+    sub-parameters.
     """
     @staticmethod
     def isDirectory(path):
@@ -106,7 +113,7 @@ class Runner(MooseTestObject):
             doc="Parameters for managing file(s) associated with execution of the `Runner` object.")
         f_params = params.getValue('file')
         f_params.add(
-            'names',
+            'names_created',
             vtype=str,
             array=True,
             doc=
@@ -114,11 +121,27 @@ class Runner(MooseTestObject):
         )
 
         f_params.add(
+            'names_modified',
+            vtype=str,
+            array=True,
+            doc=
+            "File name(s) that are expected to be modified during execution of this object. The file(s) listed here are joined with the 'filenames' parameter from each `Differ` object. The combined set is what is used for associated error checking."
+        )
+
+        f_params.add(
             'check_created',
             vtype=bool,
             default=True,
             doc=
-            "Check that all files created are accounted for in the 'names' parameter of this `Runner` object and/or associated `Differ` objects."
+            "Check that all files created are accounted for in the 'names_created' parameter of this `Runner` object and/or associated `Differ` objects."
+        )
+
+        f_params.add(
+            'check_modified',
+            vtype=bool,
+            default=True,
+            doc=
+            "Check that all files modified are accounted for in the 'names_modified' parameter of this `Runner` object and/or associated `Differ` objects."
         )
 
         f_params.add(
@@ -126,23 +149,32 @@ class Runner(MooseTestObject):
             vtype=bool,
             default=True,
             doc=
-            "Delete pre-existing file names defined in the 'names' parameter of this `Runner` object and/or associated `Differ` objects before calling the `execute` method."
+            "Delete pre-existing file names defined in the 'names_created' parameter of this `Runner` object and/or associated `Differ` objects before calling the `execute` method."
         )
 
         f_params.add(
-            'ignore_patterns',
+            'ignore_patterns_created',
             vtype=str,
             array=True,
             doc=
             "File/path patterns to ignore when inspecting created files (see 'check_created'). The python `fnmatch` module (https://docs.python.org/3/library/fnmatch.html) is used for comparing files."
         )
 
+        f_params.add(
+            'ignore_patterns_modified',
+            vtype=str,
+            array=True,
+            doc=
+            "File/path patterns to ignore when inspecting created files (see 'check_modified'). The python `fnmatch` module (https://docs.python.org/3/library/fnmatch.html) is used for comparing files."
+        )
+
         return params
 
     def __init__(self, *args, **kwargs):
         MooseTestObject.__init__(self, *args, **kwargs)
-        self.__expected_files = None
-        self.__pre_execute_files = None
+        self.__expected_names_created = set()
+        self.__expected_names_modified = set()
+        self.__pre_execute_files = dict()  # dict with name to modified time
 
     def preExecute(self):
         """
@@ -150,7 +182,48 @@ class Runner(MooseTestObject):
 
         Performs checks regarding the files expected to be created during execution.
         """
-        self._preExecuteExpectedFiles()
+        # Create set of expected files from this object and Differ objects
+        self.__expected_names_created = self._getExpectedFiles("names_created")
+        self.__expected_names_modified = self._getExpectedFiles("names_modified")
+
+        # Check that the file is not under version control
+        root_dir = mooseutils.git_root_dir()
+        if root_dir:
+            git_files = set(mooseutils.git_ls_files() or root_dir)
+            intersect = git_files.intersection(self.__expected_names_created)
+            intersect.union(git_files.intersection(self.__expected_names_modified))
+            if intersect:
+                msg = "The following file(s) are being tracked with 'git', thus cannot be expected to be created or modified by the execution of this object:\n  {}."
+                self.error(msg, '\n  '.join(intersect))
+                return
+
+        # Remove expected output
+        if self.getParam('file', 'clean'):
+            for fname in self.__expected_names_created:
+                if os.path.isfile(fname):
+                    self.info("Removing file: {}", fname)
+                    os.remove(fname)
+
+        # Check that files to be created do not exist
+        exist = [fname for fname in self.__expected_names_created if os.path.isfile(fname)]
+        if exist:
+            msg = "The following files(s) are expected to be created, but they already exist:\n  {}"
+            self.error(msg, '\n  '.join(exist))
+            return
+
+        # Check that files to be modified do exist
+        not_exist = [fname for fname in self.__expected_names_modified if not os.path.isfile(fname)]
+        if not_exist:
+            msg = "The following files(s) are expected to be modified, but they do not exist:\n  {}"
+            self.error(msg, '\n  '.join(not_exist))
+            return
+
+        # Store modification times for all files within the directory as well as any files
+        # expected to be modified.
+        self.__pre_execute_files = {name: os.path.getmtime(name) for name in os.listdir()}
+        self.__pre_execute_files.update(
+            {name: os.path.getmtime(name)
+             for name in self.__expected_names_modified})
 
     def postExecute(self):
         """
@@ -161,7 +234,54 @@ class Runner(MooseTestObject):
 
         Performs checks that the expected files were created.
         """
-        self._postExecuteExpectedFiles()
+        # Check files expected to be created
+        not_exist = [fname for fname in self.__expected_names_created if not os.path.isfile(fname)]
+        if not_exist:
+            msg = "The following file(s) were not created as expected:\n  {}"
+            self.error(msg, '\n  '.join(not_exist))
+
+        # Check files expected to be modified
+        not_modified = [
+            fname for fname in self.__expected_names_modified
+            if os.path.getmtime(fname) <= self.__pre_execute_files[fname]
+        ]
+        if not_modified:
+            msg = "The following file(s) were not modified as expected:\n  {}"
+            self.error(msg, '\n  '.join(not_modified))
+
+        # Check that other files were not created unexpected
+        if self.getParam('file', 'check_created'):
+            post_execute_files = set(os.listdir())
+            post_execute_files -= self.__expected_names_created
+
+            # remove ignored pattern(s)
+            ignore_patterns = self.getParam('file', 'ignore_patterns_created') or tuple()
+            for pattern in ignore_patterns:
+                post_execute_files -= set(fnmatch.filter(post_execute_files, pattern))
+
+            diff = set(
+                [name for name in post_execute_files if (name not in self.__pre_execute_files)])
+            if diff:
+                msg = "The following file(s) were not expected to be created:\n  {}"
+                self.error(msg, '\n  '.join(diff))
+
+        # Check that other files were not modified unexpected
+        if self.getParam('file', 'check_modified'):
+            post_execute_files = set(os.listdir())
+            post_execute_files -= self.__expected_names_modified
+
+            # remove ignored pattern(s)
+            ignore_patterns = self.getParam('file', 'ignore_patterns_modified') or tuple()
+            for pattern in ignore_patterns:
+                post_execute_files -= set(fnmatch.filter(post_execute_files, pattern))
+
+            diff = set([
+                name for name in post_execute_files
+                if (os.path.getmtime(name) != self.__pre_execute_files[name])
+            ])
+            if diff:
+                msg = "The following file(s) were not expected to be modified:\n  {}"
+                self.error(msg, '\n  '.join(diff))
 
     def execute(self):
         """
@@ -177,77 +297,12 @@ class Runner(MooseTestObject):
         """
         raise NotImplementedError("The 'execute' method must be overridden.")
 
-    def _preExecuteExpectedFiles(self):
+    def _getExpectedFiles(self, param_name):
         """
-        Prepare for inspection of expected file prior to execution.
+        Build the list of expected files, where the supplied `str` *param_name* is the name of the
+        file list parameter to consider, e.g., 'names_created' or 'names_modified'.
         """
-
-        # Create set of expected files from this object and Differ objects
-        self.__expected_files = self._getExpectedFiles()
-
-        # Check that the file is not under version control
-        root_dir = mooseutils.git_root_dir()
-        if root_dir:
-            git_files = set(mooseutils.git_ls_files() or root_dir)
-            intersect = git_files.intersection(self.__expected_files)
-            if intersect:
-                msg = "The following file(s) are being tracked with 'git', thus cannot be expected to be created by the execution of this object:\n  {}."
-                self.error(msg, '\n  '.join(intersect))
-                return
-
-        # Remove expected output
-        if self.getParam('file', 'clean'):
-            for fname in self.__expected_files:
-                if os.path.isfile(fname):
-                    self.info("Removing file: {}", fname)
-                    os.remove(fname)
-
-        # Check that expected files do not exist
-        exist = [fname for fname in self.__expected_files if os.path.isfile(fname)]
-        if exist:
-            msg = "The following files(s) are expected to be created, but they already exist:\n  {}"
-            self.error(msg, '\n  '.join(exist))
-            return
-
-        # Store directory content
-        if self.getParam('file', 'check_created'):
-            self.__pre_execute_files = {name:os.path.getmtime(name) for name in os.listdir()}
-
-    def _postExecuteExpectedFiles(self):
-        """
-        Inspect expected file after execution.
-        """
-
-        # check that expected files exist
-        do_not_exist = [fname for fname in self.__expected_files if not os.path.isfile(fname)]
-        if do_not_exist:
-            msg = "The following file(s) were not created as expected:\n  {}"
-            self.error(msg, '\n  '.join(do_not_exist))
-
-        # check for other files
-        if self.__pre_execute_files is not None:
-            post_execute_files = set(os.listdir())
-            post_execute_files -= self.__expected_files
-
-            # remove ignored pattern(s)
-            ignore_patterns = self.getParam('file', 'ignore_patterns') or tuple()
-            for pattern in ignore_patterns:
-                post_execute_files -= set(fnmatch.filter(post_execute_files, pattern))
-
-            diff = set()
-            for name in post_execute_files:
-                if (name not in self.__pre_execute_files) or (os.path.getmtime(name) != self.__pre_execute_files[name]):
-                    diff.add(name)
-
-            if diff:
-                msg = "The following file(s) were not expected to be created or modified:\n  {}"
-                self.error(msg, '\n  '.join(diff))
-
-    def _getExpectedFiles(self):
-        """
-        Build the list of expected files.
-        """
-        expected = set(self.getParam('file', 'names') or tuple())
+        expected = set(self.getParam('file', param_name) or tuple())
         for differ in self.getParam('differs') or set():
-            expected |= set(differ.getParam('file', 'names') or tuple())
+            expected |= set(differ.getParam('file', param_name) or tuple())
         return expected

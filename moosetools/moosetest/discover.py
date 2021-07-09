@@ -56,7 +56,9 @@ class MooseTestFactory(factory.Factory):
         if object_defaults is not None:
             otype = self._getObjectType(name)
             for obj_type, obj_params in object_defaults.items():
-                if obj_type in set([p.__module__ for p in inspect.getmro(otype)]):
+                obj_names = set(['{}.{}'.format(otype.__module__, otype.__name__)] +
+                                [p.__module__ for p in inspect.getmro(otype)])
+                if obj_type in obj_names:
                     for key, value in obj_params.items():
                         param = params.parameter(key)
                         if param.vtype and isinstance(value, str):

@@ -104,10 +104,17 @@ class BasicFormatter(Formatter):
 
     @staticmethod
     def validCommandLineArguments(parser, params):
-        parser.add_argument('--verbose', action='store_true', help="Enable complete output.")
-        parser.add_argument('--min_print_result', choices=[e.name for e in TestCase.Result], default='DIFF',
+        parser.add_argument('--verbose',
+                            action='store_true',
+                            help=("Enable complete output, this will override the use of "
+                                  "'--min_print_result' and '--min_print_progress'."))
+        parser.add_argument('--min_print_result',
+                            choices=[e.name for e in TestCase.Result],
+                            default='DIFF',
                             help="The minimum status to show when reporting test results.")
-        parser.add_argument('--min_print_progress', choices=[e.name for e in TestCase.Result], default='SKIP',
+        parser.add_argument('--min_print_progress',
+                            choices=[e.name for e in TestCase.Result],
+                            default='SKIP',
                             help="The minimum status to show when reporting test progress.")
 
     def __init__(self, *args, **kwargs):
@@ -122,14 +129,14 @@ class BasicFormatter(Formatter):
         Apply command line arguments.
         """
         Formatter._setup(self, args)
-        if args.verbose:
-            self.parameters().setValue('min_print_progress', TestCase.Result.REMOVE)
-            self.parameters().setValue('min_print_result', TestCase.Result.REMOVE)
-
         if args.min_print_result:
             self.parameters().setValue('min_print_result', TestCase.Result[args.min_print_result])
         if args.min_print_progress:
-            self.parameters().setValue('min_print_progress', TestCase.Result[args.min_print_progress])
+            self.parameters().setValue('min_print_progress',
+                                       TestCase.Result[args.min_print_progress])
+        if args.verbose:
+            self.parameters().setValue('min_print_progress', TestCase.Result.REMOVE)
+            self.parameters().setValue('min_print_result', TestCase.Result.REMOVE)
 
     def width(self):
         """

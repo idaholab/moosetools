@@ -148,6 +148,8 @@ class Formatter(MooseObject):
         self._printResult(tc_obj, tc_obj.runner, r_data)
 
         # Report Differ results
+        # TODO: Optionally (default) show differ "OK" if everything passes, this will cut down on
+        #       screen dumping.
         for differ in [d for d in tc_obj.differs if d.name() in tc_obj.results]:
             d_data = tc_obj.results.get(differ.name())
             self._printState(tc_obj, differ, d_data.state, d_data.reasons)
