@@ -17,20 +17,20 @@ from moosetools.moosetest.base import FileDiffer
 
 class TestFileDiff(unittest.TestCase):
     def testGoldFilenames(self):
-        obj = FileDiffer(name='diff', file_names=('a', 'b'), file_goldnames=('c', 'd'))
+        obj = FileDiffer(name='diff', file_names_created=('a', 'b'), file_goldnames=('c', 'd'))
         obj.preExecute()
         pairs = list(obj.pairs())
         self.assertEqual(pairs, [('a', 'c'), ('b', 'd')])
 
     def testGoldFilenamesError(self):
-        obj = FileDiffer(name='diff', file_names=('a', 'b'), file_goldnames=('c', 'd', 'e'))
+        obj = FileDiffer(name='diff', file_names_created=('a', 'b'), file_goldnames=('c', 'd', 'e'))
         with self.assertLogs(level='ERROR') as log:
             obj.preExecute()
         self.assertEqual(len(log.output), 1)
         self.assertIn("The number of supplied file(s) for comparison", log.output[0])
 
     def testGoldDir(self):
-        obj = FileDiffer(name='diff', file_names=('a', 'b'))
+        obj = FileDiffer(name='diff', file_names_created=('a', 'b'))
         obj.preExecute()
         pairs = list(obj.pairs())
         self.assertEqual(pairs, [('a', 'gold/a'), ('b', 'gold/b')])

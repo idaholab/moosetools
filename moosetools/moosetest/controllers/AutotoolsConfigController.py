@@ -118,6 +118,7 @@ class AutotoolsConfigController(Controller):
         raw_value = self.__config_items.get(item.key, item.default)
         mapped_value = item.mapping.get(raw_value, None) if hasattr(
             item.mapping, 'get') else item.mapping(raw_value)
+
         if mapped_value is None:
             msg = "The value of '{}' in the loaded file does not have a registered value in the mapping for '{}'. The available mapping values are: {}"
             raise RuntimeError(msg.format(name, raw_value, ', '.join(item.mapping.keys())))
@@ -134,10 +135,10 @@ class AutotoolsConfigController(Controller):
         param_value = params.getValue(param_name)
         if param_value is not None:
             mapped_value, raw_value, raw_name = self.getConfigItem(params, param_name)
-            if param_value != mapped_value:
+            if AutotoolsConfigController._notEqual(param_value, mapped_value):
                 msg = "The application is configured with '{}' equal to '{}', which maps to a value of '{}'. However, the associated '{}' parameter for this test requires '{}'."
                 self.debug(msg, raw_name, raw_value, mapped_value, param_name, param_value)
-                self.skip('{} != {}', mapped_value, param_value)
+                self.skip('{}: {} != {}', raw_name, mapped_value, param_value)
 
     def execute(self, obj, params):
         """
@@ -151,3 +152,9 @@ class AutotoolsConfigController(Controller):
             user_data = params.getUserData(key)
             if isinstance(user_data, AutotoolsConfigItem):
                 self.checkConfig(params, key)
+
+    @staticmethod
+    def _notEqual(value0, value1):
+        v0 = value0.casefold() if isinstance(value0, str) else value0
+        v1 = value1.casefold() if isinstance(value1, str) else value1
+        return v0 != v1

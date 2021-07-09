@@ -432,6 +432,19 @@ class TestTestCase(unittest.TestCase):
         self.assertEqual(out.stderr, '')
         self.assertEqual(out.reasons, ['a reason'])
 
+    def testExecuteObject_OBJECT_TYPES(self):
+
+        ctrl = TestController()
+        ctrl.OBJECT_TYPES = (str, )
+        obj = make_runner(TestRunner, [
+            ctrl,
+        ], name='a')
+        tc = TestCase(runner=obj, controllers=(ctrl, ), log_level='DEBUG')
+        with self.assertLogs(level='DEBUG') as log:
+            out = tc._executeObject(obj)
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("is not setup to execute with an object of type", log.output[0])
+
     def testExecute(self):
         ct = TestController()
         dr = make_differ(TestDiffer, [ct], name='d')

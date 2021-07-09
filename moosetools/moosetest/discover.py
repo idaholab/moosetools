@@ -8,6 +8,8 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os
+import inspect
+import importlib
 import concurrent.futures
 from moosetools import moosetree
 from moosetools import pyhit
@@ -51,12 +53,17 @@ class MooseTestFactory(factory.Factory):
 
         # Add defaults, if any
         object_defaults = self.getParam('object_defaults')
-        if (object_defaults is not None) and (name in object_defaults):
-            for key, value in object_defaults[name].items():
-                param = params.parameter(key)
-                if param.vtype and isinstance(value, str):
-                    value = factory.Parser._getValueFromStr(param.vtype, value, param.array)
-                params.setValue(key, value)
+        if object_defaults is not None:
+            otype = self._getObjectType(name)
+            for obj_type, obj_params in object_defaults.items():
+                obj_names = set(['{}.{}'.format(otype.__module__, otype.__name__)] +
+                                [p.__module__ for p in inspect.getmro(otype)])
+                if obj_type in obj_names:
+                    for key, value in obj_params.items():
+                        param = params.parameter(key)
+                        if param.vtype and isinstance(value, str):
+                            value = factory.Parser._getValueFromStr(param.vtype, value, param.array)
+                        params.setValue(key, value)
 
         # Add the controllers, this allows Runner objects to pragmatically add a Differ object
         params.add('_controllers', default=self.getParam('controllers'), private=True)

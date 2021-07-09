@@ -562,6 +562,13 @@ class TestCase(MooseObject):
         # Loop through each `Controller` object
         for controller in self._controllers:
 
+            # Skip of controller not associated with current type
+            if not isinstance(obj, controller.OBJECT_TYPES):
+                self.debug(
+                    "Controller object of type '{}' is not setup to execute with an object of type '{}'.",
+                    type(controller), type(obj))
+                continue
+
             # Execute the `Controller`
             with RedirectOutput() as out:
                 try:

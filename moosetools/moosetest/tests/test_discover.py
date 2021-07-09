@@ -44,22 +44,22 @@ class TestMooseTestFactory(unittest.TestCase):
         self.assertIsInstance(params.getValue('ctrl'), InputParameters)
 
     def testWithDefaults(self):
-        f = MooseTestFactory(object_defaults={'TestController': {'remove': 'true'}})
+        f = MooseTestFactory(object_defaults={'_helpers.TestController': {'remove': 'true'}})
         f.load()
         params = f.params('TestController')
         self.assertEqual(params['remove'], 'true')
 
-        f = MooseTestFactory(object_defaults={'TestController': {'remove': True}})
+        f = MooseTestFactory(object_defaults={'_helpers.TestController': {'remove': True}})
         f.load()
         params = f.params('TestController')
         self.assertEqual(params['remove'], True)
 
-        f = MooseTestFactory(object_defaults={'TestController': {'sleep': '1'}})
+        f = MooseTestFactory(object_defaults={'_helpers.TestController': {'sleep': '1'}})
         f.load()
         params = f.params('TestController')
         self.assertEqual(params['sleep'], 1)
 
-        f = MooseTestFactory(object_defaults={'TestController': {'sleep': 1}})
+        f = MooseTestFactory(object_defaults={'_helpers.TestController': {'sleep': 1}})
         f.load()
         params = f.params('TestController')
         self.assertEqual(params['sleep'], 1)

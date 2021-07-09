@@ -11,6 +11,7 @@
 import io
 import logging
 import unittest
+import argparse
 from unittest import mock
 from moosetools.moosetest.base import TestCase
 from moosetools.moosetest.formatters import shorten_line, shorten_text, ShortenMode
@@ -225,6 +226,21 @@ class TestBasicFormatter(unittest.TestCase):
 
         self.assertIn('Longest running test(s)', text)
         self.assertIn('\n  20.00s B\n  10.00s A', text)
+
+    def test_setup(self):
+        obj = BasicFormatter()
+        args = argparse.Namespace(min_print_result='PASS', min_print_progress='PASS', verbose=False)
+
+        self.assertEqual(obj.getParam('min_print_result'), TestCase.Result.DIFF)
+        self.assertEqual(obj.getParam('min_print_progress'), TestCase.Result.SKIP)
+        obj._setup(args)
+        self.assertEqual(obj.getParam('min_print_result'), TestCase.Result.PASS)
+        self.assertEqual(obj.getParam('min_print_progress'), TestCase.Result.PASS)
+
+        args.verbose = True
+        obj._setup(args)
+        self.assertEqual(obj.getParam('min_print_result'), TestCase.Result.REMOVE)
+        self.assertEqual(obj.getParam('min_print_progress'), TestCase.Result.REMOVE)
 
 
 if __name__ == '__main__':

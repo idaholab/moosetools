@@ -9,3 +9,5 @@
 
 from .ConsoleDiffer import ConsoleDiffer
 from .CSVDiffer import CSVDiffer
+from .TextFileDiffer import TextFileDiffer
+from .TextFileContentDiffer import TextFileContentDiffer
