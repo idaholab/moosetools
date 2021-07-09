@@ -34,7 +34,12 @@ class TestTestHarness(unittest.TestCase):
 
     def test_setup(self):
         th = moosetest.base.TestHarness()
-        args = argparse.Namespace(n_threads=None, timeout=1980., max_failures=None)
+        args = argparse.Namespace(n_threads=None,
+                                  timeout=1980.,
+                                  max_failures=None,
+                                  verbose=False,
+                                  min_print_result=None,
+                                  min_print_progress=None)
         th._setup(args)
         self.assertEqual(th.getParam('timeout'), 1980.)
 
@@ -43,7 +48,10 @@ class TestTestHarness(unittest.TestCase):
 
         mock_args.return_value = argparse.Namespace(timeout=10.,
                                                     max_failures=42,
-                                                    spec_file_names=['a', 'b'])
+                                                    spec_file_names=['a', 'b'],
+                                                    min_print_result=None,
+                                                    min_print_progress=None,
+                                                    verbose=False)
 
         th = moosetest.base.TestHarness()
         th.parse()

@@ -226,6 +226,7 @@ class Parser(core.MooseObject):
             value = tuple(convert(v, vtypes) for v in re.split(r' +', str_value))
             if any(v is None for v in value): value = None
         else:
+            print(str_value, vtypes)
             value = convert(str_value, vtypes)
 
         return value

@@ -53,10 +53,19 @@ class Differ(MooseTestObject):
             doc="Parameters for managing file(s) associated with execution of the `Differ` object.")
         f_params = params.getValue('file')
         f_params.add(
-            'names',
+            'names_created',
             vtype=str,
             array=True,
-            doc="File name(s) that are expected to be created during execution of this object.")
+            doc=
+            "File name(s) that are expected to be created during execution of the test (see `Runner`)."
+        )
+        f_params.add(
+            'names_modified',
+            vtype=str,
+            array=True,
+            doc=
+            "File name(s) that are expected to be modified during execution of the test (see `Runner`)."
+        )
         return params
 
     def preExecute(self):

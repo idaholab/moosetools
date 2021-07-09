@@ -60,19 +60,22 @@ class TestRunner(unittest.TestCase):
 
     def test_preExecute(self):
 
-        runner = moosetest.base.Runner(name='run', file_names=(os.path.abspath(__file__), ))
+        # git error
+        runner = moosetest.base.Runner(name='run', file_names_created=(os.path.abspath(__file__), ))
         with self.assertLogs(level='ERROR') as log:
             runner.preExecute()
         self.assertEqual(len(log.output), 1)
         self.assertIn("The following file(s) are being tracked with 'git'", log.output[0])
 
-        runner = moosetest.base.Runner(name='run', file_names=('/file.e', ))
+        # clean
+        runner = moosetest.base.Runner(name='run', file_names_created=('/file.e', ))
         with mock.patch('os.path.isfile',
                         side_effect=[True, False]), mock.patch('os.remove') as mock_remove:
             runner.preExecute()
         mock_remove.assert_called_once_with('/file.e')
 
-        runner = moosetest.base.Runner(name='run', file_names=('/file.e', ))
+        # already exist
+        runner = moosetest.base.Runner(name='run', file_names_created=('/file.e', ))
         with self.assertLogs(level='ERROR') as log, mock.patch('os.path.isfile',
                                                                side_effect=[False, True]):
             runner.preExecute()
@@ -81,14 +84,19 @@ class TestRunner(unittest.TestCase):
                       log.output[0])
         self.assertIn("\n  /file.e", log.output[0])
 
-        runner = moosetest.base.Runner(name='run',
-                                       working_dir=os.path.abspath(os.path.dirname(__file__)))
-        with mock.patch('os.listdir', return_value=['/foo/file']):
+        # modifiy, but not exist
+        runner = moosetest.base.Runner(name='run', file_names_modified=('/file.e', ))
+        with self.assertLogs(level='ERROR') as log:
             runner.preExecute()
-        self.assertEqual(runner._Runner__pre_execute_files, set(['/foo/file']))
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("The following files(s) are expected to be modified, but they do not exist",
+                      log.output[0])
+        self.assertIn("\n  /file.e", log.output[0])
 
     def test_postExecute(self):
-        runner = moosetest.base.Runner(name='run', file_names=('/runner_0', '/runner_1'))
+
+        # not created error
+        runner = moosetest.base.Runner(name='run', file_names_created=('/runner_0', '/runner_1'))
         runner.preExecute()
         with mock.patch('os.path.isfile',
                         side_effect=[False, True]), self.assertLogs(level='ERROR') as log:
@@ -97,39 +105,58 @@ class TestRunner(unittest.TestCase):
         self.assertEqual(len(log.output), 1)
         self.assertIn("The following file(s) were not created as expected:", log.output[0])
 
-        runner = moosetest.base.Runner(name='run',
-                                       working_dir=os.path.abspath(os.path.dirname(__file__)))
-        with mock.patch('os.listdir',
-                        side_effect=[['/foo/file'],
-                                     ['/foo/file',
-                                      '/bar/file']]), self.assertLogs(level='ERROR') as log:
-            runner.preExecute()
+        # not modified error
+        runner = moosetest.base.Runner(name='run', file_names_modified=(__file__, ))
+        runner.preExecute()
+        with self.assertLogs(level='ERROR') as log:
             runner.postExecute()
 
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The following file(s) were created but not expected:\n  /bar/file",
-                      log.output[0])
+        self.assertIn("The following file(s) were not modified as expected:", log.output[0])
 
-        runner.parameters().setValue('file', 'ignore_patterns', ('/bar/*', ))
-        with mock.patch('os.listdir', side_effect=[['/foo/file'], ['/foo/file', '/bar/file']]):
-            runner.preExecute()
+        # unexpected created
+        runner = moosetest.base.Runner(name='run',
+                                       file_check_modified=False,
+                                       file_ignore_patterns_created=('/bar/*', ))
+        with mock.patch('os.listdir',
+                        return_value=['/foo/file',
+                                      '/bar/file']), self.assertLogs(level='ERROR') as log:
             runner.postExecute()
 
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("The following file(s) were not expected to be created:\n  /foo/file",
+                      log.output[0])
+
+        # unexpected modified
+        runner = moosetest.base.Runner(name='run',
+                                       file_check_created=False,
+                                       file_ignore_patterns_modified=('/bar/*', ))
+        runner._Runner__pre_execute_files['/foo/file'] = 0.
+        with mock.patch('os.listdir', return_value=[
+                '/foo/file', '/bar/file'
+        ]), self.assertLogs(level='ERROR') as log, mock.patch('os.path.getmtime', return_value=1):
+            runner.postExecute()
+
+        self.assertEqual(len(log.output), 1)
+        self.assertIn("The following file(s) were not expected to be modified:\n  /foo/file",
+                      log.output[0])
+
     def test_getExpectedFiles(self):
-        d0 = moosetest.base.make_differ(moosetest.base.Differ, name='a', file_names=('/differ_a', ))
-        d1 = moosetest.base.make_differ(moosetest.base.Differ, name='b', file_names=('differ_b', ))
+        d0 = moosetest.base.make_differ(moosetest.base.Differ,
+                                        name='a',
+                                        file_names_created=('/differ_a', ))
+        d1 = moosetest.base.make_differ(moosetest.base.Differ,
+                                        name='b',
+                                        file_names_modified=('differ_b', ))
         runner = moosetest.base.Runner(name='run',
                                        differs=(d0, d1),
-                                       file_names=('/runner_0', 'runner_1'))
+                                       file_names_created=('/runner_0', 'runner_1'))
 
-        expected = runner._getExpectedFiles()
-        self.assertEqual(expected, set(['/runner_0', 'runner_1', '/differ_a', 'differ_b']))
+        expected = runner._getExpectedFiles('names_created')
+        self.assertEqual(expected, set(['/runner_0', 'runner_1', '/differ_a']))
 
-        with mock.patch('os.path.isdir', return_value=True):
-            runner.parameters().setValue('working_dir', '/base')
-
-        expected = runner._getExpectedFiles()
-        self.assertEqual(expected, set(['/runner_0', 'runner_1', '/differ_a', 'differ_b']))
+        expected = runner._getExpectedFiles('names_modified')
+        self.assertEqual(expected, set(['differ_b']))
 
 
 if __name__ == '__main__':

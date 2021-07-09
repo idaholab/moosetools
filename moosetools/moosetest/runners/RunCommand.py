@@ -33,6 +33,7 @@ class RunCommand(Runner):
             doc=
             "Do not raise exception if the process fails; implemented via 'check' flag in `subprocess.run` command."
         )
+
         return params
 
     def execute(self):
