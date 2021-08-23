@@ -87,69 +87,6 @@ class MooseTestFactory(factory.Factory):
         return factory.Factory.create(self, otype, params)
 
 
-class MooseTestWarehouse(factory.Warehouse):
-    """
-    Custom `Warehouse` that handles automatically adds `Differ` objects to the parent `Runner` as
-    well as prefixes the name of the `Runner` with the test specification file.
-
-    This warehouse is used within the the `_create_runners` function and is designed to operate
-    on a per specification file basis. That is, a warehouse is created for each specification, with
-    the resulting objects returned by the warehouse being the `Runner` objects.
-
-    The first object added using the `append` method must be a `Runner` objects. All `Differ`
-    objects are appended to the latest `Runner` object.
-    """
-    @staticmethod
-    def validParams():
-        params = factory.Warehouse.validParams()
-        params.add('root_dir',
-                   vtype=str,
-                   required=True,
-                   doc="The root directory for loading test specification files.")
-        params.add('specfile', vtype=str, required=True, doc="The test specification file.")
-        return params
-
-    def append(self, obj):
-        """
-        Add `Runner` or `Differ` object, *obj*, to the warehouse.
-        """
-        if (len(self.objects) == 0) and isinstance(obj, Differ):
-            msg = "The `Differ` object '{}' is being added without the existence of a `Runner`, which is not supported."
-            self.critical(msg, obj.name())
-
-        elif isinstance(obj, Differ):
-            differs = list(self.objects[-1].getParam('differs') or set())
-            differs.append(obj)
-            self.objects[-1].parameters().setValue('differs', tuple(differs))
-
-        else:
-            base = obj.getParam('_hit_path').strip(os.sep)
-            prefix = self.getParam('specfile').replace(self.getParam('root_dir'), '').strip(os.sep)
-            obj.parameters().setValue('name', f"{prefix}:{base}")
-            factory.Warehouse.append(self, obj)
-
-        # Propagate construction errors of object
-        if obj.status():
-            msg = "The '{}' object produced error(s) during construction."
-            self.critical(msg, obj.name())
-
-
-def _create_runners(root_dir, filename, obj_factory):
-    """
-    Return the `Runner` objects, with attached `Differ` objects, as defined in HIT file given in
-    *filename*.
-
-    The *root_dir* is the starting location provided to the `discover` function. The *obj_factory* is
-    used to by the HIT parser to create the desired object type.
-    """
-    root = pyhit.load(filename)
-    wh = MooseTestWarehouse(root_dir=root_dir, specfile=filename)
-    parser = factory.Parser(obj_factory, wh)
-    for node in root:
-        parser.parse(filename, node)
-    return wh.objects, max(parser.status(), wh.status())
-
-
 def discover(start,
              controllers,
              spec_file_names,
@@ -182,16 +119,26 @@ def discover(start,
                                    object_defaults=object_defaults or dict())
     obj_factory.load()
 
-    # Build the objects for each file
-    with concurrent.futures.ThreadPoolExecutor(n_threads) as pool:
-        futures = [
-            pool.submit(_create_runners, start, filename, obj_factory) for filename in spec_files
-        ]
+    # Build objects
+    obj_parser = factory.Parser(obj_factory)
+    groups = obj_parser.parse(spec_files)
 
-    # Raise an exception if an error occurred during parsing
-    if any(f.result()[1] for f in futures):
-        raise RuntimeError(
-            "Errors occurred during parsing of specifications, refer to console output for messages."
-        )
+    # Add Differs to Runner
+    runners = list()  # all Runner objects
+    for objects in groups:
+        differs = list()  # differs objects to add to a Runner
+        local = list()
+        for obj in objects:
+            if isinstance(obj, Differ):
+                differs.append(obj)
+            else:
+                if differs:
+                    obj.parameters().setValue('differs', tuple(differs))
+                base = obj.getParam('_hit_path').strip(os.sep)
+                prefix = obj.getParam('_hit_filename').replace(start, '').strip(os.sep)
+                obj.parameters().setValue('name', f"{prefix}:{base}")
+                differs.clear()
+                local.append(obj)
+        runners.append(local)
 
-    return [f.result()[0] for f in futures]
+    return runners

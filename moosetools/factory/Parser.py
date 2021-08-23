@@ -15,11 +15,14 @@ import time
 import logging
 import enum
 import inspect
+import multiprocessing
+import math
+import itertools
 from moosetools import core
 from moosetools import moosetree
 from moosetools import pyhit
+from moosetools import mooseutils
 from .Factory import Factory
-from .Warehouse import Warehouse
 
 
 class Parser(core.MooseObject):
@@ -31,23 +34,18 @@ class Parser(core.MooseObject):
     def validParams():
         params = core.MooseObject.validParams()
         params.add('_factory', private=True, required=True, vtype=Factory)
-        params.add('_warehouse', private=True, required=True, vtype=(Warehouse, list))
         params.add('iteration_method',
                    vtype=moosetree.IterMethod,
                    default=moosetree.IterMethod.PRE_ORDER,
                    doc="Iteration method to utilize when traversing HIT tree.")
         return params
 
-    def __init__(self, factory, warehouse, **kwargs):
+    def __init__(self, factory, **kwargs):
         """
         The *factory* is a factory.Factory object that contains the available object to be
         constructed as dictated by the 'type' parameter in the HIT input file.
-
-        The *warehouse* is factory.Warehouse object that the `Parser` injects the constructed
-        objects.
         """
         kwargs.setdefault('_factory', factory)
-        kwargs.setdefault('_warehouse', warehouse)
         core.MooseObject.__init__(self, **kwargs)
 
     @property
@@ -55,63 +53,74 @@ class Parser(core.MooseObject):
         """Return the `factory.Factory` object provided in the constructor."""
         return self.getParam('_factory')
 
-    @property
-    def warehouse(self):
-        """Return the `factory.Warehouse` object provided in the constructor."""
-        return self.getParam('_warehouse')
-
-    def parse(self, filename, root=None):
+    def parse(self, filenames, *, max_workers=None, chunksize=None):
         """
-        Instantiate the `MooseObjects` in the supplied *filename* or in the `pyhit.Node` tree with
-        a *root* node. If the *root* is supplied, the *filename* is only used for error reporting, if
-        it is omitted then the file is opened to create the *root*.
+        Instantiate the `MooseObjects` in the supplied *filenames*.
+        """
+        if chunksize is None:
+            chunksize = math.ceil(len(filenames) / (max_workers or os.cpu_count()))
+        return Parser._parseWithMultiprocessingPool(self, filenames, max_workers, chunksize)
+
+    def parseFile(self, filename):
+        """
+        Instantiate the `MooseObjects` in the supplied *filename*.
 
         This method should not raise exceptions. It reports all problems with logging errors. Prior
         to running it resets the error counts (see `core.MooseObject.reset()`). As such the
         `status` method (see `core.MooseObject.status()`) will return a non-zero code if an
         error occurred.
         """
-        if root is None:
-            if not os.path.isfile(filename):
-                self.error("The filename '{}' does not exist.".format(filename))
-                return 1
-            try:
-                root = pyhit.load(filename)
-            except Exception as err:
-                self.exception("Failed to load filename with pyhit: {}", filename)
-                return 1
+        if not os.path.isfile(filename):
+            self.error("The file '{}' does not exist.".format(filename))
+            return None
+
+        with open(filename, 'r') as fid:
+            content = fid.read()
+
+        return self.parseText(filename, content)
+
+    def parseText(self, filename, content):
+        """
+        Instantiate the `MooseObjects` supplied in the *content* string.
+
+        The *filename* is provided for error reporting.
+        """
+        try:
+            root = pyhit.parse(content, filename=filename)
+        except Exception as err:
+            self.exception("Failed to parse file '{}' with pyhit.", filename)
+            return None
 
         # Iterate of all nodes with "type = ..."
+        objects = list()
         paths = set()
         for node in moosetree.findall(root,
                                       func=lambda n: 'type' in n,
                                       method=self.getParam('iteration_method')):
             self._checkDuplicates(filename, paths, node)
-            self._parseNode(filename, node)
-        return self.status()
+            objects.append(self.parseNode(filename, node))
 
-    def _parseNode(self, filename, node):
+        return objects
+
+    def parseNode(self, filename, node):
         """
         Instantiate a `core.MooseObject` for a supplied `pyhit.Node`.
 
         The *filename* is provided for error reporting. The *node* is a `pyhit.Node` that should
         contain a "type" parameter that gives the type of object to be constructed. This type must
         be registered with the `factory.Factory` supplied in the `Parser` constructor.
-
-        When an object is created, it is added to the `factory.Warehouse` object supplied in the
-        `Parser` constructor.
         """
         otype = node.get('type', None)
         if otype is None:
             msg = "{}:{}\nMissing 'type' in block '{}'"
             self.error(msg, filename, node.line(-1), node.fullpath)
-            return
+            return None
 
         params = self.factory.params(otype)
         if params is None:
             msg = "{}:{}\nFailed to extract parameters from '{}' object in block '{}'"
             self.error(msg, filename, node.line(-1), otype, node.fullpath, stack_info=True)
-            return
+            return None
 
         # Set the object name to that of the block (e.g., [object])
         params.setValue('name', node.name)
@@ -121,13 +130,13 @@ class Parser(core.MooseObject):
         # Update the Parameters with the HIT node
         self.setParameters(params, filename, node, otype)
 
-        # Attempt to build the object and update warehouse
+        # Attempt to build the object
         obj = self.factory.create(otype, params)
         if obj is None:
             msg = "{}:{}\nFailed to create object of type '{}' in block '{}'"
             self.error(msg, filename, node.line(-1), otype, node.fullpath, stack_info=True)
-        else:
-            self.warehouse.append(obj)
+
+        return obj
 
     def _checkDuplicates(self, filename, paths, node):
         """
@@ -226,7 +235,14 @@ class Parser(core.MooseObject):
             value = tuple(convert(v, vtypes) for v in re.split(r' +', str_value))
             if any(v is None for v in value): value = None
         else:
-            print(str_value, vtypes)
             value = convert(str_value, vtypes)
 
         return value
+
+    @staticmethod
+    def _parseWithMultiprocessingPool(parser, filenames, max_workers, chunksize):
+        ctx = multiprocessing.get_context('fork')
+        pool = multiprocessing.pool.Pool(max_workers, context=ctx)
+        results = pool.map_async(parser.parseFile, filenames, chunksize=chunksize)
+        pool.close()
+        return results.get()
