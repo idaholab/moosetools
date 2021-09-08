@@ -22,7 +22,7 @@ from moosetools import pyhit
 from moosetools.parameters import InputParameters
 from moosetools.moosetest import discover
 from moosetools.moosetest.controllers import TagController
-from moosetools.moosetest.discover import MooseTestFactory, MooseTestWarehouse, _create_runners
+from moosetools.moosetest.discover import MooseTestFactory
 
 # I do not want the tests directory to be packages with __init__.py, so load from file
 sys.path.append(os.path.join(os.path.dirname(__file__)))
@@ -65,92 +65,6 @@ class TestMooseTestFactory(unittest.TestCase):
         self.assertEqual(params['sleep'], 1)
 
 
-class TestMooseTesWarehouse(unittest.TestCase):
-    def testAppend(self):
-        w = MooseTestWarehouse(root_dir='foo/bar', specfile='foo/bar/testing/tests')
-
-        with self.assertLogs(level='CRITICAL') as log:
-            w.append(TestDiffer(name='diff'))
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("The `Differ` object 'diff' is being added without", log.output[0])
-
-        obj = TestRunner(name='N/A')
-        obj.parameters().add('_hit_path', default='Tests/run')
-        w.append(obj)
-        print(w.objects)
-        self.assertEqual(obj.name(), 'testing/tests:Tests/run')
-        self.assertIs(w.objects[0], obj)
-
-        obj = TestDiffer(name='thename')
-        w.append(obj)
-        self.assertEqual(obj.name(), 'thename')
-        self.assertIs(w.objects[-1].getParam('differs')[0], obj)
-
-        obj.error("something went wrong")
-        with self.assertLogs(level='CRITICAL') as log:
-            w.append(obj)
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("The 'thename' object produced error(s) during construction.", log.output[0])
-
-
-@mock.patch('moosetools.pyhit.load')
-class TestCreateRunners(unittest.TestCase):
-    def testDifferError(self, pyhit_load):
-        root = pyhit.Node(None)
-        root.append('Tests')
-        root(0).append('differ', type='TestDiffer')
-        pyhit_load.return_value = root
-
-        f = MooseTestFactory()
-        f.load()
-        with self.assertLogs(level='CRITICAL') as log, \
-        mock.patch('os.path.isdir', return_value=True), \
-        mock.patch('os.path.isabs', return_value=True):
-            objs, status = _create_runners('foo/bar', 'foo/bar/testing/tests', f)
-        self.assertEqual(status, 1)
-        self.assertEqual(len(log.output), 1)
-        self.assertIn("The `Differ` object 'differ' is being added without", log.output[0])
-
-    def testRunnerWithDiffers(self, pyhit_load):
-        root = pyhit.Node(None)
-        root.append('Tests')
-        root(0).append('run0', type='TestRunner')
-        root(0, 0).append('diff0-0', type='TestDiffer')
-        root(0, 0).append('diff0-1', type='TestDiffer')
-
-        root(0).append('run1', type='TestRunner')
-        root(0, 1).append('diff1-0', type='TestDiffer')
-        root(0, 1).append('diff1-1', type='TestDiffer')
-
-        pyhit_load.return_value = root
-
-        f = MooseTestFactory()
-        f.load()
-        with mock.patch('os.path.isfile', return_value=True), \
-        mock.patch('os.path.isdir', return_value=True), \
-        mock.patch('os.path.isabs', return_value=True):
-            objs, status = _create_runners('foo/bar', 'foo/bar/testing/tests', f)
-
-        self.assertEqual(status, 0)
-        self.assertIsInstance(objs[0], TestRunner)
-        self.assertEqual(objs[0].name(), 'testing/tests:Tests/run0')
-        differs = objs[0].getParam('differs')
-        self.assertEqual(len(differs), 2)
-        self.assertIsInstance(differs[0], TestDiffer)
-        self.assertEqual(differs[0].name(), 'diff0-0')
-        self.assertIsInstance(differs[1], TestDiffer)
-        self.assertEqual(differs[1].name(), 'diff0-1')
-
-        self.assertIsInstance(objs[1], TestRunner)
-        self.assertEqual(objs[1].name(), 'testing/tests:Tests/run1')
-        differs = objs[1].getParam('differs')
-        self.assertEqual(len(differs), 2)
-        self.assertIsInstance(differs[0], TestDiffer)
-        self.assertEqual(differs[0].name(), 'diff1-0')
-        self.assertIsInstance(differs[1], TestDiffer)
-        self.assertEqual(differs[1].name(), 'diff1-1')
-
-
 class TestDiscover(unittest.TestCase):
     def test(self):
 
@@ -158,6 +72,7 @@ class TestDiscover(unittest.TestCase):
         plugin_dirs = [os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo', 'plugins'))]
 
         groups = discover(start, (TagController(), ), ['tests'], plugin_dirs=plugin_dirs)
+        print(groups)
         self.assertEqual(len(groups), 3)
         self.assertEqual(groups[0][0].name(), "tests/tests:Tests/runner0")
         self.assertEqual(groups[0][0].getParam('differs'), None)
@@ -165,15 +80,6 @@ class TestDiscover(unittest.TestCase):
         self.assertEqual(groups[0][1].getParam('differs'), None)
         self.assertEqual(groups[0][2].name(), "tests/tests:Tests/group/runner1")
         differs = groups[0][2].getParam('differs')
-
-    @mock.patch('moosetools.factory.Parser.status', return_value=1)
-    def testRuntimeError(self, mock_status):
-
-        start = os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo'))
-        plugin_dirs = [os.path.abspath(os.path.join(os.path.dirname(__file__), 'demo', 'plugins'))]
-        with self.assertRaises(RuntimeError) as ex:
-            discover(start, tuple(), ['tests'], plugin_dirs=plugin_dirs)
-        self.assertIn('Errors occurred during parsing', str(ex.exception))
 
 
 if __name__ == '__main__':

@@ -10,6 +10,9 @@
 import os
 import unittest
 import enum
+import time
+import multiprocessing
+import math
 from unittest import mock
 from moosetools import parameters
 from moosetools import pyhit
@@ -76,43 +79,41 @@ class TestParser(unittest.TestCase):
     def testSimple(self):
         f = factory.Factory()
         f.load()
-        w = factory.Warehouse()
-        p = factory.Parser(f, w)
-        p.parse('test0.hit')
+        p = factory.Parser(f)
+        objects = p.parseFile('test0.hit')
 
-        self.assertEqual(len(w.objects), 2)
-        self.assertEqual(w.objects[0].name(), 'object0')
-        self.assertEqual(w.objects[1].name(), 'object1')
+        self.assertEqual(len(objects), 2)
+        self.assertEqual(objects[0].name(), 'object0')
+        self.assertEqual(objects[1].name(), 'object1')
 
     def testTypes(self):
 
         f = factory.Factory()
         f.load()
-        w = factory.Warehouse()
-        p = factory.Parser(f, w)
-        p.parse('test1.hit')
+        p = factory.Parser(f)
+        objects = p.parseFile('test1.hit')
 
-        self.assertEqual(len(w.objects), 4)
-        self.assertEqual(w.objects[0].name(), 'scalar')
-        self.assertEqual(w.objects[0].getParam('par_int'), 1980)
-        self.assertEqual(w.objects[0].getParam('par_float'), 1.2345)
-        self.assertEqual(w.objects[0].getParam('par_str'), "string with space")
-        self.assertEqual(w.objects[0].getParam('par_bool'), True)
+        self.assertEqual(len(objects), 4)
+        self.assertEqual(objects[0].name(), 'scalar')
+        self.assertEqual(objects[0].getParam('par_int'), 1980)
+        self.assertEqual(objects[0].getParam('par_float'), 1.2345)
+        self.assertEqual(objects[0].getParam('par_str'), "string with space")
+        self.assertEqual(objects[0].getParam('par_bool'), True)
 
-        self.assertEqual(w.objects[1].name(), 'vector')
-        self.assertEqual(w.objects[1].getParam('vec_int'), (1949, 1954, 1977, 1980))
-        self.assertEqual(w.objects[1].getParam('vec_float'), (1.1, 1.2, 1.3))
-        self.assertEqual(w.objects[1].getParam('vec_str'), ("s0", "s1", "s2"))
-        self.assertEqual(w.objects[1].getParam('vec_bool'), (True, False, True, False, True, False))
+        self.assertEqual(objects[1].name(), 'vector')
+        self.assertEqual(objects[1].getParam('vec_int'), (1949, 1954, 1977, 1980))
+        self.assertEqual(objects[1].getParam('vec_float'), (1.1, 1.2, 1.3))
+        self.assertEqual(objects[1].getParam('vec_str'), ("s0", "s1", "s2"))
+        self.assertEqual(objects[1].getParam('vec_bool'), (True, False, True, False, True, False))
 
-        self.assertEqual(w.objects[2].name(), 'any')
-        self.assertEqual(w.objects[2].getParam('par'), "this is something")
+        self.assertEqual(objects[2].name(), 'any')
+        self.assertEqual(objects[2].getParam('par'), "this is something")
 
-        self.assertEqual(w.objects[3].name(), 'scalar_with_quote')
-        self.assertEqual(w.objects[3].getParam('par_int'), 1980)
-        self.assertEqual(w.objects[3].getParam('par_float'), 1.2345)
-        self.assertEqual(w.objects[3].getParam('par_str'), "string with 'quote'")
-        self.assertEqual(w.objects[3].getParam('par_bool'), True)
+        self.assertEqual(objects[3].name(), 'scalar_with_quote')
+        self.assertEqual(objects[3].getParam('par_int'), 1980)
+        self.assertEqual(objects[3].getParam('par_float'), 1.2345)
+        self.assertEqual(objects[3].getParam('par_str'), "string with 'quote'")
+        self.assertEqual(objects[3].getParam('par_bool'), True)
 
     def testSubBlocks(self):
         root = pyhit.Node(None, 'Tests')
@@ -124,57 +125,55 @@ class TestParser(unittest.TestCase):
 
         f = factory.Factory()
         f.load()
-        w = factory.Warehouse()
-        p = factory.Parser(f, w)
+        p = factory.Parser(f)
 
-        with mock.patch('moosetools.pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.parse') as load:
             load.return_value = root
-            p.parse('test0.hit')
+            objects = p.parseFile('test0.hit')
 
-        self.assertEqual(len(w.objects), 4)
-        self.assertEqual(w.objects[0].name(), 'obj0')
-        self.assertEqual(w.objects[1].name(), 'obj1')
-        self.assertEqual(w.objects[2].name(), 'obj2')
-        self.assertEqual(w.objects[3].name(), 'obj3')
+        self.assertEqual(len(objects), 4)
+        self.assertEqual(objects[0].name(), 'obj0')
+        self.assertEqual(objects[1].name(), 'obj1')
+        self.assertEqual(objects[2].name(), 'obj2')
+        self.assertEqual(objects[3].name(), 'obj3')
 
     def testErrors(self):
 
         f = factory.Factory()
         f.load()
-        w = factory.Warehouse()
-        p = factory.Parser(f, w)
+        p = factory.Parser(f)
 
         # INVALID FILENAME
         with self.assertLogs(level='ERROR') as log:
-            p.parse('wrong')
+            p.parseFile('wrong')
         self.assertEqual(len(log.output), 1)
-        self.assertIn("The filename 'wrong' does not exist.", log.output[0])
+        self.assertIn("The file 'wrong' does not exist.", log.output[0])
 
         # MISSING TYPE
         root = pyhit.Node(None, 'Tests')
         root.append('obj0')
         with self.assertLogs(level='ERROR') as log:
-            p._parseNode('test0.hit', root)
+            p.parseNode('test0.hit', root)
         self.assertEqual(p.status(), 1)
         self.assertEqual(len(log.output), 1)
         self.assertIn("Missing 'type' in block", log.output[0])
 
         # FAIL PYHIT.LOAD
-        with mock.patch('moosetools.pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.parse') as load:
             load.side_effect = Exception()
-            with self.assertLogs(level='ERROR') as log:
-                p.parse('test0.hit')
+            with self.assertLogs(level='CRITICAL') as log:
+                p.parseFile('test0.hit')
             self.assertEqual(p.status(), 1)
             self.assertEqual(len(log.output), 1)
-            self.assertIn("Failed to load filename with pyhit: test0.hit", log.output[0])
+            self.assertIn("Failed to parse file 'test0.hit' with pyhit.", log.output[0])
 
         # OBJECT FAILS VALIDPARAMS
         root = pyhit.Node(None, 'Tests')
         root.append('obj0', type='TestObjectBadParams')
-        with mock.patch('moosetools.pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.parse') as load:
             load.return_value = root
             with self.assertLogs(level='ERROR') as log:
-                p.parse('test0.hit')
+                p.parseFile('test0.hit')
             self.assertEqual(p.status(), 1)
             self.assertEqual(len(log.output), 2)
             self.assertIn("Failed to evaluate validParams function of 'TestObjectBadParams'",
@@ -184,10 +183,10 @@ class TestParser(unittest.TestCase):
         # PARAM NO EXISTY
         root = pyhit.Node(None, 'Tests')
         root.append('obj0', type='TestObject', nope='1')
-        with mock.patch('moosetools.pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.parse') as load:
             load.return_value = root
             with self.assertLogs(level='ERROR') as log:
-                p.parse('test0.hit')
+                p.parseFile('test0.hit')
             self.assertEqual(p.status(), 1)
             self.assertEqual(len(log.output), 1)
             self.assertIn("he parameter 'nope' does not exist", log.output[0])
@@ -195,10 +194,10 @@ class TestParser(unittest.TestCase):
         # PARAM WRONG TYPE
         root = pyhit.Node(None, 'Tests')
         root.append('obj0', type='TestObject', par_int='abc')
-        with mock.patch('moosetools.pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.parse') as load:
             load.return_value = root
             with self.assertLogs(level='ERROR') as log:
-                p.parse('test0.hit')
+                p.parseFile('test0.hit')
             self.assertEqual(p.status(), 1)
             self.assertEqual(len(log.output), 1)
             self.assertIn(
@@ -208,10 +207,10 @@ class TestParser(unittest.TestCase):
         # OBJECT FAILS __INIT__
         root = pyhit.Node(None, 'Tests')
         root.append('obj0', type='TestObjectBadInit')
-        with mock.patch('moosetools.pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.parse') as load:
             load.return_value = root
             with self.assertLogs(level='ERROR') as log:
-                p.parse('test0.hit')
+                p.parseFile('test0.hit')
             self.assertEqual(p.status(), 1)
             self.assertEqual(len(log.output), 2)
             self.assertIn("Failed to create 'TestObjectBadInit' object.", log.output[0])
@@ -223,15 +222,60 @@ class TestParser(unittest.TestCase):
         root = pyhit.Node(None, 'Tests')
         root.append('obj0', type='TestObject')
         root.append('obj0', type='TestObject')
-        with mock.patch('moosetools.pyhit.load') as load:
+        with mock.patch('moosetools.pyhit.parse') as load:
             load.return_value = root
             with self.assertLogs(level='ERROR') as log:
-                p.parse('test0.hit')
+                p.parseFile('test0.hit')
             self.assertEqual(p.status(), 1)
             self.assertEqual(len(log.output), 2)
             self.assertIn("Duplicate section 'Tests/obj0'", log.output[0])
             self.assertIn("Duplicate parameter 'Tests/obj0/type'", log.output[1])
 
+    def testMultiple(self):
+
+        filenames = ['test0.hit', 'test1.hit']
+
+        f = factory.Factory()
+        f.load()
+        p = factory.Parser(f)
+        objects = p.parse(filenames)
+
+        self.assertEqual(len(objects), 6)
+        self.assertEqual(objects[0].name(), 'object0')
+        self.assertEqual(objects[1].name(), 'object1')
+        self.assertEqual(objects[2].name(), 'scalar')
+        self.assertEqual(objects[3].name(), 'vector')
+        self.assertEqual(objects[4].name(), 'any')
+        self.assertEqual(objects[5].name(), 'scalar_with_quote')
+
+    def testPerformance(self):
+        # test2.hit created with this
+        #root = pyhit.Node(None, 'Tests')
+        #for i in range(100):
+        #    root.append('obj{:04d}'.format(i), type='TestObject')
+        #pyhit.write('test2.hit', root)
+
+        n = 5000  # 100 items per file
+        filenames = ['test2.hit'] * 50
+
+        f = factory.Factory()
+        f.load()
+        p = factory.Parser(f)
+
+        w = list()
+        t0 = time.perf_counter()
+        for f in filenames:
+            w += p.parseFile(f)
+        self.assertEqual(len(w), n)
+        t1 = time.perf_counter() - t0
+
+        t0 = time.perf_counter()
+        w = p.parse(filenames, max_workers=3)
+        self.assertEqual(len(w), n)
+        t2 = time.perf_counter() - t0
+
+        self.assertTrue(t2 < t1, 'Serial: {}; Thread: {}'.format(t1, t2))
+
 
 if __name__ == '__main__':
-    unittest.main(module=__name__, verbosity=2)
+    unittest.main(module=__name__, verbosity=2, buffer=True)
