@@ -112,15 +112,13 @@ def _make_harness(filename, root, controllers, formatter, object_defaults):
         raise RuntimeError(msg)
 
     # Use the Parser is used to correctly convert HIT to InputParameters
-    w = list()
-    p = factory.Parser(h_factory, w)
+    p = factory.Parser(h_factory)
     with mooseutils.CurrentWorkingDirectory(working_dir):
-        p._parseNode(filename, h_node)
+        harness = p.parseNode(filename, h_node)
     if p.status() > 0:
         msg = "An error occurred during parsing of the root level parameters for creation of the TestHarness object, see console message(s) for details."
         raise RuntimeError(msg)
 
-    harness = w[0]
     harness.parameters().setValue('controllers', controllers)
     harness.parameters().setValue('formatter', formatter)
     harness.parameters().setValue('object_defaults', object_defaults)
@@ -163,10 +161,9 @@ def _make_controllers(filename, root):
             c_node.append(f"_moosetools_{name}", type=name)
 
     # Use the Parser to create the Controller objects
-    controllers = list()
-    c_parser = factory.Parser(c_factory, controllers)
+    c_parser = factory.Parser(c_factory)
     with mooseutils.CurrentWorkingDirectory(working_dir):
-        c_parser.parse(filename, c_node)
+        controllers = [c_parser.parseNode(filename, n) for n in c_node]
     if c_parser.status() > 0:
         msg = "An error occurred during parsing of the Controller block, see console message(s) for details."
         raise RuntimeError(msg)
@@ -201,15 +198,14 @@ def _make_formatter(filename, root):
         raise RuntimeError(msg)
 
     # Create the Formatter object by parsing the input file
-    formatters = list()
-    f_parser = factory.Parser(f_factory, formatters)
+    f_parser = factory.Parser(f_factory)
     with mooseutils.CurrentWorkingDirectory(working_dir):
-        f_parser._parseNode(filename, f_node)
+        formatter = f_parser.parseNode(filename, f_node)
     if f_parser.status() > 0:
         msg = "An error occurred during parsing of the root level parameters for creation of the Formatter object, see console message(s) for details."
         raise RuntimeError(msg)
 
-    return formatters[0]
+    return formatter
 
 
 def _setup_environment(filename, root):

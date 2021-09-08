@@ -215,7 +215,7 @@ class TestHarness:
         self.root_params = root_params
 
         # Build a Warehouse to hold the MooseObjects
-        self.warehouse = factory.Warehouse()
+        self.warehouse = list()
 
         # Get dependant applications and load dynamic tester plugins
         # If applications have new testers, we expect to find them in <app_dir>/scripts/TestHarness/testers
@@ -463,15 +463,12 @@ class TestHarness:
     # abspath to basename (dirpath), and the test file in queustion (file)
     def createTesters(self, dirpath, file, find_only, testroot_params={}):
         # Build a Parser to parse the objects
-        parser = factory.Parser(self.factory, self.warehouse)
+        parser = factory.Parser(self.factory)
 
         # Parse it
         #parser.parse(file, testroot_params.get("root_params", self.root_params))
-        parser.parse(file)
+        testers = parser.parseFile(file)
         #self.parse_errors.extend(parser.errors)
-
-        # Retrieve the tests from the warehouse
-        testers = copy.copy(self.warehouse.objects)
 
         # Augment the Testers with additional information directly from the TestHarness
         for tester in testers:
@@ -490,9 +487,6 @@ class TestHarness:
         if find_only:
             #self.warehouse.markAllObjectsInactive()
             return []
-
-        # Clear out the testers, we won't need them to stick around in the warehouse
-        self.warehouse.clear()
 
         if self.options.enable_recover:
             testers = self.appendRecoverableTests(testers)
