@@ -47,7 +47,6 @@ def main():
     This function exists for the use by the `moosetest` executable in the bin directory of the
     moosetools repository.
     """
-
     # Locate/load configuration
     args = cli_args()
     filename = _locate_config(args.config)

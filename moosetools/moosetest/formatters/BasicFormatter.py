@@ -80,14 +80,6 @@ class BasicFormatter(Formatter):
         params.add('width', vtype=int,
                    doc="The width of the state output (the results output is not altered), if not " \
                        "provided terminal width is inferred, if possible, otherwise a default width of 80 is utilized.")
-        params.add('min_print_result',
-                   vtype=TestCase.Result,
-                   default=TestCase.Result.DIFF,
-                   doc="The minimum TestCase.Result state necessary to show results.")
-        params.add('min_print_progress',
-                   vtype=TestCase.Result,
-                   default=TestCase.Result.SKIP,
-                   doc="The minimum TestCase.Result state necessary to show progress.")
         params.add('differ_indent',
                    default=' ' * 4,
                    vtype=str,
@@ -102,20 +94,6 @@ class BasicFormatter(Formatter):
                    doc="Print the given number of the longest running test cases.")
         return params
 
-    @staticmethod
-    def validCommandLineArguments(parser, params):
-        parser.add_argument('--verbose',
-                            action='store_true',
-                            help=("Enable complete output, this will override the use of "
-                                  "'--min_print_result' and '--min_print_progress'."))
-        parser.add_argument('--min_print_result',
-                            choices=[e.name for e in TestCase.Result],
-                            default='DIFF',
-                            help="The minimum status to show when reporting test results.")
-        parser.add_argument('--min_print_progress',
-                            choices=[e.name for e in TestCase.Result],
-                            default='SKIP',
-                            help="The minimum status to show when reporting test progress.")
 
     def __init__(self, *args, **kwargs):
         Formatter.__init__(self, *args, **kwargs)
@@ -123,20 +101,6 @@ class BasicFormatter(Formatter):
         max_result = max([len(e.text) for e in list(TestCase.Result)])
         self._max_state_width = max(max_state, max_result)
         self._extra_width = 16  # extract width for percent complete and duration
-
-    def _setup(self, args):
-        """
-        Apply command line arguments.
-        """
-        Formatter._setup(self, args)
-        if args.min_print_result:
-            self.parameters().setValue('min_print_result', TestCase.Result[args.min_print_result])
-        if args.min_print_progress:
-            self.parameters().setValue('min_print_progress',
-                                       TestCase.Result[args.min_print_progress])
-        if args.verbose:
-            self.parameters().setValue('min_print_progress', TestCase.Result.REMOVE)
-            self.parameters().setValue('min_print_result', TestCase.Result.REMOVE)
 
     def width(self):
         """
@@ -239,16 +203,13 @@ class BasicFormatter(Formatter):
         Helper method for printing the progress line.
         """
         state = kwargs.get('state')
-        min_progress = self.getParam('min_print_progress')
-        if state.level < min_progress.level:
-            return None
 
         # Build suffix string that contains percent/duration information
         percent = kwargs.get('percent', None)
         percent = f"{percent:>3.0f}%" if (percent is not None) else ''
 
         duration = kwargs.get('duration', None)
-        duration = f"[{duration:3.1f}s]" if (duration is not None) and (duration > 0) else ''
+        duration = f"[{duration:3.2f}s]" if (duration is not None) and (duration > 0) else ''
 
         suffix = " {:<{width}}".format(percent + ' ' + duration, width=self._extra_width - 1)
 
@@ -268,7 +229,7 @@ class BasicFormatter(Formatter):
             reasons = f"[{reasons}] "
 
         fill = self.fill(indent, name, reasons, status)
-        msg = f"{indent}{state.format(name)}{fill}{state.format(reasons)}{state.format(status)}{suffix}"
+        msg = f"{indent}{name}{fill}{state.format(reasons)}{state.format(status)}{suffix}"
         return msg
 
     def _formatResult(self, **kwargs):
@@ -276,26 +237,13 @@ class BasicFormatter(Formatter):
         Helper method for printing the results.
         """
         state = kwargs.get('state')
-        min_state = self.getParam('min_print_result')
-        if state.level < min_state.level:
-            return None
-
         indent = kwargs.get('indent', '')
         name = kwargs.get('name')
-        stdout = kwargs.get('stdout')
-        if stdout is not None:
+        text = kwargs.get('text')
+        if text is not None:
             prefix = indent + state.format(name) + ' '
-            stdout = textwrap.indent(self.shortenLines(kwargs.get('stdout')), prefix,
-                                     lambda *args: True)
+            text = textwrap.indent(self.shortenLines(text), prefix, lambda *args: True)
         else:
-            stdout = ''
+            text = ''
 
-        stderr = kwargs.get('stderr')
-        if stderr is not None:
-            prefix = indent + state.format(name) + ' '
-            stderr = textwrap.indent(self.shortenLines(kwargs.get('stderr')), prefix,
-                                     lambda *args: True)
-        else:
-            stderr = ''
-
-        return (stdout + stderr).strip('\n')
+        return (text).strip('\n')

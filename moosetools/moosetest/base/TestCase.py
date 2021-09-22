@@ -15,10 +15,12 @@ import time
 import uuid
 import logging
 import collections
-import multiprocessing
+import threading
 import traceback
 import textwrap
 import platform
+import contextlib
+import subprocess
 if platform.python_version() >= "3.7":
     import dataclasses
 
@@ -28,6 +30,19 @@ from .Runner import Runner
 from .Differ import Differ
 from .Controller import Controller
 
+"""
+ORIGINAL_PRINT = print#globals()['__builtins__'].print
+THREAD_STDOUT = collections.defaultdict(io.StringIO)
+THREAD_STDERR = collections.defaultdict(io.StringIO)
+def thread_print(*args, **kwargs):
+    f = kwargs.get('file', None)
+    if (f is None) or (f is sys.stdout):
+        f = THREAD_STDOUT[threading.get_ident()]
+    elif f is sys.stderr:
+        f = THREAD_STDERR[threading.get_ident()]
+        kwargs['file'] = f
+        ORIGINAL_PRINT(*args, **kwargs)
+"""
 
 class State(enum.Enum):
     """
@@ -58,91 +73,31 @@ class State(enum.Enum):
         return mooseutils.color_text(msg.format(*args, **kwargs), *self.color)
 
 
-class RedirectOutput(object):
-    """
-    A context object (i.e., `with...`) for redirecting sys.stdout and sys.stderr to `dict` keyed
-    on the current process.
+class RedirectLogs(object):
 
-    This object is used by the `TestCase` object to extract all output from the execution of the
-    `TestCase` so that that it can be sent back to the root process for output.
-
-    It also updates the `Handler` objects from the `logging` package, which store their own
-    reference to `sys.stderr`. Thus, without this the logging output will not be redirected.
-    """
-    class SysRedirect(object):
-        """
-        A replacement IO object for sys.stdout/err that stores content in *out*, which should be a
-        `dict` of `io.StringIO` objects.
-        """
-        def __init__(self, out, prefix=''):
-            self._prefix = prefix
-            self._out = out
-
-        def write(self, message):
-            self._out[multiprocessing.current_process().pid].write(
-                textwrap.indent(message, self._prefix))
-
-        def flush(self):
-            pass
-
-    def __init__(self, prefix=''):
-        self._stdout = collections.defaultdict(io.StringIO)
-        self._stderr = collections.defaultdict(io.StringIO)
-
-        self._sys_stdout = sys.stdout
-        self._sys_stderr = sys.stderr
-
-        self._prefix = prefix
-        self._logging_handlers = list()  # storage for (handler, formatter) for resetting stream
-
-    @property
-    def stdout(self):
-        """
-        Return the redirect output to `sys.stdout` for the current process.
-        """
-        return self._stdout[multiprocessing.current_process().pid].getvalue()
-
-    @property
-    def stderr(self):
-        """
-        Return the redirect output to `sys.stderr` for the current process.
-        """
-        return self._stderr[multiprocessing.current_process().pid].getvalue()
+    def __init__(self, *moose_objects):
+        self._objects = moose_objects
+        self._stream = io.StringIO()
+        self._handler = logging.StreamHandler(self._stream)
 
     def __enter__(self):
         """
         Setup redirection when entering the context (`with...`).
         """
-        self._logging_handlers = list()
-        sys.stdout = RedirectOutput.SysRedirect(self._stdout, prefix=self._prefix)
-        sys.stderr = RedirectOutput.SysRedirect(self._stderr, prefix=self._prefix)
-
-        logger = logging.getLogger()
-        for h in logger.handlers:
-            if hasattr(h, 'setStream'):
-                self._logging_handlers.append((h, h.formatter))
-                h.setStream(sys.stderr)
-                h.setFormatter(logging.Formatter())
-            elif hasattr(h, 'stream'):  # python 3.6 only
-                self._logging_handlers.append((h, h.formatter))
-                h.stream = sys.stderr
-                h.setFormatter(logging.Formatter())
-
+        for obj in self._objects:
+            obj._MooseObject__logger.addHandler(self._handler)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         """
         Restore `sys.stdout` and `sys.stderr` when exiting the context.
         """
-        sys.stdout = self._sys_stdout
-        sys.stderr = self._sys_stderr
+        for obj in self._objects:
+            obj._MooseObject__logger.removeHandler(self._handler)
 
-        for h, f in self._logging_handlers:
-            if hasattr(h, 'setStream'):
-                h.setStream(self._sys_stderr)
-            else:
-                h.stream = self._sys_stdout  # python 3.6 only
-            h.setFormatter(f)
+    @property
+    def text(self):
+        return self._stream.getvalue()
 
 
 class TestCase(MooseObject):
@@ -178,6 +133,7 @@ class TestCase(MooseObject):
         WAITING = (0, 0, 'WAITING', ('grey_82', ))
         RUNNING = (1, 0, 'RUNNING', ('dodger_blue_3', ))
         FINISHED = (2, 0, 'FINISHED', ('white', ))
+        REPORTED = (3, 0, 'REPORTED', None)
 
     class Result(State):
         """
@@ -208,25 +164,23 @@ class TestCase(MooseObject):
             """
             state: State = None
             returncode: int = None
-            stdout: str = None
-            stderr: str = None
+            text: str = None
             #reasons: list[str] = None #Py3.9 only
             reasons: list = None
 
     else:
 
         class Data(object):
-            def __init__(self, state=None, returncode=None, stdout=None, stderr=None, reasons=None):
+            def __init__(self, state=None, returncode=None, text=None, reasons=None):
                 self.state = state
                 self.returncode = returncode
-                self.stdout = stdout
+                self.text = stdout
                 self.stderr = stderr
                 self.reasons = reasons
 
             def __eq__(self, other):
                 return self.state == other.state and self.returncode == other.returncode and \
-                    self.stdout == other.stdout and self.stderr == other.stderr and \
-                    self.reasons == other.reasons
+                    self.text == other.text and self.reasons == other.reasons
 
     @staticmethod
     def validParams():
@@ -269,8 +223,9 @@ class TestCase(MooseObject):
         self.__state = None  # the overall state (TestCase.Result)
 
         # The following are various time settings managed via the `setProgress` method
-        self.__create_time = None  # time when the object was created
+        self.__create_time = time.time()  # time when the object was created
         self.__start_time = None  # time when progress change to running
+        self.__end_tie = None # time when progress changed to finished
         self.__execute_time = None  # duration of execution running to finished
 
         self.__unique_id = uuid.uuid4()  # a unique identifier for this instance
@@ -305,6 +260,13 @@ class TestCase(MooseObject):
         Return True if the test is finished running.
         """
         return self.__progress == TestCase.Progress.FINISHED
+
+    @property
+    def reported(self):
+        """
+        Return True if the test is finished and the results were reported.
+        """
+        return self.__progress == TestCase.Progress.REPORTED
 
     @property
     def progress(self):
@@ -365,12 +327,10 @@ class TestCase(MooseObject):
         information could be added to the `TestCase.Data` object.
         !alert-end!
         """
-        current = time.time()
         if self.waiting:
-            return current - self.__create_time
+            return time.time() - self.__create_time
         elif self.running:
-            return current - self.__start_time
-
+            return time.time() - self.__start_time
         return self.__execute_time
 
     @property
@@ -382,6 +342,22 @@ class TestCase(MooseObject):
         """
         return self.__start_time
 
+    def setStartTime(self, t):
+        self.__start_time = t
+
+    def setExecuteTime(self, t):
+        self.__execute_time = t
+
+    def setInfo(self, *, progress=None, state=None, results=None, start_time=None, execute_time=None):
+        """
+        Update items (e.g., progress, state, results) on this object.
+        """
+        if progress is not None: self.setProgress(progress)
+        if state is not None: self.setState(state)
+        if results is not None: self.setResults(results)
+        if start_time is not None: self.setStartTime(start_time)
+        if execute_time is not None: self.setExecuteTime(execute_time)
+
     def setProgress(self, progress):
         """
         Update this execution status with *progress*.
@@ -389,16 +365,17 @@ class TestCase(MooseObject):
         See `moosetest.run` for use.
         """
         if not isinstance(progress, TestCase.Progress):
-            with RedirectOutput() as out:
+            with RedirectLogs(self) as out:
                 self.critical("The supplied progress must be of type `TestCase.Progress`.")
             results = {
                 self._runner.name():
-                TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+                TestCase.Data(TestCase.Result.FATAL, None, out.text, None)
             }
             self.setState(TestCase.Result.FATAL)
             self.setResults(results)
             progress = TestCase.Progress.FINISHED
 
+        """
         current = time.time()
         if progress == TestCase.Progress.WAITING:
             if self.__create_time is None: self.__create_time = current
@@ -408,6 +385,10 @@ class TestCase(MooseObject):
             TestCase.__FINISHED__ += 1
             if self.__execute_time is None:
                 self.__execute_time = current - self.__start_time if self.__start_time else 0
+        """
+
+        if not self.finished and (progress == TestCase.Progress.FINISHED):
+            TestCase.__FINISHED__ += 1
 
         self.__progress = progress
 
@@ -418,11 +399,11 @@ class TestCase(MooseObject):
         See `moosetest.run` for use.
         """
         if not isinstance(state, TestCase.Result):
-            with RedirectOutput() as out:
+            with RedirectLogs(self) as out:
                 self.critical("The supplied state must be of type `TestCase.Result`.")
             results = {
                 self._runner.name():
-                TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+                TestCase.Data(TestCase.Result.FATAL, None, out.text, None)
             }
             self.setProgress(TestCase.Progress.FINISHED)
             self.setResults(results)
@@ -441,35 +422,25 @@ class TestCase(MooseObject):
         """
         # Attempt to avoid adding unexpected data. If a problem is detected change the state and
         # log a critical error message.
-        if not isinstance(results, dict):
-            with RedirectOutput() as out:
+        with RedirectLogs(self) as out:
+            self.reset()
+
+            if not isinstance(results, dict):
                 self.critical("The supplied result must be of type `dict`.")
-            results = {
-                self._runner.name():
-                TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
-            }
-            self.setState(TestCase.Result.FATAL)
 
-        if any(not isinstance(val, TestCase.Data) for val in results.values()):
-            with RedirectOutput() as out:
+            if any(not isinstance(val, TestCase.Data) for val in results.values()):
                 self.critical("The supplied result values must be of type `TestCase.Data`.")
-            results = {
-                self._runner.name():
-                TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
-            }
-            self.setState(TestCase.Result.FATAL)
 
-        names = [self._runner.name()] + [d.name() for d in self._differs]
-        if any(key not in names for key in results.keys()):
-            with RedirectOutput() as out:
-                self.critical(
-                    "The supplied result keys must be the names of the `Runner` or `Differ` object(s)."
-                )
-            results = {
-                self._runner.name():
-                TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
-            }
-            self.setState(TestCase.Result.FATAL)
+            names = [self._runner.name()] + [d.name() for d in self._differs]
+            if any(key not in names for key in results.keys()):
+                self.critical("The supplied result keys must be the names of the `Runner` or `Differ` object(s).")
+
+            if self.status():
+                results = {
+                    self._runner.name():
+                    TestCase.Data(TestCase.Result.FATAL, None, out.text, None)
+                }
+                self.setState(TestCase.Result.FATAL)
 
         self.__results = results
 
@@ -495,8 +466,7 @@ class TestCase(MooseObject):
             raise RuntimeError(f"The 'working_dir' does not exist: {working_dir}")
 
         # Execute the runner, if it does not return a PASS state, then execution is complete
-        with mooseutils.CurrentWorkingDirectory(working_dir):
-            r_data = self._executeObject(self._runner)
+        r_data = self._executeObject(self._runner)
         results[self._runner.name()] = r_data
         if r_data.state.level != 0:
             return r_data.state, results
@@ -506,8 +476,7 @@ class TestCase(MooseObject):
         # state level.
         state = r_data.state
         for obj in self._differs:
-            with mooseutils.CurrentWorkingDirectory(working_dir):
-                d_data = self._executeObject(obj, r_data.returncode, r_data.stdout, r_data.stderr)
+            d_data = self._executeObject(obj, r_data.returncode, r_data.text)
             results[obj.name()] = d_data
             if (d_data.state.level >= self._min_fail_state.level) and (d_data.state.level >
                                                                        state.level):
@@ -538,39 +507,31 @@ class TestCase(MooseObject):
         # instance of the `TestCase` object. Unexpected problems result in a FATAL status being
         # returned.
 
-        # All output from the various calls are accumulated so that all output is returned to the
-        # stored in the object on the main process
-        stdout = ''
-        stderr = ''
 
-        # Reset the state of supplied "obj". The status of the object will be checked after all
-        # calls that could lead the object to produce an error are completed. The object status at
-        # this point indicates if the objected execution succeeded.
-        with RedirectOutput() as out:
+        with RedirectLogs(self, obj, *self._controllers) as out:
+
+            # Reset the state of supplied "obj". The status of the object will be checked after all
+            # calls that could lead the object to produce an error are completed. The object status at
+            # this point indicates if the objected execution succeeded.
             try:
                 obj.reset()  # clear log counts of the object to be passed to the Controller
             except Exception as ex:
                 self.exception(
                     "An exception occurred within the `reset` method of the '{}' object.",
                     obj.name())
-                return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+                return TestCase.Data(TestCase.Result.FATAL, None, out.text, None)
 
-            finally:
-                stdout += out.stdout
-                stderr += out.stderr
+            # Loop through each `Controller` object
+            for controller in self._controllers:
 
-        # Loop through each `Controller` object
-        for controller in self._controllers:
+                # Skip of controller not associated with current type
+                if not isinstance(obj, controller.OBJECT_TYPES):
+                    self.debug(
+                        "Controller object of type '{}' is not setup to execute with an object of type '{}'.",
+                        type(controller), type(obj))
+                    continue
 
-            # Skip of controller not associated with current type
-            if not isinstance(obj, controller.OBJECT_TYPES):
-                self.debug(
-                    "Controller object of type '{}' is not setup to execute with an object of type '{}'.",
-                    type(controller), type(obj))
-                continue
-
-            # Execute the `Controller`
-            with RedirectOutput() as out:
+                # Execute the `Controller`
                 try:
                     controller.reset()  # clear log counts
                     params = obj.getParam(controller.getParam('prefix')) if controller.isParamValid(
@@ -582,35 +543,25 @@ class TestCase(MooseObject):
                         self.error(
                             "An error occurred, on the controller, within the `execute` method of the {} controller with '{}' object.",
                             type(controller).__name__, obj.name())
-                        return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr,
-                                             controller.getReasons())
+                        return TestCase.Data(TestCase.Result.FATAL, None, out.text, controller.getReasons())
 
                     # Stop if an error is logged on the object, due to execution of Controller
                     if obj.status():
                         self.error(
                             "An error occurred, on the object, within the `execute` method of the {} controller with '{}' object.",
                             type(controller).__name__, obj.name())
-                        return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr,
-                                             obj.getReasons())
+                        return TestCase.Data(TestCase.Result.FATAL, None, out.text, obj.getReasons())
 
                     # Skip it...maybe
                     c_state = controller.state()
                     if c_state is not None:
-                        return TestCase.Data(c_state, None, out.stdout, out.stderr,
-                                             controller.getReasons())
+                        return TestCase.Data(c_state, None, out.text, controller.getReasons())
 
                 except Exception as ex:
                     self.error(
                         "An exception occurred within the `execute` method of the {} controller with '{}' object.\n{}",
                         type(controller).__name__, obj.name(), traceback.format_exc())
-                    return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
-
-                finally:
-                    stdout += out.stdout
-                    stderr += out.stderr
-
-        # Execute the object
-        with RedirectOutput() as out:
+                    return TestCase.Data(TestCase.Result.FATAL, None, out.text, None)
 
             # Call `preExecute`, stop if this fails in any capacity
             try:
@@ -620,34 +571,38 @@ class TestCase(MooseObject):
                     self.error(
                         "An error occurred within the `preExecute` method of the '{}' object.",
                         obj.name())
-                    return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr,
-                                         obj.getReasons())
+                    return TestCase.Data(TestCase.Result.FATAL, None, out.text, obj.getReasons())
 
             except Exception as ex:
                 self.exception(
                     "An exception occurred within the `preExecute` method of the '{}' object.",
                     obj.name())
-                return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+                return TestCase.Data(TestCase.Result.FATAL, None, out.text, None)
 
             # Call `execute`, always call `postExecute` even if this fails
             execute_failure = None
             try:
                 obj.reset()
                 rcode = obj.execute(*args, **kwargs)
+                print(out.text)
                 if obj.status():
                     state = TestCase.Result.DIFF if isinstance(obj,
                                                                Differ) else TestCase.Result.ERROR
                     self.error("An error occurred within the `execute` method of the '{}' object.",
                                obj.name())
-                    execute_failure = TestCase.Data(state, rcode, out.stdout, out.stderr,
-                                                    obj.getReasons())
+                    execute_failure = TestCase.Data(state, rcode, out.text, obj.getReasons())
+
+            except subprocess.TimeoutExpired as ex:
+
+                self.error("An timeout occurred within the `execute` method of the '{}' object.",
+                           obj.name())
+                execute_failure = TestCase.Data(TestCase.Result.TIMEOUT, None, out.text, None)
 
             except Exception as ex:
                 self.exception(
                     "An exception occurred within the `execute` method of the '{}' object.",
                     obj.name())
-                execute_failure = TestCase.Data(TestCase.Result.EXCEPTION, None, out.stdout,
-                                                out.stderr, None)
+                execute_failure = TestCase.Data(TestCase.Result.EXCEPTION, None, out.text, None)
 
             # Call `postExecute`
             try:
@@ -657,20 +612,16 @@ class TestCase(MooseObject):
                     self.error(
                         "An error occurred within the `postExecute` method of the '{}' object.",
                         obj.name())
-                    return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr,
-                                         obj.getReasons())
+                    return TestCase.Data(TestCase.Result.FATAL, None, out.text, obj.getReasons())
 
             except Exception as ex:
                 self.exception(
                     "An exception occurred within the `postExecute` method of the '{}' object.",
                     obj.name())
-                return TestCase.Data(TestCase.Result.FATAL, None, out.stdout, out.stderr, None)
+                return TestCase.Data(TestCase.Result.FATAL, None, out.text, None)
 
             if execute_failure is not None:
                 return execute_failure
-
-            stdout += out.stdout
-            stderr += out.stderr
 
         #TODO: This prefixing should be moved to BasicFormatter, don't recall why it is here
         #stdout += textwrap.indent(stdout, mooseutils.color_text('sys.stdout > ', 'grey_30'))
@@ -679,4 +630,4 @@ class TestCase(MooseObject):
         # I think what is need is a way to distinguish between output from moosetest errors/messages
         # vs. output from the execute methods...
         #
-        return TestCase.Data(TestCase.Result.PASS, rcode, stdout, stderr, obj.getReasons())
+        return TestCase.Data(TestCase.Result.PASS, rcode, out.text, obj.getReasons())

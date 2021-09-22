@@ -37,6 +37,7 @@ class EnvironmentController(Controller):
         """
         params = Controller.validObjectParams()
         params.add('platform',
+                   vtype=str,
                    array=True,
                    allow=('Linux', 'Darwin', 'Windows'),
                    doc="Limit the execution to the supplied platform(s).")

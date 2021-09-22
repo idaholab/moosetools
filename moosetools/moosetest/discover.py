@@ -10,10 +10,12 @@
 import os
 import inspect
 import importlib
+import multiprocessing
 import concurrent.futures
-from moosetools import moosetree
-from moosetools import pyhit
-from moosetools import factory
+import collections
+import time
+import copy
+from moosetools import moosetree, pyhit, factory, core
 from moosetools.moosetest.base import Controller, TestCase
 from moosetools.moosetest.base import Runner, Differ
 
@@ -41,7 +43,7 @@ class MooseTestFactory(factory.Factory):
         params.add('object_defaults',
                    vtype=dict,
                    doc=("Default object settings for `Runner` and `Differ` objects, where the key "
-                        "is the registered object name (e.g., `RunCommand`) and the value is a "
+                        "is the registered object name (e.g., `ExecuteCommand`) and the value is a "
                         "`dict` of parameter names and values."))
         return params
 
@@ -60,6 +62,10 @@ class MooseTestFactory(factory.Factory):
                                 [p.__module__ for p in inspect.getmro(otype)])
                 if obj_type in obj_names:
                     for key, value in obj_params.items():
+                        if key not in params:
+                            msg = "The '{}' parameter does not exist in the '{}' object."
+                            raise core.MooseException(msg, key, obj_type)
+
                         param = params.parameter(key)
                         if param.vtype and isinstance(value, str):
                             value = factory.Parser._getValueFromStr(param.vtype, value, param.array)
@@ -113,6 +119,11 @@ def discover(start,
         spec_files += [os.path.join(root, f) for f in files if f in spec_file_names]
 
     # Factory for creating the test objects
+    f_args = dict(plugin_dirs=tuple(plugin_dirs),
+                  plugin_types=(Runner, Differ),
+                  controllers=tuple(controllers or []),
+                  object_defaults=object_defaults or dict())
+
     obj_factory = MooseTestFactory(plugin_dirs=tuple(plugin_dirs),
                                    plugin_types=(Runner, Differ),
                                    controllers=tuple(controllers or []),

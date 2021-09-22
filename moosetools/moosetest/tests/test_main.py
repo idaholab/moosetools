@@ -17,7 +17,7 @@ from unittest import mock
 
 from moosetools import pyhit, mooseutils
 from moosetools.moosetest import main
-from moosetools.moosetest.base import Controller, TestCase, RedirectOutput, TestHarness
+from moosetools.moosetest.base import Controller, TestCase, TestHarness
 from moosetools.moosetest.main import _make_harness, _make_controllers, _make_formatter, _setup_environment, _locate_config, _load_config, _get_object_defaults
 from moosetools.moosetest.formatters import BasicFormatter
 
@@ -228,10 +228,10 @@ class Test_get_object_defaults(unittest.TestCase):
     def test(self):
         root = pyhit.Node()
         obj_defaults = root.append('Defaults')
-        obj_defaults.append('RunCommand', timeout='0.1')
+        obj_defaults.append('ExecuteCommand', timeout='0.1')
 
         out = _get_object_defaults(None, root)
-        self.assertEqual(out, {'RunCommand': {'timeout': '0.1'}})
+        self.assertEqual(out, {'ExecuteCommand': {'timeout': '0.1'}})
 
     def testNone(self):
         root = pyhit.Node()

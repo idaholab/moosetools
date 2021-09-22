@@ -181,7 +181,7 @@ def run_executable(app_path, *args, mpi=None, suppress_output=False):
     if suppress_output:
         kwargs['stdout'] = subprocess.DEVNULL
         kwargs['stderr'] = subprocess.DEVNULL
-    return subprocess.call(cmd, **kwargs)
+    return subprocess.run(cmd, **kwargs)
 
 
 def runExe(app_path, args):
@@ -450,3 +450,42 @@ def fuzzyEqual(test_value, true_value, tolerance):
 
 def fuzzyAbsoluteEqual(test_value, true_value, tolerance):
     return abs(test_value - true_value) < tolerance
+
+
+def separate_args(text):
+    """
+    Separate space delimited arguments in *text*, but do not consider spaces within quotes.
+
+    The function returns a list of the arguments. For example, consider the following example.
+
+    ```
+    >>> from moosetools import mooseutils
+    >>> text = "Materials/m2/scale_factor='2.0' Materials/m2/y='0 0.5'"
+    >>> mooseutils.separate_args(text)
+    >>> ["Materials/m2/scale_factor='2.0'", "Materials/m2/y='0 0.5'"]
+   ```
+
+    """
+    text = re.sub(r' +', ' ', text)
+    is_char_quote = lambda char: char in ('"', "'")
+    is_char_space = lambda char: char == ' '
+
+    out = list()
+    current = ''
+    in_quote = False
+    for char in text:
+        is_quote = is_char_quote(char)
+        is_space = is_char_space(char)
+
+        if in_quote and is_quote:
+            in_quote = False
+        elif is_quote:
+            in_quote = True
+        elif (not in_quote) and is_space:
+            out.append(current)
+            current = ''
+            continue
+        current += char
+
+    out.append(current)
+    return out

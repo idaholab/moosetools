@@ -124,8 +124,8 @@ class Parser(core.MooseObject):
 
         # Set the object name to that of the block (e.g., [object])
         params.setValue('name', node.name)
-        params.add('_hit_path', default=node.fullpath, private=True)
-        params.add('_hit_filename', default=filename, private=True)
+        params.setValue('_hit_path', node.fullpath)
+        params.setValue('_hit_filename', filename)
 
         # Update the Parameters with the HIT node
         self.setParameters(params, filename, node, otype)
@@ -183,8 +183,14 @@ class Parser(core.MooseObject):
             # in the `InputParameters` object returned by `validParams` function
             param = params.parameter(key)
             vtype = param.vtype
-            if param.array or ((vtype is not None) and (type(value) not in vtype)):
-                new_value = Parser._getValueFromStr(vtype, str(value), param.array)
+            if (param.array and (vtype is not None)) or ((vtype is not None) and (type(value) not in vtype)):
+                try:
+                    new_value = Parser._getValueFromStr(vtype, str(value), param.array)
+                except:
+                    msg = "{}:{}\nAn Exception occurred trying to convert '{}' to the correct type(s) of '{}' for '{}' parameter."
+                    self.exception(msg, filename, node.line(key, -1), value, vtype, key)
+                    raise
+
                 if new_value is None:
                     msg = "{}:{}\nFailed to convert '{}' to the correct type(s) of '{}' for '{}' parameter."
                     self.error(msg, filename, node.line(key, -1), value, vtype, key)

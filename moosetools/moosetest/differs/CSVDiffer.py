@@ -46,7 +46,7 @@ class CSVDiffer(FileDiffer):
                    doc="Relative error value in comparison(s).")
         return params
 
-    def execute(self, rcode, stdout, stderr):
+    def execute(self, *args):
         args = types.SimpleNamespace(csv_file=None,
                                      comparison_file=self.getParam('comparison_file'),
                                      abs_zero=self.getParam('abs_zero'),
@@ -66,4 +66,4 @@ class CSVDiffer(FileDiffer):
                     self.error(msg)
 
                 if not csv_differ.getNumErrors():
-                    print("Files are the same: {} == {}".format(filename, gold_filename))
+                    self.info("Files are the same: {} == {}",  filename, gold_filename)

@@ -10,7 +10,7 @@
 import re
 from moosetools.moosetest.base import Controller, Runner
 
-# TODO: Change to SearchController and add "search" sub-argument to command line:
+# TODO: Change to SearchController and (possibly) add "search" sub-argument to command line:
 #       moosetest search --re foo --text bar
 
 
@@ -19,6 +19,8 @@ class NameController(Controller):
     A controller to dictate if an object should run based on the name.
     """
     AUTO_BUILD = True
+    OBJECT_TYPES = (Runner,)
+
 
     @staticmethod
     def validParams():
@@ -67,6 +69,18 @@ class NameController(Controller):
         See the `make_runner` and `make_differ` in the Runner.py and Differ.py modules.
         """
         return None
+
+    @staticmethod
+    def validCommandLineArguments(parser, params):
+        p = params.parameter('remove_if_re_not_match_name')
+        parser.add_argument('--re_match', type=str, help=p.doc)
+
+        p = params.parameter('remove_if_text_not_in_name')
+        parser.add_argument('--in_name', type=str, help=p.doc)
+
+    def _setup(self, args):
+        self.parameters().setValue('remove_if_re_not_match_name', args.re_match)
+        self.parameters().setValue('remove_if_text_not_in_name', args.in_name)
 
     def execute(self, obj, params):
 

@@ -45,8 +45,7 @@ class FileDiffer(Differ):
             gold_dir = self.getParam('file', 'golddir')
             gold_filenames = list()
             for filename in filenames:
-                d, f = os.path.split(filename)
-                gold_filenames.append(os.path.join(d, gold_dir, f))
+                gold_filenames.append(os.path.join(gold_dir, filename))
 
         if len(filenames) != len(gold_filenames):
             msg = "The number of supplied file(s) for comparison are not the same length:\nFile(s):\n{}\nGold File(s):\n{}"
@@ -58,5 +57,6 @@ class FileDiffer(Differ):
         """
         Yield pairs of files, created and gold, for comparison.
         """
+        working_dir = self.getParam('_working_dir')
         for f, g in self.__filename_pairs:
-            yield f, g
+            yield os.path.join(working_dir, f), os.path.join(working_dir, g)

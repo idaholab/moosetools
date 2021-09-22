@@ -13,6 +13,8 @@ import enum
 import logging
 import copy
 import argparse
+import enum
+import inspect
 
 from moosetools import core
 from .Parameter import Parameter
@@ -46,6 +48,14 @@ class InputParameters(object):
                  private=True,
                  default=InputParameters.ErrorMode.EXCEPTION,
                  vtype=InputParameters.ErrorMode)
+        self.add('_hit_filename',
+                 private=True,
+                 vtype=str,
+                 doc="The name of the HIT file used for populating this object.")
+        self.add('_hit_path',
+                 private=True,
+                 vtype=str,
+                 doc="The name of block within the HIT file used for populating this object.")
 
     def add(self, *args, **kwargs):
         """
@@ -355,12 +365,21 @@ class InputParameters(object):
         for name in args:
             param = self._getParameter(name)
             action = parser.add_argument(f"--{name}")
-            if param.vtype is not None:
+
+            if (param.vtype is not None) and (enum.Enum in inspect.getmro(param.vtype[0])):
+                if param.default is not None:
+                    action.default = param.default.name
+                action.choices = [e.name for e in param.vtype[0]]
+                action.type = str
+
+            if (param.vtype is not None) and (action.type is None):
                 action.type = param.vtype[0]
-            if param.array:
+            if (param.array) and (action.nargs is None):
                 action.nargs = param.size if (param.size is not None) else '+'
-            if param.default is not None:
+            if (param.default is not None) and (action.default is None):
                 action.default = param.default
+            if (param.allow is not None) and (action.choices is None):
+                action.choices = param.allow
             action.help = param.doc
 
     def fromArgs(self, namespace, *args):
@@ -376,7 +395,13 @@ class InputParameters(object):
 
         for name, value in vars(namespace).items():
             if (name in args) and (value is not None):
-                self.setValue(name, tuple(value) if isinstance(value, list) else value)
+                param = self._getParameter(name)
+                if isinstance(value, list):
+                    param.setValue(tuple(value))
+                elif (param.vtype is not None) and (enum.Enum in inspect.getmro(param.vtype[0])):
+                    param.setValue(param.vtype[0][value])
+                else:
+                    param.setValue(value)
 
     def _getParameter(self, *args, suppress_error=False):
         """
@@ -417,7 +442,17 @@ class InputParameters(object):
         """
         Produce warning, error, or exception based on operation mode.
         """
-        msg = text.format(*args, **kwargs)
+        msg = ''
+        hit_file = self.getValue('_hit_filename')
+        hit_path = self.getValue('_hit_path')
+        if (hit_file is not None) and (hit_path is not None):
+            msg = f"{hit_file}:{hit_path}\n"
+        elif (hit_file is not None):
+            msg = f"{hit_file}\n"
+        elif (hit_path is not None):
+            msg = f"{hit_path}\n"
+
+        msg += text.format(*args, **kwargs)
         mode = self.getValue('_error_mode')
         log = self.getValue('_moose_object') or logging.getLogger(__name__)
         if mode == InputParameters.ErrorMode.WARNING:

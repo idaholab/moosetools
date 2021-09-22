@@ -11,6 +11,7 @@ import os
 import re
 #import dataclasses # TODO: use when python 3.6 is dropped
 import typing
+import packaging.version
 from moosetools import mooseutils
 from moosetools.parameters import InputParameters
 from moosetools.moosetest.base import Controller
@@ -40,6 +41,8 @@ class AutotoolsConfigController(Controller):
     A base `Controller` to dictate if an object should run based on Autotools configuration file(s).
     """
     RE_DEFINE = re.compile(r"#define\s+(?P<key>\S+)\s+(?P<value>.*?)#endif", flags=re.DOTALL)
+
+    OPERATOR_PREFIX_RE = re.compile(r'(?P<operator><=|>=|!=|==|!|<|>)(?P<value>.*)')
 
     @staticmethod
     def validParams():
@@ -135,10 +138,11 @@ class AutotoolsConfigController(Controller):
         param_value = params.getValue(param_name)
         if param_value is not None:
             mapped_value, raw_value, raw_name = self.getConfigItem(params, param_name)
-            if AutotoolsConfigController._notEqual(param_value, mapped_value):
+            result, expression = AutotoolsConfigController._compare(param_value, mapped_value)
+            if not result:
                 msg = "The application is configured with '{}' equal to '{}', which maps to a value of '{}'. However, the associated '{}' parameter for this test requires '{}'."
-                self.debug(msg, raw_name, raw_value, mapped_value, param_name, param_value)
-                self.skip('{}: {} != {}', raw_name, mapped_value, param_value)
+                self.info(msg, raw_name, raw_value, mapped_value, param_name, param_value)
+                self.skip(f"{raw_name}: not {expression}")
 
     def execute(self, obj, params):
         """
@@ -154,7 +158,42 @@ class AutotoolsConfigController(Controller):
                 self.checkConfig(params, key)
 
     @staticmethod
-    def _notEqual(value0, value1):
+    def _compare(value0, value1):
+        """
+        Perform case insensitive comparisons with operator prefixes.
+        """
         v0 = value0.casefold() if isinstance(value0, str) else value0
         v1 = value1.casefold() if isinstance(value1, str) else value1
-        return v0 != v1
+
+        operator = '=='
+        if isinstance(v1, str):
+            match = AutotoolsConfigController.OPERATOR_PREFIX_RE.match(v1)
+            if match:
+                operator = match.group('operator')
+                v1 = match.group('value')
+                if operator == '!': operator = '!='
+
+        expression = f'{repr(v0)}{operator}{repr(v1)}'
+        return eval(expression), expression
+
+
+    @staticmethod
+    def _compareVersions(value0, value1):
+        """
+        Perform comparisons between two version strings.
+        """
+        assert isinstance(value0, str), "'value0' must be a 'str'"
+        assert isinstance(value1, str), "'value1' must be a 'str'"
+
+        v0 = packaging.version.parse(value0)
+
+        operator = '=='
+        match = AutotoolsConfigController.OPERATOR_PREFIX_RE.match(value1)
+        if match:
+            operator = match.group('operator')
+            v1 = packaging.version.parse(match.group('value'))
+            if operator == '!': operator = '!='
+        else:
+            v1 = packaging.version.parse(value1)
+
+        return eval(f'v0{operator}v1'), f'{str(v0)}{operator}{str(v1)}'

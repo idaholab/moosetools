@@ -1,16 +1,16 @@
 [Tests]
   [runner0]
-    type = RunCommand
+    type = ExecuteCommand
     command = 'sleep 3'
   []
   [runner1]
-    type = RunCommand
+    type = ExecuteCommand
     command = 'sleep 3'
     requires = 'runner0'
   []
   [group]
     [runner1]
-      type = RunCommand
+      type = ExecuteCommand
       command = 'sleep 3'
       [diff]
         type = ConsoleDiffer
@@ -19,16 +19,16 @@
     []
   []
   [remove]
-    type = RunCommand
+    type = ExecuteCommand
     command = 'sleep 1.5'
   []
   [tag_skip]
-    type = RunCommand
+    type = ExecuteCommand
     command = 'sleep 0.5'
     tag_names = 'not_normal'
   []
   [tag_run]
-    type = RunCommand
+    type = ExecuteCommand
     command = 'sleep 0.5'
     tag_names = 'normal'
   []
@@ -36,7 +36,7 @@
 
 [Assessments]
   [runner]
-    type = RunCommand
+    type = ExecuteCommand
     command = 'sleep 1'
   []
 []

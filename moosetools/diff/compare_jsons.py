@@ -29,8 +29,8 @@ def compare_jsons(json_file01, json_file02, relative_error=None, absolute_error=
     log = logging.getLogger(__name__)
 
     # Validate files
-    validate_tolerance(relative_error, absolute_error, raise_on_error=True)
-    mooseutils.validate_extension(json_file01, json_file02, extension='.json', raise_on_error=True)
+    #validate_tolerance(relative_error, absolute_error, raise_on_error=True)
+    #mooseutils.validate_extension(json_file01, json_file02, extension='.json', raise_on_error=True)
     mooseutils.validate_paths_exist(json_file01, json_file02, raise_on_error=True)
 
     # Parse jsons

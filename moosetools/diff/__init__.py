@@ -8,5 +8,6 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 from .compare_jsons import compare_jsons
+from .compare_xml import compare_xml
 from .validate_tolerance import validate_tolerance
 from .MooseDeepDiff import MooseDeepDiff

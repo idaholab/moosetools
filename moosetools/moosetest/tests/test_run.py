@@ -19,7 +19,7 @@ import logging
 import concurrent.futures
 
 from moosetools.moosetest.base import make_runner, make_differ, TestCase, State, Formatter, Runner, Differ
-from moosetools.moosetest.runners import RunCommand
+from moosetools.moosetest.runners import ExecuteCommand
 from moosetools.moosetest import run, fuzzer
 from moosetools.moosetest.run import _execute_testcase, _execute_testcases
 from moosetools.moosetest.run import _report_progress_and_results
@@ -56,7 +56,7 @@ def make_testcase_map(*args):
 class TestRunExecuteHelpers(unittest.TestCase):
     @unittest.skipIf(platform.python_version() < '3.7', "Python 3.7 or greater required")
     def test_execute_testcase(self):
-        r = make_runner(RunCommand, name='test', command=('sleep', '0'))
+        r = make_runner(ExecuteCommand, name='test', command=('sleep', '0'))
         tc = TestCase(runner=r)
 
         # No error
@@ -246,7 +246,7 @@ class TestRunExecuteHelpers(unittest.TestCase):
         self.assertEqual(data.reasons, ['failed dependency'])
 
         # Timeout
-        r2 = make_runner(RunCommand, name='test2', command=('sleep', '2'))
+        r2 = make_runner(ExecuteCommand, name='test2', command=('sleep', '2'))
         tc2 = TestCase(runner=r2)
         _execute_testcases([tc2], q, 1)
 
@@ -278,7 +278,7 @@ class TestReportHelper(unittest.TestCase):
     def test_report_progress_and_results(self, tc_prog, tc_state, tc_results, fm_results):
 
         fm = Formatter()
-        r0 = make_runner(RunCommand, name='test0', command=('sleep', '0.2'))
+        r0 = make_runner(ExecuteCommand, name='test0', command=('sleep', '0.2'))
         tc0 = TestCase(runner=r0)
         tc_prog.reset_mock()
 

@@ -179,7 +179,8 @@ class MooseObject(object):
             message,
             str), "The supplied 'message' must be a python `str` type, see `MooseObject.log`."
         name = self.getParam('name')
-        message = message.format(*args, **kwargs)
+        if args or kwargs:
+            message = message.format(*args, **kwargs)
         #if extra is None: extra = dict()
         #extra.setdefault('mooseobject_name', self.name()
         self.__logger.log(level, message, exc_info=exc_info, stack_info=stack_info, extra=extra)

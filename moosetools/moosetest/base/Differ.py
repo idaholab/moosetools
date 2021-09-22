@@ -8,6 +8,7 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import io
+import os
 import copy
 import platform
 import logging
@@ -66,6 +67,10 @@ class Differ(MooseTestObject):
             doc=
             "File name(s) that are expected to be modified during execution of the test (see `Runner`)."
         )
+
+        # TODO: Set by Runner, use self._working_dir (make @property)
+        params.add('_working_dir', vtype=str, default=os.getcwd())
+
         return params
 
     def preExecute(self):
@@ -83,12 +88,12 @@ class Differ(MooseTestObject):
         """
         pass
 
-    def execute(self, rcode, stdout, stderr):
+    def execute(self, rcode, text):
         """
         Override this method to define the comparison to be performed.
 
         This method is called by the `TestCase` object that expects a return code. The
-        return code is not analyzed and may be non-zero. The *rcode*, *stdout*, and *stderr*
+        return code is not analyzed and may be non-zero. The *rcode* and *text*
         arguments are the output for the `moosetest.base.Runner` object that was executed
         prior to running this object.
 

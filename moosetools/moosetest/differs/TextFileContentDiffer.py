@@ -47,7 +47,7 @@ class TextFileContentDiffer(Differ):
                    doc="The names of the flags to pass to regular expression `match` function.")
         return params
 
-    def execute(self, rcode, stdout, stderr):
+    def execute(self, *args):
         """
         Check all files for desired content.
         """

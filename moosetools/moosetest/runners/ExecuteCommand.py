@@ -8,24 +8,25 @@
 #* https://www.gnu.org/licenses/lgpl-2.1.html
 
 import os
+import io
 import sys
 import threading
 import multiprocessing
 import subprocess
 from moosetools.moosetest.base import Runner
+from tempfile import SpooledTemporaryFile
 
 
-class RunCommand(Runner):
+class ExecuteCommand(Runner):
     @staticmethod
     def validParams():
         params = Runner.validParams()
+
+        # TODO: Cannot be applied to Runner b/c you can't interrupt a python function within a Thread
+        params.add('timeout', default=300, vtype=(float, int), doc="Allowable execution time, in seconds.")
+
+
         params.add('command', vtype=str, array=True, required=True, doc="Command to execute.")
-        params.add(
-            'timeout',
-            vtype=(int, float),
-            doc=
-            "Limit the execution to the specified time; implemented via 'timeout' flag in `subprocess.run` command."
-        )
         params.add(
             'allow_exception',
             vtype=bool,
@@ -34,19 +35,38 @@ class RunCommand(Runner):
             "Do not raise exception if the process fails; implemented via 'check' flag in `subprocess.run` command."
         )
 
+        #params.add('shell', vtype=bool, default=True, doc="Set the 'shell' input for `subprocess.run` command.")
         return params
 
     def execute(self):
+
+        #f = SpooledTemporaryFile(max_size=1000000)
+        #f = io.StringIO()
+
         kwargs = dict()
-        kwargs['capture_output'] = True  # MOOSE executable output is not captured without this
+        #kwargs['capture_output'] = True  # MOOSE executable output is not captured without this
         kwargs['encoding'] = 'utf-8'
         kwargs['check'] = self.getParam('allow_exception')
+
+        kwargs['stdout'] = subprocess.PIPE
+        kwargs['stderr'] = subprocess.STDOUT
+        kwargs['cwd'] = self.getParam('working_dir') or os.getcwd()
         kwargs['timeout'] = self.getParam('timeout')
+        #kwargs['close_fds'] = False
+        #kwargs['shell'] = True#self.getParam('shell')
+        #kwargs['preexec_fn'] = os.setsid
 
         cmd = self.getParam('command')
         str_cmd = ' '.join(cmd)
-        print('RUNNING COMMAND:\n{0}\n{1}\n{0}'.format('-' * len(str_cmd), str_cmd))
+        self.info('RUNNING COMMAND:\n{0}\n{1}\n{0}'.format('-' * len(str_cmd), str_cmd))
+
         out = subprocess.run(cmd, **kwargs)
-        sys.stdout.write(out.stdout)
-        sys.stderr.write(out.stderr)
+        #f.flush()
+        #f.seek(0)
+        #content = f.read().decode('utf-8')
+        #f.close()
+        #content = out.stdout
+        #self.info(content)
+        self.info(out.stdout)
+
         return out.returncode

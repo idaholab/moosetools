@@ -137,6 +137,66 @@ class Test(unittest.TestCase):
             "The application is configured with 'MOOSE_SPARSE_AD' equal to '1', which maps to a value of 'SPARSE'. However, the associated 'ad_mode' parameter for this test requires 'NONSPARSE'.",
             log.output[0])
 
+    def test_compare(self):
+        compare = AutotoolsConfigController._compare
+        self.assertEqual(compare(1980, 1980), (True, '1980==1980'))
+        self.assertEqual(compare(1980, 1981), (False, '1980==1981'))
+        self.assertEqual(compare('1980', 1980), (False, "'1980'==1980"))
+        self.assertEqual(compare(1980, '1980'), (False, "1980=='1980'"))
+        self.assertEqual(compare('1980', '1980'), (True, "'1980'=='1980'"))
+        self.assertEqual(compare('1980', '1981'), (False, "'1980'=='1981'"))
+
+        self.assertEqual(compare('1980', '<1980'), (False, "'1980'<'1980'"))
+        self.assertEqual(compare('1979', '<1980'), (True, "'1979'<'1980'"))
+
+        self.assertEqual(compare('1980', '<=1980'), (True, "'1980'<='1980'"))
+        self.assertEqual(compare('1979', '<=1980'), (True, "'1979'<='1980'"))
+        self.assertEqual(compare('1981', '<=1980'), (False, "'1981'<='1980'"))
+
+        self.assertEqual(compare('1980', '>1980'), (False, "'1980'>'1980'"))
+        self.assertEqual(compare('1981', '>1980'), (True, "'1981'>'1980'"))
+
+        self.assertEqual(compare('1980', '>=1980'), (True, "'1980'>='1980'"))
+        self.assertEqual(compare('1981', '>=1980'), (True, "'1981'>='1980'"))
+        self.assertEqual(compare('1979', '>=1980'), (False, "'1979'>='1980'"))
+
+        self.assertEqual(compare('1980', '!=1980'), (False, "'1980'!='1980'"))
+        self.assertEqual(compare('1981', '!=1980'), (True, "'1981'!='1980'"))
+
+        self.assertEqual(compare('1980', '!1980'), (False, "'1980'!='1980'"))
+        self.assertEqual(compare('1981', '!1980'), (True, "'1981'!='1980'"))
+
+        self.assertEqual(compare('1980', '==1980'), (True, "'1980'=='1980'"))
+        self.assertEqual(compare('1981', '==1980'), (False, "'1981'=='1980'"))
+
+    def test_compareVersions(self):
+        compare = AutotoolsConfigController._compareVersions
+        self.assertEqual(compare('1.2.1', '1.2.1'), (True, "1.2.1==1.2.1"))
+        self.assertEqual(compare('1.2', '1.12'), (False, "1.2==1.12"))
+
+        self.assertEqual(compare('1.1.2', '<1.12'), (True, "1.1.2<1.12"))
+        self.assertEqual(compare('1.12', '<1.2'), (False, "1.12<1.2"))
+
+        self.assertEqual(compare('1.12', '<=1.12.1'), (True, "1.12<=1.12.1"))
+        self.assertEqual(compare('1.12', '<=1.12'), (True, "1.12<=1.12"))
+        self.assertEqual(compare('1.1.2', '<=1.1.1'), (False, "1.1.2<=1.1.1"))
+
+        self.assertEqual(compare('1.20', '>1.12'), (True, "1.20>1.12"))
+        self.assertEqual(compare('1.2', '>1.12'), (False, "1.2>1.12"))
+
+        self.assertEqual(compare('1.12.1', '>=1.12'), (True, "1.12.1>=1.12"))
+        self.assertEqual(compare('1.12', '>=1.12'), (True, "1.12>=1.12"))
+        self.assertEqual(compare('1.1.1', '>=1.1.2'), (False, "1.1.1>=1.1.2"))
+
+        self.assertEqual(compare('1.2.1', '==1.2.1'), (True, "1.2.1==1.2.1"))
+        self.assertEqual(compare('1.2', '==1.12'), (False, "1.2==1.12"))
+
+        self.assertEqual(compare('1.2.1', '!=1.2.1'), (False, "1.2.1!=1.2.1"))
+        self.assertEqual(compare('1.2', '!=1.12'), (True, "1.2!=1.12"))
+
+        self.assertEqual(compare('1.2.1', '!1.2.1'), (False, "1.2.1!=1.2.1"))
+        self.assertEqual(compare('1.2', '!1.12'), (True, "1.2!=1.12"))
+
 
 if __name__ == '__main__':
     unittest.main(module=__name__, verbosity=2)
